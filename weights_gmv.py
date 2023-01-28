@@ -123,10 +123,10 @@ class weights():
             TE_f5 = -0.50*np.ones_like(l,dtype=np.float_)
             TE_f6 =  np.nan_to_num(np.sqrt(l*(l+1)))
             TE_f7 =  np.nan_to_num(np.sqrt(l*(l+1)))*slte[:lmax+1]
-            self.w[0][0]=TT_f3*slte[:lmax+1]; self.w[0][1]=-1*TT_f1*slee[:lmax+1]; self.w[0][2]=TT_f2; self.s[0][0]=+1; self.s[0][1]=+0; self.s[0][2]=+1
-            self.w[1][0]=TT_f3*slte[:lmax+1]; self.w[1][1]=-1*TT_f1*slee[:lmax+1]; self.w[1][2]=TT_f2; self.s[1][0]=-1; self.s[1][1]=+0; self.s[1][2]=-1
-            self.w[2][0]=-1*TT_f1*slte[:lmax+1]; self.w[2][1]=TT_f3*slee[:lmax+1]; self.w[2][2]=TT_f2; self.s[2][0]=+0; self.s[2][1]=-1; self.s[2][2]=-1
-            self.w[3][0]=-1*TT_f1*slte[:lmax+1]; self.w[3][1]=TT_f3*slee[:lmax+1]; self.w[3][2]=TT_f2; self.s[3][0]=+0; self.s[3][1]=+1; self.s[3][2]=+1
+            self.w[0][0]=TT_f3*slee[:lmax+1]; self.w[0][1]=-1*TT_f1*slte[:lmax+1]; self.w[0][2]=TT_f2; self.s[0][0]=+1; self.s[0][1]=+0; self.s[0][2]=+1
+            self.w[1][0]=TT_f3*slee[:lmax+1]; self.w[1][1]=-1*TT_f1*slte[:lmax+1]; self.w[1][2]=TT_f2; self.s[1][0]=-1; self.s[1][1]=+0; self.s[1][2]=-1
+            self.w[2][0]=-1*TT_f1*slee[:lmax+1]; self.w[2][1]=TT_f3*slte[:lmax+1]; self.w[2][2]=TT_f2; self.s[2][0]=+0; self.s[2][1]=-1; self.s[2][2]=-1
+            self.w[3][0]=-1*TT_f1*slee[:lmax+1]; self.w[3][1]=TT_f3*slte[:lmax+1]; self.w[3][2]=TT_f2; self.s[3][0]=+0; self.s[3][1]=+1; self.s[3][2]=+1
             self.w[4][0]=EE_f3*slte[:lmax+1]; self.w[4][1]=-1*EE_f1*sltt[:lmax+1]; self.w[4][2]=EE_f2; self.s[4][0]=-1; self.s[4][1]=+2; self.s[4][2]=+1
             self.w[5][0]=EE_f4*slte[:lmax+1]; self.w[5][1]=-1*EE_f1*sltt[:lmax+1]; self.w[5][2]=EE_f2; self.s[5][0]=-3; self.s[5][1]=+2; self.s[5][2]=-1
             self.w[6][0]=EE_f4*slte[:lmax+1]; self.w[6][1]=-1*EE_f1*sltt[:lmax+1]; self.w[6][2]=EE_f2; self.s[6][0]=+3; self.s[6][1]=-2; self.s[6][2]=+1
