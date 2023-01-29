@@ -14,6 +14,7 @@ import os
 import matplotlib.pyplot as plt
 import wignerd
 import resp
+import qest_gmv
 
 ####################################
 gmv = True
@@ -30,7 +31,7 @@ cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TT
 clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 dir_out = '/scratch/users/yukanaka/gmv/'
 ####################################
-est = str(sys.argv[1]) # TT/EE/TE/TB/EB
+est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all
 sim = int(sys.argv[2]) # 1 through 1000 or 1 through 20 if map
 append = str(sys.argv[3])
 # Get input map or alm
@@ -46,6 +47,15 @@ print(f'Doing sim {sim}')
 # Run CAMB to get theory Cls
 ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
 
+# Create noise spectra
+bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
+nltt = (np.pi/180./60.*nlev_t)**2 / bl**2
+nlee = (np.pi/180./60.*nlev_p)**2 / bl**2
+nlbb = (np.pi/180./60.*nlev_p)**2 / bl**2
+#nlte = (np.pi/180./60.*nlev_p)*(np.pi/180./60.*nlev_t) / bl**2
+nlte = 0 #TODO: check!
+
+'''
 # Load inputs: full-sky noiseless alms
 if map_inputs:
     t,q,u = hp.read_map(file_map,field=[0,1,2])
@@ -59,57 +69,75 @@ else:
     elm = utils.reduce_lmax(elm,lmax=lmax)
     blm = utils.reduce_lmax(blm,lmax=lmax)
 
-# Create noise spectra
-bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
-nltt = (np.pi/180./60.*nlev_t)**2 / bl**2
-nlee=nlbb = (np.pi/180./60.*nlev_p)**2 / bl**2
+# Get noise alms
 np.random.seed(hash('tora')%2**32+sim)
 nlmt,nlme,nlmb = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-#TODO above part is random...?
+#TODO: above part is random...?
 
 tlm += nlmt
 elm += nlme
 blm += nlmb
 
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', tlm)
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', elm)
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', blm)
-
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', tlm)
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', elm)
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy', blm)
 '''
+
 print('LOAD FROM PRECOMPUTED ALMS...')
 
-tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-'''
+tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+
+# Signal+Noise spectra
+cltt = sltt + nltt
+clee = slee + nlee
+clbb = slbb + nlbb
+clte = slte + nlte
 
 if not gmv:
     print('Creating filters...')
-    
-    # Signal+Noise spectra
-    cltt = sltt + nltt
-    clee = slee + nlee
-    clbb = slbb + nlbb
-    
     # Create 1/Nl filters
     flt = np.zeros(lmax+1); flt[100:] = 1./cltt[100:]
     fle = np.zeros(lmax+1); fle[100:] = 1./clee[100:]
     flb = np.zeros(lmax+1); flb[100:] = 1./clbb[100:]
     
-    if est[0] == 'T': almbar1 = hp.almxfl(tlm,flt); flm1= flt
-    if est[0] == 'E': almbar1 = hp.almxfl(elm,fle); flm1= fle
-    if est[0] == 'B': almbar1 = hp.almxfl(blm,flb); flm1= flb
+    if est[0] == 'T': almbar1 = hp.almxfl(tlm,flt); flm1 = flt
+    if est[0] == 'E': almbar1 = hp.almxfl(elm,fle); flm1 = fle
+    if est[0] == 'B': almbar1 = hp.almxfl(blm,flb); flm1 = flb
     
-    if est[1] == 'T': almbar2 = hp.almxfl(tlm,flt); flm2= flt
-    if est[1] == 'E': almbar2 = hp.almxfl(elm,fle); flm2= fle
-    if est[1] == 'B': almbar2 = hp.almxfl(blm,flb); flm2= flb
+    if est[1] == 'T': almbar2 = hp.almxfl(tlm,flt); flm2 = flt
+    if est[1] == 'E': almbar2 = hp.almxfl(elm,fle); flm2 = fle
+    if est[1] == 'B': almbar2 = hp.almxfl(blm,flb); flm2 = flb
 
     #np.save(f'/scratch/users/yukanaka/gmv/almbar/almbar1_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230122.npy', almbar1)
     #np.save(f'/scratch/users/yukanaka/gmv/almbar/almbar2_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230122.npy', almbar2)
 else:
-    print('doing the 1/Dl for gmv...')
-    Dl = 
+    print('Doing the 1/Dl for GMV...')
+    invDl = np.zeros(lmax+1, dtype=np.complex_) #TODO: should i leave low ells at 0 just like the inverse variance filter does?
+    invDl[100:] = 1./(cltt[100:]*clee[100:] - clte[100:]**2)
+    flb = np.zeros(lmax+1); flb[100:] = 1./clbb[100:]
 
+    # Order is TT, EE, TE, TB, EB
+    alm1all = np.zeros((len(tlm),5), dtype=np.complex_) 
+    alm2all = np.zeros((len(tlm),5), dtype=np.complex_)
+    # TT
+    alm1all[:,0] = hp.almxfl(tlm,invDl)
+    alm2all[:,0] = hp.almxfl(tlm,invDl)
+    # EE
+    alm1all[:,1] = hp.almxfl(elm,invDl)
+    alm2all[:,1] = hp.almxfl(elm,invDl)
+    # TE
+    alm1all[:,2] = hp.almxfl(tlm,invDl)
+    alm2all[:,2] = hp.almxfl(elm,invDl)
+    # TB
+    alm1all[:,3] = hp.almxfl(tlm,invDl)
+    alm2all[:,3] = hp.almxfl(blm,flb)
+    # EB
+    alm1all[:,4] = hp.almxfl(elm,invDl)
+    alm2all[:,4] = hp.almxfl(blm,flb)
+
+    totalcls = np.vstack((cltt,clee,clbb,clte)).T
 
 # Run healqest
 if not gmv:
@@ -119,7 +147,7 @@ if not gmv:
     np.save(dir_out+f'/plm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
     np.save(dir_out+f'/clm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
 else:
-    glm,clm = qest_gmv.qest_gmv(lmax,clfile,almbar1all,almbar2all)
+    glm,clm = qest_gmv.qest_gmv(lmax,clfile,totalcls,alm1all,alm2all)
     # Save plm and clm
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     np.save(dir_out+f'/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
