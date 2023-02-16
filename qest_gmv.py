@@ -5,12 +5,17 @@ import numpy as np
 import healpy as hp
 np.seterr(all='ignore')
 
-def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all):
+def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
     '''
     alms are not filtered.
     alm1all and alm2all should be a N x 5 array for each of the 5 estimators.
     '''
-    ests = ['TT_GMV', 'EE_GMV', 'TE_GMV', 'TB_GMV', 'EB_GMV']
+    if ests == 'all':
+        ests = ['TT_GMV', 'EE_GMV', 'TE_GMV', 'TB_GMV', 'EB_GMV']
+    elif ests == 'A':
+        ests = ['TT_GMV', 'EE_GMV', 'TE_GMV']
+    elif ests == 'B':
+        ests = ['TB_GMV', 'EB_GMV']
     nside   = utils.get_nside(Lmax)
     retglm  = 0
     retclm  = 0
@@ -22,7 +27,7 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all):
         print("projecting to nside=%d"%nside)
         lmax1    = hp.Alm.getlmax(alm1.shape[0])
         lmax2    = hp.Alm.getlmax(alm2.shape[0])
-        q        = weights_gmv.weights(est,max(lmax1,lmax2),clfile,totalcls)
+        q        = weights_gmv.weights(est,max(lmax1,lmax2),clfile,totalcls,unl)
         print("lmax=%d"%max(lmax1,lmax2))
         print("Lmax=%d"%Lmax)
         glmsum = 0

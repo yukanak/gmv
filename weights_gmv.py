@@ -2,16 +2,17 @@ import numpy as np
 import utils 
 
 class weights():
-    def __init__(self,est,lmax,clfile,totalcls=None,unlclfile=None):
+    def __init__(self,est,lmax,clfile,totalcls=None,unl=False):
         l  = np.arange(lmax+1,dtype=np.float_)
-        ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
+        if unl:
+            ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile, lmax=lmax) 
+        else:
+            ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
         if totalcls is not None:
             cltt = totalcls[:,0]
             clee = totalcls[:,1]
             clbb = totalcls[:,2]
             clte = totalcls[:,3]
-        if unlclfile is not None:
-            uell,usltt,uslee,uslbb,uslte,uslpp,usltp,uslep = utils.get_unlensedcls(unlclfile, lmax=lmax) 
         self.lmax=lmax
 
         if est=='TT_GMV': 

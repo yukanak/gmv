@@ -6,4 +6,4 @@
 #SBATCH --mem=128G
 #SBATCH --partition=kipac
 
-~/gmv/get_plms_test.py all 1 qest_gmv
+~/gmv/get_plms_test.py EB 1 qest_original_unl
