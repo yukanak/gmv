@@ -17,7 +17,7 @@ import resp
 import qest_gmv
 
 ####################################
-gmv = False
+gmv = True
 unl = True
 map_inputs = True
 #lmax = 1000 # For quick testing
@@ -31,31 +31,35 @@ nlev_p = 5
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 ####################################
-est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all
+est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all/A/B
 sim = int(sys.argv[2]) # 1 through 1000 or 1 through 20 if map
 append = str(sys.argv[3])
-if unl:
-    # This is unlensed!
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-else:
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+#TODO: I CHANGED THIS!
+#if unl:
+#    # This is unlensed!
+#    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+#else:
+clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 # Get input map or alm
 if map_inputs:
     #file_map = f'/scratch/users/yukanaka/full_res_maps/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
     #file_map = f'/scratch/users/yukanaka/full_res_maps/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
-    #file_map = f'/scratch/users/yukanaka/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
-    # Unlensed map (i.e. no lensing signal)_
-    file_map = f'/scratch/users/yukanaka/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}.fits'
+    if unl:
+        # Unlensed map (i.e. no lensing signal)_
+        #file_map = f'/scratch/users/yukanaka/full_res_maps/unl/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}.fits'
+        file_map = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim}_lmax4096_nside8192_20230310.fits'
+    else:
+        file_map = f'/scratch/users/yukanaka/full_res_maps/len/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
 else:
     file_alm = f'/scratch/users/yukanaka/alms_llcdm/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap_lmax2048.alm'
 ####################################
 print(f'Doing sim {sim}')
 
 # Run CAMB to get theory Cls
-if unl:
-    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile,lmax=lmax)
-else:
-    ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
+#if unl:
+#    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile,lmax=lmax)
+#else:
+ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
 
 # Create noise spectra
 bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
@@ -82,25 +86,33 @@ else:
 # Get noise alms
 np.random.seed(hash('tora')%2**32+sim)
 nlmt,nlme,nlmb = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-#TODO: above part is random but is it actually...?
+#TODO: above part should be random??
 
 tlm += nlmt
 elm += nlme
 blm += nlmb
 
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy', tlm)
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy', elm)
-np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy', blm)
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy', tlm)
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy', elm)
+np.save(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy', blm)
 '''
 
 print('LOAD FROM PRECOMPUTED ALMS...')
 
-#tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-#elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-#blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
-tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
-elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
-blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
+if unl:
+    #tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
+    #elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
+    #blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230213_unl.npy')
+    tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy')
+    elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy')
+    blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230311_unl_from_lensed_cls.npy')
+else:
+    #tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+    #elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+    #blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230123.npy')
+    tlm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/tlm_seed{sim}_lmax{lmax}_nside{nside}_20230309.npy')
+    elm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/elm_seed{sim}_lmax{lmax}_nside{nside}_20230309.npy')
+    blm = np.load(f'/scratch/users/yukanaka/gmv/almbar_pre_cinv_filt/blm_seed{sim}_lmax{lmax}_nside{nside}_20230309.npy')
 
 # Signal+Noise spectra
 cltt = sltt + nltt
@@ -127,7 +139,7 @@ if not gmv:
     #np.save(f'/scratch/users/yukanaka/gmv/almbar/almbar2_est{est}_seed{sim}_lmax{lmax}_nside{nside}_20230122.npy', almbar2)
 else:
     print('Doing the 1/Dl for GMV...')
-    invDl = np.zeros(lmax+1, dtype=np.complex_) #TODO: should i leave low ells at 0 just like the inverse variance filter does?
+    invDl = np.zeros(lmax+1, dtype=np.complex_)
     invDl[100:] = 1./(cltt[100:]*clee[100:] - clte[100:]**2)
     flb = np.zeros(lmax+1); flb[100:] = 1./clbb[100:]
 

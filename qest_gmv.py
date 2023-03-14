@@ -12,18 +12,22 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
     '''
     if ests == 'all':
         ests = ['TT_GMV', 'EE_GMV', 'TE_GMV', 'TB_GMV', 'EB_GMV']
+        idxs = [0, 1, 2, 3, 4]
     elif ests == 'A':
         ests = ['TT_GMV', 'EE_GMV', 'TE_GMV']
+        idxs = [0, 1, 2]
     elif ests == 'B':
         ests = ['TB_GMV', 'EB_GMV']
+        idxs = [3, 4]
     nside   = utils.get_nside(Lmax)
     retglm  = 0
     retclm  = 0
 
     for i, est in enumerate(ests):
         print('doing estimator: %s'%est)
-        alm1 = alm1all[:,i]
-        alm2 = alm2all[:,i]
+        idx = idxs[i]
+        alm1 = alm1all[:,idx]
+        alm2 = alm2all[:,idx]
         print("projecting to nside=%d"%nside)
         lmax1    = hp.Alm.getlmax(alm1.shape[0])
         lmax2    = hp.Alm.getlmax(alm2.shape[0])
@@ -82,6 +86,55 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
 
             glmsum = glm_TB + glm_EB
             clmsum = clm_TB + clm_EB
+            '''
+            # For the BT and BE for TB_GMV...
+            # BT
+            wX1,wY1,wP1,sX1,sY1,sP1 = q.w[12][0],q.w[12][1],q.w[12][2],q.s[12][0],q.s[12][1],q.s[12][2]
+            wX3,wY3,wP3,sX3,sY3,sP3 = q.w[14][0],q.w[14][1],q.w[14][2],q.s[14][0],q.s[14][1],q.s[14][2]
+    
+            walm1          = hp.almxfl(alm1,wX1) #T1/E1
+            walm3          = hp.almxfl(alm1,wX3) #T3/E3
+            walm2          = hp.almxfl(alm2,wY1) #B2
+    
+            SpX1, SmX1   = hp.alm2map_spin( [walm1,np.zeros_like(walm1)], nside , 1,lmax1)
+            SpX3, SmX3   = hp.alm2map_spin( [walm3,np.zeros_like(walm3)], nside , 3,lmax1)
+            SpY2, SmY2   = hp.alm2map_spin( [np.zeros_like(walm2),-1j*walm2], nside, 2,lmax2)
+    
+            SpZ =  SpY2*(SpX1-SpX3) + SmY2*(SmX1-SmX3)
+            SmZ = -SpY2*(SmX1+SmX3) + SmY2*(SpX1+SpX3)
+    
+            glm_BT,clm_BT  = hp.map2alm_spin([SpZ,SmZ],1, Lmax)
+
+            nrm = 1
+    
+            glm_BT = hp.almxfl(glm_BT,nrm*wP1)
+            clm_BT = hp.almxfl(clm_BT,nrm*wP1)
+
+            # BE now
+            wX1,wY1,wP1,sX1,sY1,sP1 = q.w[16][0],q.w[16][1],q.w[16][2],q.s[16][0],q.s[16][1],q.s[16][2]
+            wX3,wY3,wP3,sX3,sY3,sP3 = q.w[18][0],q.w[18][1],q.w[18][2],q.s[18][0],q.s[18][1],q.s[18][2]
+    
+            walm1          = hp.almxfl(alm1,wX1) #T1/E1
+            walm3          = hp.almxfl(alm1,wX3) #T3/E3
+            walm2          = hp.almxfl(alm2,wY1) #B2
+    
+            SpX1, SmX1   = hp.alm2map_spin( [walm1,np.zeros_like(walm1)], nside , 1,lmax1)
+            SpX3, SmX3   = hp.alm2map_spin( [walm3,np.zeros_like(walm3)], nside , 3,lmax1)
+            SpY2, SmY2   = hp.alm2map_spin( [np.zeros_like(walm2),-1j*walm2], nside, 2,lmax2)
+    
+            SpZ =  SpY2*(SpX1-SpX3) + SmY2*(SmX1-SmX3)
+            SmZ = -SpY2*(SmX1+SmX3) + SmY2*(SpX1+SpX3)
+    
+            glm_BE,clm_BE  = hp.map2alm_spin([SpZ,SmZ],1, Lmax)
+
+            nrm = -1
+    
+            glm_BE = hp.almxfl(glm_BE,nrm*wP1)
+            clm_BE = hp.almxfl(clm_BE,nrm*wP1)
+
+            glmsum = glm_TB + glm_EB + glm_BT + glm_BE
+            clmsum = clm_TB + clm_EB + clm_BT + glm_BE
+            '''
 
         else:
             # More traditional quicklens style calculation            

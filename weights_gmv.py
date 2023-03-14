@@ -4,10 +4,10 @@ import utils
 class weights():
     def __init__(self,est,lmax,clfile,totalcls=None,unl=False):
         l  = np.arange(lmax+1,dtype=np.float_)
-        if unl:
-            ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile, lmax=lmax) 
-        else:
-            ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
+        #if unl:
+        #    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile, lmax=lmax) 
+        #else:
+        ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
         if totalcls is not None:
             cltt = totalcls[:,0]
             clee = totalcls[:,1]
@@ -109,6 +109,7 @@ class weights():
             self.w[23][0]=TE_f7*cltt[:lmax+1]; self.w[23][1]=-1*TE_f5*clte[:lmax+1]; self.w[23][2]=TE_f6; self.s[23][0]=+1; self.s[23][1]=+0; self.s[23][2]=+1
 
         if est=='TE_GMV':
+            #TODO: maybe eventually try adding ET and the other rows??
             self.sltt = sltt
             self.slee = slee
             self.slte = slte
@@ -157,7 +158,8 @@ class weights():
         if est=='TB_GMV':
             self.slte = slte
             self.slee = slee
-            self.ntrm = 12
+            #self.ntrm = 12
+            self.ntrm = 24
             self.w = { i : {} for i in range(0, self.ntrm) }
             self.s = { i : {} for i in range(0, self.ntrm) }
             l  = np.arange(lmax+1,dtype=np.float_)
@@ -173,10 +175,29 @@ class weights():
             EB_f5 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slee[:lmax+1]
             EB_f6 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slbb[:lmax+1]
             EB_f7 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slbb[:lmax+1]         
+            BT_f1 = -0.25j*np.ones_like(l,dtype=np.float_)
+            BT_f2 =  np.nan_to_num(np.sqrt(l*(l+1)))
+            BT_f3 =  np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slte[:lmax+1]
+            BT_f4 =  np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            BT_f5 = +0.25j*np.ones_like(l,dtype=np.float_)
+            BE_f1 =  (-0.25j*np.ones_like(l))
+            BE_f2 =  (+0.25j*np.ones_like(l))
+            BE_f3 = +np.nan_to_num(np.sqrt(l*(l+1)))
+            BE_f4 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slee[:lmax+1]
+            BE_f5 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slee[:lmax+1]
+            BE_f6 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slbb[:lmax+1]
+            BE_f7 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slbb[:lmax+1]
+
             self.w[0][0]=TB_f3*clee[:lmax+1]; self.w[0][1]=TB_f5; self.w[0][2]=TB_f2; self.s[0][0]=-1; self.s[0][1]=+2; self.s[0][2]=+1 # self derived
             self.w[1][0]=TB_f4*clee[:lmax+1]; self.w[1][1]=TB_f5; self.w[1][2]=TB_f2; self.s[1][0]=-3; self.s[1][1]=+2; self.s[1][2]=-1
             self.w[2][0]=TB_f4*clee[:lmax+1]; self.w[2][1]=TB_f1; self.w[2][2]=TB_f2; self.s[2][0]=+3; self.s[2][1]=-2; self.s[2][2]=+1
             self.w[3][0]=TB_f3*clee[:lmax+1]; self.w[3][1]=TB_f1; self.w[3][2]=TB_f2; self.s[3][0]=+1; self.s[3][1]=-2; self.s[3][2]=-1
+            # Overleaf version...
+            #self.w[0][0]=TB_f3*clee[:lmax+1]; self.w[0][1]=TB_f1; self.w[0][2]=TB_f2; self.s[0][0]=1; self.s[0][1]=-2; self.s[0][2]=+1 # self derived
+            #self.w[1][0]=TB_f4*clee[:lmax+1]; self.w[1][1]=TB_f1; self.w[1][2]=TB_f2; self.s[1][0]=3; self.s[1][1]=-2; self.s[1][2]=-1
+            #self.w[2][0]=TB_f4*clee[:lmax+1]; self.w[2][1]=TB_f5; self.w[2][2]=TB_f2; self.s[2][0]=-3; self.s[2][1]=2; self.s[2][2]=+1
+            #self.w[3][0]=TB_f3*clee[:lmax+1]; self.w[3][1]=TB_f5; self.w[3][2]=TB_f2; self.s[3][0]=-1; self.s[3][1]=2; self.s[3][2]=-1
+            
             self.w[4][0]=EB_f4*clte[:lmax+1]; self.w[4][1]=-1*EB_f1; self.w[4][2]=EB_f3; self.s[4][0]=-1; self.s[4][1]=+2; self.s[4][2]=+1
             self.w[5][0]=EB_f5*clte[:lmax+1]; self.w[5][1]=-1*EB_f1; self.w[5][2]=EB_f3; self.s[5][0]=-3; self.s[5][1]=+2; self.s[5][2]=-1
             self.w[6][0]=EB_f5*clte[:lmax+1]; self.w[6][1]=-1*EB_f2; self.w[6][2]=EB_f3; self.s[6][0]=+3; self.s[6][1]=-2; self.s[6][2]=+1
@@ -185,11 +206,35 @@ class weights():
             self.w[9][0]=EB_f7*clte[:lmax+1]; self.w[9][1]=-1*EB_f2; self.w[9][2]=EB_f3; self.s[9][0]=-2; self.s[9][1]=+3; self.s[9][2]=+1
             self.w[10][0]=EB_f7*clte[:lmax+1]; self.w[10][1]=-1*EB_f1; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
             self.w[11][0]=EB_f6*clte[:lmax+1]; self.w[11][1]=-1*EB_f1; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
+            # Overleaf version...
+            #self.w[4][0]=EB_f4*clte[:lmax+1]; self.w[4][1]=-1*EB_f2; self.w[4][2]=EB_f3; self.s[4][0]=-1; self.s[4][1]=+2; self.s[4][2]=+1
+            #self.w[5][0]=EB_f5*clte[:lmax+1]; self.w[5][1]=-1*EB_f2; self.w[5][2]=EB_f3; self.s[5][0]=-3; self.s[5][1]=+2; self.s[5][2]=-1
+            #self.w[6][0]=EB_f5*clte[:lmax+1]; self.w[6][1]=-1*EB_f1; self.w[6][2]=EB_f3; self.s[6][0]=+3; self.s[6][1]=-2; self.s[6][2]=+1
+            #self.w[7][0]=EB_f4*clte[:lmax+1]; self.w[7][1]=-1*EB_f1; self.w[7][2]=EB_f3; self.s[7][0]=+1; self.s[7][1]=-2; self.s[7][2]=-1
+            #self.w[8][0]=EB_f1*clte[:lmax+1]; self.w[8][1]=-1*EB_f6; self.w[8][2]=EB_f3; self.s[8][0]=-2; self.s[8][1]=+1; self.s[8][2]=-1
+            #self.w[9][0]=EB_f1*clte[:lmax+1]; self.w[9][1]=-1*EB_f7; self.w[9][2]=EB_f3; self.s[9][0]=-2; self.s[9][1]=+3; self.s[9][2]=+1
+            #self.w[10][0]=EB_f2*clte[:lmax+1]; self.w[10][1]=-1*EB_f7; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
+            #self.w[11][0]=EB_f2*clte[:lmax+1]; self.w[11][1]=-1*EB_f6; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
+
+            self.w[12][1]=BT_f3; self.w[12][0]=BT_f5*clee[:lmax+1]; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
+            self.w[13][1]=BT_f4; self.w[13][0]=BT_f5*clee[:lmax+1]; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
+            self.w[14][1]=BT_f4; self.w[14][0]=BT_f1*clee[:lmax+1]; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
+            self.w[15][1]=BT_f3; self.w[15][0]=BT_f1*clee[:lmax+1]; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
+
+            self.w[16][1]=BE_f4; self.w[16][0]=-1*BE_f1*clte[:lmax+1]; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
+            self.w[17][1]=BE_f5; self.w[17][0]=-1*BE_f1*clte[:lmax+1]; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
+            self.w[18][1]=BE_f5; self.w[18][0]=-1*BE_f2*clte[:lmax+1]; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
+            self.w[19][1]=BE_f4; self.w[19][0]=-1*BE_f2*clte[:lmax+1]; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
+            self.w[20][1]=BE_f6; self.w[20][0]=-1*BE_f2*clte[:lmax+1]; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
+            self.w[21][1]=BE_f7; self.w[21][0]=-1*BE_f2*clte[:lmax+1]; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
+            self.w[22][1]=BE_f7; self.w[22][0]=-1*BE_f1*clte[:lmax+1]; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
+            self.w[23][1]=BE_f6; self.w[23][0]=-1*BE_f1*clte[:lmax+1]; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
 
         if est=='EB_GMV':
             self.slte = slte
             self.slee = slee
-            self.ntrm = 12
+            #self.ntrm = 12
+            self.ntrm = 24
             self.w = { i : {} for i in range(0, self.ntrm) }
             self.s = { i : {} for i in range(0, self.ntrm) }
             l  = np.arange(lmax+1,dtype=np.float_)
@@ -205,10 +250,29 @@ class weights():
             EB_f5 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slee[:lmax+1]
             EB_f6 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slbb[:lmax+1]
             EB_f7 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slbb[:lmax+1]         
+            BT_f1 = -0.25j*np.ones_like(l,dtype=np.float_)
+            BT_f2 =  np.nan_to_num(np.sqrt(l*(l+1)))
+            BT_f3 =  np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slte[:lmax+1]
+            BT_f4 =  np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            BT_f5 = +0.25j*np.ones_like(l,dtype=np.float_)
+            BE_f1 =  (-0.25j*np.ones_like(l))
+            BE_f2 =  (+0.25j*np.ones_like(l))
+            BE_f3 = +np.nan_to_num(np.sqrt(l*(l+1)))
+            BE_f4 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slee[:lmax+1]
+            BE_f5 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slee[:lmax+1]
+            BE_f6 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slbb[:lmax+1]
+            BE_f7 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slbb[:lmax+1]
+
             self.w[0][0]=TB_f3*clte[:lmax+1]; self.w[0][1]=-1*TB_f5; self.w[0][2]=TB_f2; self.s[0][0]=-1; self.s[0][1]=+2; self.s[0][2]=+1 # self derived
             self.w[1][0]=TB_f4*clte[:lmax+1]; self.w[1][1]=-1*TB_f5; self.w[1][2]=TB_f2; self.s[1][0]=-3; self.s[1][1]=+2; self.s[1][2]=-1
             self.w[2][0]=TB_f4*clte[:lmax+1]; self.w[2][1]=-1*TB_f1; self.w[2][2]=TB_f2; self.s[2][0]=+3; self.s[2][1]=-2; self.s[2][2]=+1
             self.w[3][0]=TB_f3*clte[:lmax+1]; self.w[3][1]=-1*TB_f1; self.w[3][2]=TB_f2; self.s[3][0]=+1; self.s[3][1]=-2; self.s[3][2]=-1
+            # Overleaf version...
+            #self.w[0][0]=TB_f3*clte[:lmax+1]; self.w[0][1]=-1*TB_f1; self.w[0][2]=TB_f2; self.s[0][0]=1; self.s[0][1]=-2; self.s[0][2]=+1 # self derived
+            #self.w[1][0]=TB_f4*clte[:lmax+1]; self.w[1][1]=-1*TB_f1; self.w[1][2]=TB_f2; self.s[1][0]=3; self.s[1][1]=-2; self.s[1][2]=-1
+            #self.w[2][0]=TB_f4*clte[:lmax+1]; self.w[2][1]=-1*TB_f5; self.w[2][2]=TB_f2; self.s[2][0]=-3; self.s[2][1]=+2; self.s[2][2]=+1
+            #self.w[3][0]=TB_f3*clte[:lmax+1]; self.w[3][1]=-1*TB_f5; self.w[3][2]=TB_f2; self.s[3][0]=-1; self.s[3][1]=+2; self.s[3][2]=-1
+
             self.w[4][0]=EB_f4*cltt[:lmax+1]; self.w[4][1]=EB_f1; self.w[4][2]=EB_f3; self.s[4][0]=-1; self.s[4][1]=+2; self.s[4][2]=+1
             self.w[5][0]=EB_f5*cltt[:lmax+1]; self.w[5][1]=EB_f1; self.w[5][2]=EB_f3; self.s[5][0]=-3; self.s[5][1]=+2; self.s[5][2]=-1
             self.w[6][0]=EB_f5*cltt[:lmax+1]; self.w[6][1]=EB_f2; self.w[6][2]=EB_f3; self.s[6][0]=+3; self.s[6][1]=-2; self.s[6][2]=+1
@@ -217,6 +281,29 @@ class weights():
             self.w[9][0]=EB_f7*cltt[:lmax+1]; self.w[9][1]=EB_f2; self.w[9][2]=EB_f3; self.s[9][0]=-2; self.s[9][1]=+3; self.s[9][2]=+1
             self.w[10][0]=EB_f7*cltt[:lmax+1]; self.w[10][1]=EB_f1; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
             self.w[11][0]=EB_f6*cltt[:lmax+1]; self.w[11][1]=EB_f1; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
+            # Overleaf version...
+            #self.w[4][0]=EB_f4*cltt[:lmax+1]; self.w[4][1]=EB_f2; self.w[4][2]=EB_f3; self.s[4][0]=-1; self.s[4][1]=+2; self.s[4][2]=+1
+            #self.w[5][0]=EB_f5*cltt[:lmax+1]; self.w[5][1]=EB_f2; self.w[5][2]=EB_f3; self.s[5][0]=-3; self.s[5][1]=+2; self.s[5][2]=-1
+            #self.w[6][0]=EB_f5*cltt[:lmax+1]; self.w[6][1]=EB_f1; self.w[6][2]=EB_f3; self.s[6][0]=+3; self.s[6][1]=-2; self.s[6][2]=+1
+            #self.w[7][0]=EB_f4*cltt[:lmax+1]; self.w[7][1]=EB_f1; self.w[7][2]=EB_f3; self.s[7][0]=+1; self.s[7][1]=-2; self.s[7][2]=-1
+            #self.w[8][0]=EB_f1*cltt[:lmax+1]; self.w[8][1]=EB_f6; self.w[8][2]=EB_f3; self.s[8][0]=-2; self.s[8][1]=+1; self.s[8][2]=-1
+            #self.w[9][0]=EB_f1*cltt[:lmax+1]; self.w[9][1]=EB_f7; self.w[9][2]=EB_f3; self.s[9][0]=-2; self.s[9][1]=+3; self.s[9][2]=+1
+            #self.w[10][0]=EB_f2*cltt[:lmax+1]; self.w[10][1]=EB_f7; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
+            #self.w[11][0]=EB_f2*cltt[:lmax+1]; self.w[11][1]=EB_f6; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
+
+            self.w[12][1]=BT_f3; self.w[12][0]=-1*BT_f5*clte[:lmax+1]; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
+            self.w[13][1]=BT_f4; self.w[13][0]=-1*BT_f5*clte[:lmax+1]; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
+            self.w[14][1]=BT_f4; self.w[14][0]=-1*BT_f1*clte[:lmax+1]; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
+            self.w[15][1]=BT_f3; self.w[15][0]=-1*BT_f1*clte[:lmax+1]; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
+
+            self.w[16][1]=BE_f4; self.w[16][0]=BE_f1*cltt[:lmax+1]; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
+            self.w[17][1]=BE_f5; self.w[17][0]=BE_f1*cltt[:lmax+1]; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
+            self.w[18][1]=BE_f5; self.w[18][0]=BE_f2*cltt[:lmax+1]; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
+            self.w[19][1]=BE_f4; self.w[19][0]=BE_f2*cltt[:lmax+1]; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
+            self.w[20][1]=BE_f6; self.w[20][0]=BE_f2*cltt[:lmax+1]; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
+            self.w[21][1]=BE_f7; self.w[21][0]=BE_f2*cltt[:lmax+1]; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
+            self.w[22][1]=BE_f7; self.w[22][0]=BE_f1*cltt[:lmax+1]; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
+            self.w[23][1]=BE_f6; self.w[23][0]=BE_f1*cltt[:lmax+1]; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
 
         if est=='TT':
             self.sltt = sltt
@@ -272,6 +359,27 @@ class weights():
             self.w[4][0]=f5; self.w[4][1]=f7; self.w[4][2]=f6; self.s[4][0]=+0; self.s[4][1]=-1; self.s[4][2]=-1
             self.w[5][0]=f5; self.w[5][1]=f7; self.w[5][2]=f6; self.s[5][0]=+0; self.s[5][1]=+1; self.s[5][2]=+1
 
+        if est=='ET':
+            self.slte = slte
+            self.ntrm = 6
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            l  = np.arange(lmax+1,dtype=np.float_)
+            f1 = -0.25*np.ones_like(l,dtype=np.float_)
+            f2 =  np.nan_to_num(np.sqrt(l*(l+1)))
+            f3 =  np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slte[:lmax+1]
+            #f4 = -np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            f4 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            f5 = -0.50*np.ones_like(l,dtype=np.float_)
+            f6 =  np.nan_to_num(np.sqrt(l*(l+1)))
+            f7 =  np.nan_to_num(np.sqrt(l*(l+1)))*slte[:lmax+1]
+            self.w[0][1]=f3; self.w[0][0]=f1; self.w[0][2]=f2; self.s[0][1]=-1; self.s[0][0]=+2; self.s[0][2]=+1
+            self.w[1][1]=f4; self.w[1][0]=f1; self.w[1][2]=f2; self.s[1][1]=-3; self.s[1][0]=+2; self.s[1][2]=-1
+            self.w[2][1]=f4; self.w[2][0]=f1; self.w[2][2]=f2; self.s[2][1]=+3; self.s[2][0]=-2; self.s[2][2]=+1
+            self.w[3][1]=f3; self.w[3][0]=f1; self.w[3][2]=f2; self.s[3][1]=+1; self.s[3][0]=-2; self.s[3][2]=-1
+            self.w[4][1]=f5; self.w[4][0]=f7; self.w[4][2]=f6; self.s[4][1]=+0; self.s[4][0]=-1; self.s[4][2]=-1
+            self.w[5][1]=f5; self.w[5][0]=f7; self.w[5][2]=f6; self.s[5][1]=+0; self.s[5][0]=+1; self.s[5][2]=+1
+
         if est=='TB':
             self.slte = slte
             self.ntrm = 4
@@ -298,15 +406,32 @@ class weights():
             self.w = { i : {} for i in range(0, self.ntrm) }
             self.s = { i : {} for i in range(0, self.ntrm) }
             l  = np.arange(lmax+1,dtype=np.float_)
-            f1 = +0.25*np.ones_like(l,dtype=np.float_)
+            #f1 = +0.25*np.ones_like(l,dtype=np.float_)
+            #f2 =  np.nan_to_num(np.sqrt(l*(l+1)))
+            #f3 =  np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slte[:lmax+1]
+            #f4 = -np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            #f5 = -0.25*np.ones_like(l,dtype=np.float_)
+            #self.w[0][1]=f4; self.w[0][0]=f1; self.w[0][2]=f2; self.s[0][1]=+3; self.s[0][0]=-2; self.s[0][2]=+1
+            #self.w[1][1]=f4; self.w[1][0]=f5; self.w[1][2]=f2; self.s[1][1]=-3; self.s[1][0]=+2; self.s[1][2]=-1
+            #self.w[2][1]=f3; self.w[2][0]=f5; self.w[2][2]=f2; self.s[2][1]=-1; self.s[2][0]=+2; self.s[2][2]=+1
+            #self.w[3][1]=f3; self.w[3][0]=f1; self.w[3][2]=f2; self.s[3][1]=+1; self.s[3][0]=-2; self.s[3][2]=-1
+
+            # Yuuki's weights, 3/1/2023
+            f1 = -0.25j*np.ones_like(l,dtype=np.float_)
             f2 =  np.nan_to_num(np.sqrt(l*(l+1)))
             f3 =  np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slte[:lmax+1]
-            f4 = -np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
-            f5 = -0.25*np.ones_like(l,dtype=np.float_)
-            self.w[0][1]=f4; self.w[0][0]=f1; self.w[0][2]=f2; self.s[0][1]=+3; self.s[0][0]=-2; self.s[0][2]=+1
+            f4 =  np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slte[:lmax+1]
+            f5 = +0.25j*np.ones_like(l,dtype=np.float_)
+            #self.w[0][0]=f4; self.w[0][1]=f5; self.w[0][2]=f2; self.s[0][0]=+3; self.s[0][1]=-2; self.s[0][2]=+1 #from QL
+            #self.w[1][0]=f4; self.w[1][1]=f1; self.w[1][2]=f2; self.s[1][0]=-3; self.s[1][1]=+2; self.s[1][2]=-1
+            #self.w[2][0]=f3; self.w[2][1]=f1; self.w[2][2]=f2; self.s[2][0]=-1; self.s[2][1]=+2; self.s[2][2]=+1
+            #self.w[3][0]=f3; self.w[3][1]=f5; self.w[3][2]=f2; self.s[3][0]=+1; self.s[3][1]=-2; self.s[3][2]=-1
+            self.w[0][1]=f3; self.w[0][0]=f5; self.w[0][2]=f2; self.s[0][1]=-1; self.s[0][0]=+2; self.s[0][2]=+1 # self derived
             self.w[1][1]=f4; self.w[1][0]=f5; self.w[1][2]=f2; self.s[1][1]=-3; self.s[1][0]=+2; self.s[1][2]=-1
-            self.w[2][1]=f3; self.w[2][0]=f5; self.w[2][2]=f2; self.s[2][1]=-1; self.s[2][0]=+2; self.s[2][2]=+1
+            self.w[2][1]=f4; self.w[2][0]=f1; self.w[2][2]=f2; self.s[2][1]=+3; self.s[2][0]=-2; self.s[2][2]=+1
             self.w[3][1]=f3; self.w[3][0]=f1; self.w[3][2]=f2; self.s[3][1]=+1; self.s[3][0]=-2; self.s[3][2]=-1
+
+
         if est=='EB':
             self.slee = slee
             self.ntrm = 8
@@ -327,6 +452,27 @@ class weights():
             self.w[5][0]=f7; self.w[5][1]=f2; self.w[5][2]=f3; self.s[5][0]=-2; self.s[5][1]=+3; self.s[5][2]=+1
             self.w[6][0]=f7; self.w[6][1]=f1; self.w[6][2]=f3; self.s[6][0]=+2; self.s[6][1]=-3; self.s[6][2]=-1
             self.w[7][0]=f6; self.w[7][1]=f1; self.w[7][2]=f3; self.s[7][0]=+2; self.s[7][1]=-1; self.s[7][2]=+1
+
+        if est=='BE':
+            self.slee = slee
+            self.ntrm = 8
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 =  (-0.25j*np.ones_like(l))
+            f2 =  (+0.25j*np.ones_like(l))
+            f3 = +np.nan_to_num(np.sqrt(l*(l+1)))
+            f4 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slee[:lmax+1]
+            f5 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slee[:lmax+1]
+            f6 = +np.nan_to_num(np.sqrt((l+2.)*(l-1.)))*slbb[:lmax+1]
+            f7 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*slbb[:lmax+1]
+            self.w[0][1]=f4; self.w[0][0]=f1; self.w[0][2]=f3; self.s[0][1]=-1; self.s[0][0]=+2; self.s[0][2]=+1
+            self.w[1][1]=f5; self.w[1][0]=f1; self.w[1][2]=f3; self.s[1][1]=-3; self.s[1][0]=+2; self.s[1][2]=-1
+            self.w[2][1]=f5; self.w[2][0]=f2; self.w[2][2]=f3; self.s[2][1]=+3; self.s[2][0]=-2; self.s[2][2]=+1
+            self.w[3][1]=f4; self.w[3][0]=f2; self.w[3][2]=f3; self.s[3][1]=+1; self.s[3][0]=-2; self.s[3][2]=-1
+            self.w[4][1]=f6; self.w[4][0]=f2; self.w[4][2]=f3; self.s[4][1]=-2; self.s[4][0]=+1; self.s[4][2]=-1
+            self.w[5][1]=f7; self.w[5][0]=f2; self.w[5][2]=f3; self.s[5][1]=-2; self.s[5][0]=+3; self.s[5][2]=+1
+            self.w[6][1]=f7; self.w[6][0]=f1; self.w[6][2]=f3; self.s[6][1]=+2; self.s[6][0]=-3; self.s[6][2]=-1
+            self.w[7][1]=f6; self.w[7][0]=f1; self.w[7][2]=f3; self.s[7][1]=+2; self.s[7][0]=-1; self.s[7][2]=+1
 
         if est=="bEP":
             #self.slee = slee

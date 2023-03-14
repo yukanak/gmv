@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import numpy as np
 import healpy as hp
 import camb
@@ -6,7 +7,7 @@ sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 from astropy.io import fits
 import utils
 import matplotlib.pyplot as plt
-import weights
+import weights_gmv
 import qest
 import wignerd
 import resp
@@ -18,14 +19,20 @@ def compare_gmv(sim=1,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/
     # Load plms
     if unl:
         clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-        plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_unl.npy')
-        plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_A_unl.npy')
-        plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_B_unl.npy')
+        plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_unl_from_lensed_cls.npy')
+        plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_unl_from_lensed_cls_A.npy')
+        plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_unl_from_lensed_cls_B.npy')
     else:
         clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
         plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv.npy')
         plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_A.npy')
         plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_B.npy')
+        #plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_yuuki.npy')
+        #plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_A_yuuki.npy')
+        #plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_B_yuuki.npy')
+        #plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_yuuki_no_BTBE.npy')
+        #plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_A_yuuki_no_BTBE.npy')
+        #plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_qest_gmv_B_yuuki_no_BTBE.npy')
 
     plm_original = np.zeros(len(plm_gmv), dtype=np.complex_)
     for i, est in enumerate(ests):
@@ -63,19 +70,38 @@ def compare_gmv(sim=1,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/
     ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
     clkk = slpp * (l*(l+1))**2/4
 
+    # Get N0 bias
+    n0, n0_A, n0_B = get_n0()
+
+    #fudgefac_A = 0.85
+    #fudgefac_B = 2
+    resp_EB = get_analytic_response('EB',lmax,fwhm=1,nlev_t=5,nlev_p=5,clfile=clfile,unl=unl)
+    inv_resp_EB = np.zeros_like(l,dtype=np.complex_); inv_resp_EB[1:] = 1/(resp_EB)[1:]
+
     # Plot
     plt.figure(0)
     plt.clf()
-    plt.plot(l, cross, color='palegoldenrod', label='Cross Spectrum (Original x GMV)')
-    plt.plot(l, auto_original, color='darkblue', label="Auto Spectrum (Original)")
-    plt.plot(l, auto_gmv, color='firebrick', label="Auto Spectrum (GMV)")
-    plt.plot(l, auto_gmv_A, color='forestgreen', label="Auto Spectrum (GMV [TT, EE, TE])")
-    plt.plot(l, auto_gmv_B, color='mediumorchid', label="Auto Spectrum (GMV [TB, EB])")
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    #plt.plot(l, cross, color='palegoldenrod', label='Cross Spectrum (Original x GMV)')
+    plt.plot(l, auto_original, color='darkblue', label="Auto Spectrum (Original)")
+    #plt.plot(l, auto_gmv, color='firebrick', label="Auto Spectrum (GMV)")
+    #plt.plot(l, auto_gmv_A, color='forestgreen', label=f'Auto Spectrum (GMV [TT, EE, TE])')
+    #plt.plot(l, auto_gmv_B, color='mediumorchid', label="Auto Spectrum (GMV [TB, EB])")
+    plt.plot(l, n0 * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV)')
+    plt.plot(l, n0_A * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV [TT, EE, TE])')
+    plt.plot(l, n0_B * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV [TB, EB])')
+    #plt.plot(l, auto_original - inv_resp_original * (l*(l+1))**2/4, color='darkblue', label="Auto Spectrum - 1/R (Original)")
+    #plt.plot(l, auto_gmv - inv_resp_gmv * (l*(l+1))**2/4, color='firebrick', label="Auto Spectrum - 1/R (GMV)")
+    #plt.plot(l, auto_gmv_A - inv_resp_gmv_A * (l*(l+1))**2/4, color='forestgreen', label=f'Auto Spectrum - 1/R (GMV [TT, EE, TE])')
+    #plt.plot(l, auto_gmv_B - inv_resp_gmv_B * (l*(l+1))**2/4, color='mediumorchid', label="Auto Spectrum - 1/R (GMV [TB, EB])")
+    #plt.plot(l, auto_gmv - n0 * (l*(l+1))**2/4, color='firebrick', label="Auto Spectrum - $N_0$ (GMV)")
+    #plt.plot(l, auto_gmv_A - n0_A * (l*(l+1))**2/4, color='forestgreen', label=f'Auto Spectrum - $N_0$ (GMV [TT, EE, TE])')
+    #plt.plot(l, auto_gmv_B - n0_B * (l*(l+1))**2/4, color='mediumorchid', label="Auto Spectrum - $N_0$ (GMV [TB, EB])")
     plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (Original)')
     plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (GMV)')
     plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV [TT, EE, TE])')
     plt.plot(l, inv_resp_gmv_B * (l*(l+1))**2/4, color='plum', linestyle='--', label='1/R (GMV [TB, EB])')
+    #plt.plot(l, inv_resp_EB * (l*(l+1))**2/4, color='slategrey', linestyle='--', label='EB 1/R (Original)')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title('Spectra with Response Correction')
@@ -86,8 +112,55 @@ def compare_gmv(sim=1,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/
     plt.ylim(8e-9,1e-6)
     if save_fig:
         plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_test.png')
+        plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_unl.png')
+        #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_1_over_R_subtracted.png')
+        #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_N_0_subtracted.png')
         #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp.png')
     #plt.show()
+
+def get_n0(sims=np.arange(10)+1,lmax=4096,dir_out='/scratch/users/yukanaka/gmv/'):
+    '''
+    Get N0 bias.
+    '''
+    num = len(sims)
+    if os.path.isfile(f'/scratch/users/yukanaka/gmv/n0/n0_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy'):
+        n0 = np.load(f'/scratch/users/yukanaka/gmv/n0/n0_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy')
+        n0_A = np.load(f'/scratch/users/yukanaka/gmv/n0/n0_A_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy')
+        n0_B = np.load(f'/scratch/users/yukanaka/gmv/n0/n0_B_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy')
+    else:
+        n0 = 0
+        n0_A = 0
+        n0_B = 0
+        l = np.arange(0,lmax+1)
+        for sim in sims:
+            # Get unlensed sim
+            plm_gmv = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy')
+            plm_gmv_A = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls_A.npy')
+            plm_gmv_B = np.load(dir_out+f'/output/plm_healqest_seed{sim}_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls_B.npy')
+            gmv_resp_data = np.genfromtxt('True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50.txt')
+            # Abhi's code calculates the reconstruction noise for d field rather than phi field, see GMV_QE.py, line 292 for example
+            # N is 1/R
+            inv_resp_gmv = gmv_resp_data[:,3] / l**2
+            inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
+            inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
+            # Response correct
+            plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
+            plm_gmv_A_resp_corr = hp.almxfl(plm_gmv_A,inv_resp_gmv_A)
+            plm_gmv_B_resp_corr = hp.almxfl(plm_gmv_B,inv_resp_gmv_B)
+            # Get spectra
+            auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr)
+            auto_gmv_A = hp.alm2cl(plm_gmv_A_resp_corr, plm_gmv_A_resp_corr)
+            auto_gmv_B = hp.alm2cl(plm_gmv_B_resp_corr, plm_gmv_B_resp_corr)
+            n0 += auto_gmv
+            n0_A += auto_gmv_A
+            n0_B += auto_gmv_B
+        n0 *= 1/num
+        n0_A *= 1/num
+        n0_B *= 1/num
+        np.save(f'/scratch/users/yukanaka/gmv/n0/n0_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy', n0)
+        np.save(f'/scratch/users/yukanaka/gmv/n0/n0_A_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy', n0_A)
+        np.save(f'/scratch/users/yukanaka/gmv/n0/n0_B_{num}sims_lmax{lmax}_nside8192_qest_gmv_unl_from_lensed_cls.npy', n0_B)
+    return n0, n0_A, n0_B
 
 def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5,
                           clfile='/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat',
@@ -170,7 +243,7 @@ def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5,
             #R = q.fill_resp(q, np.zeros(lmax+1, dtype=np.complex), flX, flY)
         else:
             #pass
-            R = resp.fill_resp(weights.weights(est,lmax,clfile), np.zeros(lmax+1, dtype=np.complex_), flX, flY)
+            R = resp.fill_resp(weights_gmv.weights(est,lmax,clfile,unl=unl), np.zeros(lmax+1, dtype=np.complex_), flX, flY)
         np.save(filename, R)
     return R
 
@@ -194,3 +267,5 @@ def alm_cutlmax(almin,new_lmax):
         almout = almin[lmmap]
 
     return almout
+
+#get_n0()
