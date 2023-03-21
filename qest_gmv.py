@@ -39,7 +39,6 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
     
         if est=='TB_GMV' or est=='EB_GMV':
             print('WARNING: Currently using a hacky implementation for TB/EB -- should probably revisit!')
-            #TODO: does this make sense...
             # TB first!
             wX1,wY1,wP1,sX1,sY1,sP1 = q.w[0][0],q.w[0][1],q.w[0][2],q.s[0][0],q.s[0][1],q.s[0][2]
             wX3,wY3,wP3,sX3,sY3,sP3 = q.w[2][0],q.w[2][1],q.w[2][2],q.s[2][0],q.s[2][1],q.s[2][2]
@@ -84,17 +83,17 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
             glm_EB = hp.almxfl(glm_EB,nrm*wP1)
             clm_EB = hp.almxfl(clm_EB,nrm*wP1)
 
-            glmsum = glm_TB + glm_EB
-            clmsum = clm_TB + clm_EB
-            '''
+            #glmsum = glm_TB + glm_EB
+            #clmsum = clm_TB + clm_EB
+
             # For the BT and BE for TB_GMV...
             # BT
             wX1,wY1,wP1,sX1,sY1,sP1 = q.w[12][0],q.w[12][1],q.w[12][2],q.s[12][0],q.s[12][1],q.s[12][2]
             wX3,wY3,wP3,sX3,sY3,sP3 = q.w[14][0],q.w[14][1],q.w[14][2],q.s[14][0],q.s[14][1],q.s[14][2]
     
-            walm1          = hp.almxfl(alm1,wX1) #T1/E1
-            walm3          = hp.almxfl(alm1,wX3) #T3/E3
-            walm2          = hp.almxfl(alm2,wY1) #B2
+            walm1          = hp.almxfl(alm1,wY1) #T1/E1
+            walm3          = hp.almxfl(alm1,wY3) #T3/E3
+            walm2          = hp.almxfl(alm2,wX1) #B2
     
             SpX1, SmX1   = hp.alm2map_spin( [walm1,np.zeros_like(walm1)], nside , 1,lmax1)
             SpX3, SmX3   = hp.alm2map_spin( [walm3,np.zeros_like(walm3)], nside , 3,lmax1)
@@ -104,7 +103,6 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
             SmZ = -SpY2*(SmX1+SmX3) + SmY2*(SpX1+SpX3)
     
             glm_BT,clm_BT  = hp.map2alm_spin([SpZ,SmZ],1, Lmax)
-
             nrm = 1
     
             glm_BT = hp.almxfl(glm_BT,nrm*wP1)
@@ -114,9 +112,9 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
             wX1,wY1,wP1,sX1,sY1,sP1 = q.w[16][0],q.w[16][1],q.w[16][2],q.s[16][0],q.s[16][1],q.s[16][2]
             wX3,wY3,wP3,sX3,sY3,sP3 = q.w[18][0],q.w[18][1],q.w[18][2],q.s[18][0],q.s[18][1],q.s[18][2]
     
-            walm1          = hp.almxfl(alm1,wX1) #T1/E1
-            walm3          = hp.almxfl(alm1,wX3) #T3/E3
-            walm2          = hp.almxfl(alm2,wY1) #B2
+            walm1          = hp.almxfl(alm1,wY1) #T1/E1
+            walm3          = hp.almxfl(alm1,wY3) #T3/E3
+            walm2          = hp.almxfl(alm2,wX1) #B2
     
             SpX1, SmX1   = hp.alm2map_spin( [walm1,np.zeros_like(walm1)], nside , 1,lmax1)
             SpX3, SmX3   = hp.alm2map_spin( [walm3,np.zeros_like(walm3)], nside , 3,lmax1)
@@ -126,15 +124,14 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
             SmZ = -SpY2*(SmX1+SmX3) + SmY2*(SpX1+SpX3)
     
             glm_BE,clm_BE  = hp.map2alm_spin([SpZ,SmZ],1, Lmax)
-
             nrm = -1
     
             glm_BE = hp.almxfl(glm_BE,nrm*wP1)
             clm_BE = hp.almxfl(clm_BE,nrm*wP1)
 
+            # Sum
             glmsum = glm_TB + glm_EB + glm_BT + glm_BE
             clmsum = clm_TB + clm_EB + clm_BT + glm_BE
-            '''
 
         else:
             # More traditional quicklens style calculation            
@@ -176,7 +173,7 @@ def qest_gmv(Lmax,clfile,totalcls,alm1all,alm2all,ests='all',unl=False):
     
                 glmsum += hp.almxfl(glm,0.5*wP)
                 clmsum += hp.almxfl(clm,0.5*wP)
-    
+
         retglm  += glmsum
         retclm  += clmsum
 

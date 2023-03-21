@@ -109,11 +109,12 @@ class weights():
             self.w[23][0]=TE_f7*cltt[:lmax+1]; self.w[23][1]=-1*TE_f5*clte[:lmax+1]; self.w[23][2]=TE_f6; self.s[23][0]=+1; self.s[23][1]=+0; self.s[23][2]=+1
 
         if est=='TE_GMV':
-            #TODO: maybe eventually try adding ET and the other rows??
+            #TODO: technically rows 24 and on should have cols 0 and 1 flipped, but as long as it's part of the TE weights, it shouldn't?
             self.sltt = sltt
             self.slee = slee
             self.slte = slte
-            self.ntrm = 24
+            #self.ntrm = 24
+            self.ntrm = 48
             self.w = { i : {} for i in range(0, self.ntrm) }
             self.s = { i : {} for i in range(0, self.ntrm) }
             TT_f1 = -0.5*np.ones_like(l)
@@ -154,6 +155,30 @@ class weights():
             self.w[21][0]=TE_f1*clte[:lmax+1]; self.w[21][1]=TE_f3*clte[:lmax+1]; self.w[21][2]=TE_f2; self.s[21][0]=-2; self.s[21][1]=+1; self.s[21][2]=-1
             self.w[22][0]=TE_f7*clte[:lmax+1]; self.w[22][1]=TE_f5*clte[:lmax+1]; self.w[22][2]=TE_f6; self.s[22][0]=-1; self.s[22][1]=+0; self.s[22][2]=-1
             self.w[23][0]=TE_f7*clte[:lmax+1]; self.w[23][1]=TE_f5*clte[:lmax+1]; self.w[23][2]=TE_f6; self.s[23][0]=+1; self.s[23][1]=+0; self.s[23][2]=+1
+            self.w[24][0]=TT_f3*clee[:lmax+1]; self.w[24][1]=-1*TT_f1*clte[:lmax+1]; self.w[24][2]=TT_f2; self.s[24][0]=+1; self.s[24][1]=+0; self.s[24][2]=+1
+            self.w[25][0]=TT_f3*clee[:lmax+1]; self.w[25][1]=-1*TT_f1*clte[:lmax+1]; self.w[25][2]=TT_f2; self.s[25][0]=-1; self.s[25][1]=+0; self.s[25][2]=-1
+            self.w[26][0]=-1*TT_f1*clee[:lmax+1]; self.w[26][1]=TT_f3*clte[:lmax+1]; self.w[26][2]=TT_f2; self.s[26][0]=+0; self.s[26][1]=-1; self.s[26][2]=-1
+            self.w[27][0]=-1*TT_f1*clee[:lmax+1]; self.w[27][1]=TT_f3*clte[:lmax+1]; self.w[27][2]=TT_f2; self.s[27][0]=+0; self.s[27][1]=+1; self.s[27][2]=+1
+            self.w[28][0]=EE_f3*clte[:lmax+1]; self.w[28][1]=-1*EE_f1*cltt[:lmax+1]; self.w[28][2]=EE_f2; self.s[28][0]=-1; self.s[28][1]=+2; self.s[28][2]=+1
+            self.w[29][0]=EE_f4*clte[:lmax+1]; self.w[29][1]=-1*EE_f1*cltt[:lmax+1]; self.w[29][2]=EE_f2; self.s[29][0]=-3; self.s[29][1]=+2; self.s[29][2]=-1
+            self.w[30][0]=EE_f4*clte[:lmax+1]; self.w[30][1]=-1*EE_f1*cltt[:lmax+1]; self.w[30][2]=EE_f2; self.s[30][0]=+3; self.s[30][1]=-2; self.s[30][2]=+1
+            self.w[31][0]=EE_f3*clte[:lmax+1]; self.w[31][1]=-1*EE_f1*cltt[:lmax+1]; self.w[31][2]=EE_f2; self.s[31][0]=+1; self.s[31][1]=-2; self.s[31][2]=-1
+            self.w[32][0]=-1*EE_f1*clte[:lmax+1]; self.w[32][1]=EE_f3*cltt[:lmax+1]; self.w[32][2]=EE_f2; self.s[32][0]=-2; self.s[32][1]=+1; self.s[32][2]=-1
+            self.w[33][0]=-1*EE_f1*clte[:lmax+1]; self.w[33][1]=EE_f4*cltt[:lmax+1]; self.w[33][2]=EE_f2; self.s[33][0]=-2; self.s[33][1]=+3; self.s[33][2]=+1
+            self.w[34][0]=-1*EE_f1*clte[:lmax+1]; self.w[34][1]=EE_f4*cltt[:lmax+1]; self.w[34][2]=EE_f2; self.s[34][0]=+2; self.s[34][1]=-3; self.s[34][2]=-1
+            self.w[35][0]=-1*EE_f1*clte[:lmax+1]; self.w[35][1]=EE_f3*cltt[:lmax+1]; self.w[35][2]=EE_f2; self.s[35][0]=+2; self.s[35][1]=-1; self.s[35][2]=+1
+            self.w[36][0]=TE_f3*clee[:lmax+1]; self.w[36][1]=TE_f1*cltt[:lmax+1]; self.w[36][2]=TE_f2; self.s[36][0]=-1; self.s[36][1]=+2; self.s[36][2]=+1
+            self.w[37][0]=TE_f4*clee[:lmax+1]; self.w[37][1]=TE_f1*cltt[:lmax+1]; self.w[37][2]=TE_f2; self.s[37][0]=-3; self.s[37][1]=+2; self.s[37][2]=-1
+            self.w[38][0]=TE_f4*clee[:lmax+1]; self.w[38][1]=TE_f1*cltt[:lmax+1]; self.w[38][2]=TE_f2; self.s[38][0]=+3; self.s[38][1]=-2; self.s[38][2]=+1
+            self.w[39][0]=TE_f3*clee[:lmax+1]; self.w[39][1]=TE_f1*cltt[:lmax+1]; self.w[39][2]=TE_f2; self.s[39][0]=+1; self.s[39][1]=-2; self.s[39][2]=-1
+            self.w[40][0]=TE_f5*clee[:lmax+1]; self.w[40][1]=TE_f7*cltt[:lmax+1]; self.w[40][2]=TE_f6; self.s[40][0]=+0; self.s[40][1]=-1; self.s[40][2]=-1
+            self.w[41][0]=TE_f5*clee[:lmax+1]; self.w[41][1]=TE_f7*cltt[:lmax+1]; self.w[41][2]=TE_f6; self.s[41][0]=+0; self.s[41][1]=+1; self.s[41][2]=+1
+            self.w[42][0]=TE_f1*clte[:lmax+1]; self.w[42][1]=TE_f3*clte[:lmax+1]; self.w[42][2]=TE_f2; self.s[42][0]=+2; self.s[42][1]=-1; self.s[42][2]=+1
+            self.w[43][0]=TE_f1*clte[:lmax+1]; self.w[43][1]=TE_f4*clte[:lmax+1]; self.w[43][2]=TE_f2; self.s[43][0]=+2; self.s[43][1]=-3; self.s[43][2]=-1
+            self.w[44][0]=TE_f1*clte[:lmax+1]; self.w[44][1]=TE_f4*clte[:lmax+1]; self.w[44][2]=TE_f2; self.s[44][0]=-2; self.s[44][1]=+3; self.s[44][2]=+1
+            self.w[45][0]=TE_f1*clte[:lmax+1]; self.w[45][1]=TE_f3*clte[:lmax+1]; self.w[45][2]=TE_f2; self.s[45][0]=-2; self.s[45][1]=+1; self.s[45][2]=-1
+            self.w[46][0]=TE_f7*clte[:lmax+1]; self.w[46][1]=TE_f5*clte[:lmax+1]; self.w[46][2]=TE_f6; self.s[46][0]=-1; self.s[46][1]=+0; self.s[46][2]=-1
+            self.w[47][0]=TE_f7*clte[:lmax+1]; self.w[47][1]=TE_f5*clte[:lmax+1]; self.w[47][2]=TE_f6; self.s[47][0]=+1; self.s[47][1]=+0; self.s[47][2]=+1
 
         if est=='TB_GMV':
             self.slte = slte
@@ -216,19 +241,19 @@ class weights():
             #self.w[10][0]=EB_f2*clte[:lmax+1]; self.w[10][1]=-1*EB_f7; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
             #self.w[11][0]=EB_f2*clte[:lmax+1]; self.w[11][1]=-1*EB_f6; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
 
-            self.w[12][1]=BT_f3; self.w[12][0]=BT_f5*clee[:lmax+1]; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
-            self.w[13][1]=BT_f4; self.w[13][0]=BT_f5*clee[:lmax+1]; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
-            self.w[14][1]=BT_f4; self.w[14][0]=BT_f1*clee[:lmax+1]; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
-            self.w[15][1]=BT_f3; self.w[15][0]=BT_f1*clee[:lmax+1]; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
+            self.w[12][1]=BT_f3*clee[:lmax+1]; self.w[12][0]=BT_f5; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
+            self.w[13][1]=BT_f4*clee[:lmax+1]; self.w[13][0]=BT_f5; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
+            self.w[14][1]=BT_f4*clee[:lmax+1]; self.w[14][0]=BT_f1; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
+            self.w[15][1]=BT_f3*clee[:lmax+1]; self.w[15][0]=BT_f1; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
 
-            self.w[16][1]=BE_f4; self.w[16][0]=-1*BE_f1*clte[:lmax+1]; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
-            self.w[17][1]=BE_f5; self.w[17][0]=-1*BE_f1*clte[:lmax+1]; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
-            self.w[18][1]=BE_f5; self.w[18][0]=-1*BE_f2*clte[:lmax+1]; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
-            self.w[19][1]=BE_f4; self.w[19][0]=-1*BE_f2*clte[:lmax+1]; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
-            self.w[20][1]=BE_f6; self.w[20][0]=-1*BE_f2*clte[:lmax+1]; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
-            self.w[21][1]=BE_f7; self.w[21][0]=-1*BE_f2*clte[:lmax+1]; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
-            self.w[22][1]=BE_f7; self.w[22][0]=-1*BE_f1*clte[:lmax+1]; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
-            self.w[23][1]=BE_f6; self.w[23][0]=-1*BE_f1*clte[:lmax+1]; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
+            self.w[16][1]=BE_f4*clte[:lmax+1]; self.w[16][0]=-1*BE_f1; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
+            self.w[17][1]=BE_f5*clte[:lmax+1]; self.w[17][0]=-1*BE_f1; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
+            self.w[18][1]=BE_f5*clte[:lmax+1]; self.w[18][0]=-1*BE_f2; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
+            self.w[19][1]=BE_f4*clte[:lmax+1]; self.w[19][0]=-1*BE_f2; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
+            self.w[20][1]=BE_f6*clte[:lmax+1]; self.w[20][0]=-1*BE_f2; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
+            self.w[21][1]=BE_f7*clte[:lmax+1]; self.w[21][0]=-1*BE_f2; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
+            self.w[22][1]=BE_f7*clte[:lmax+1]; self.w[22][0]=-1*BE_f1; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
+            self.w[23][1]=BE_f6*clte[:lmax+1]; self.w[23][0]=-1*BE_f1; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
 
         if est=='EB_GMV':
             self.slte = slte
@@ -291,19 +316,19 @@ class weights():
             #self.w[10][0]=EB_f2*cltt[:lmax+1]; self.w[10][1]=EB_f7; self.w[10][2]=EB_f3; self.s[10][0]=+2; self.s[10][1]=-3; self.s[10][2]=-1
             #self.w[11][0]=EB_f2*cltt[:lmax+1]; self.w[11][1]=EB_f6; self.w[11][2]=EB_f3; self.s[11][0]=+2; self.s[11][1]=-1; self.s[11][2]=+1
 
-            self.w[12][1]=BT_f3; self.w[12][0]=-1*BT_f5*clte[:lmax+1]; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
-            self.w[13][1]=BT_f4; self.w[13][0]=-1*BT_f5*clte[:lmax+1]; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
-            self.w[14][1]=BT_f4; self.w[14][0]=-1*BT_f1*clte[:lmax+1]; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
-            self.w[15][1]=BT_f3; self.w[15][0]=-1*BT_f1*clte[:lmax+1]; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
+            self.w[12][1]=BT_f3*clte[:lmax+1]; self.w[12][0]=-1*BT_f5; self.w[12][2]=BT_f2; self.s[12][1]=-1; self.s[12][0]=+2; self.s[12][2]=+1 # self derived
+            self.w[13][1]=BT_f4*clte[:lmax+1]; self.w[13][0]=-1*BT_f5; self.w[13][2]=BT_f2; self.s[13][1]=-3; self.s[13][0]=+2; self.s[13][2]=-1
+            self.w[14][1]=BT_f4*clte[:lmax+1]; self.w[14][0]=-1*BT_f1; self.w[14][2]=BT_f2; self.s[14][1]=+3; self.s[14][0]=-2; self.s[14][2]=+1
+            self.w[15][1]=BT_f3*clte[:lmax+1]; self.w[15][0]=-1*BT_f1; self.w[15][2]=BT_f2; self.s[15][1]=+1; self.s[15][0]=-2; self.s[15][2]=-1
 
-            self.w[16][1]=BE_f4; self.w[16][0]=BE_f1*cltt[:lmax+1]; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
-            self.w[17][1]=BE_f5; self.w[17][0]=BE_f1*cltt[:lmax+1]; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
-            self.w[18][1]=BE_f5; self.w[18][0]=BE_f2*cltt[:lmax+1]; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
-            self.w[19][1]=BE_f4; self.w[19][0]=BE_f2*cltt[:lmax+1]; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
-            self.w[20][1]=BE_f6; self.w[20][0]=BE_f2*cltt[:lmax+1]; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
-            self.w[21][1]=BE_f7; self.w[21][0]=BE_f2*cltt[:lmax+1]; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
-            self.w[22][1]=BE_f7; self.w[22][0]=BE_f1*cltt[:lmax+1]; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
-            self.w[23][1]=BE_f6; self.w[23][0]=BE_f1*cltt[:lmax+1]; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
+            self.w[16][1]=BE_f4*cltt[:lmax+1]; self.w[16][0]=BE_f1; self.w[16][2]=BE_f3; self.s[16][1]=-1; self.s[16][0]=+2; self.s[16][2]=+1
+            self.w[17][1]=BE_f5*cltt[:lmax+1]; self.w[17][0]=BE_f1; self.w[17][2]=BE_f3; self.s[17][1]=-3; self.s[17][0]=+2; self.s[17][2]=-1
+            self.w[18][1]=BE_f5*cltt[:lmax+1]; self.w[18][0]=BE_f2; self.w[18][2]=BE_f3; self.s[18][1]=+3; self.s[18][0]=-2; self.s[18][2]=+1
+            self.w[19][1]=BE_f4*cltt[:lmax+1]; self.w[19][0]=BE_f2; self.w[19][2]=BE_f3; self.s[19][1]=+1; self.s[19][0]=-2; self.s[19][2]=-1
+            self.w[20][1]=BE_f6*cltt[:lmax+1]; self.w[20][0]=BE_f2; self.w[20][2]=BE_f3; self.s[20][1]=-2; self.s[20][0]=+1; self.s[20][2]=-1
+            self.w[21][1]=BE_f7*cltt[:lmax+1]; self.w[21][0]=BE_f2; self.w[21][2]=BE_f3; self.s[21][1]=-2; self.s[21][0]=+3; self.s[21][2]=+1
+            self.w[22][1]=BE_f7*cltt[:lmax+1]; self.w[22][0]=BE_f1; self.w[22][2]=BE_f3; self.s[22][1]=+2; self.s[22][0]=-3; self.s[22][2]=-1
+            self.w[23][1]=BE_f6*cltt[:lmax+1]; self.w[23][0]=BE_f1; self.w[23][2]=BE_f3; self.s[23][1]=+2; self.s[23][0]=-1; self.s[23][2]=+1
 
         if est=='TT':
             self.sltt = sltt

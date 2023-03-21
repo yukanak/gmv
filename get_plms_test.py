@@ -34,11 +34,6 @@ dir_out = '/scratch/users/yukanaka/gmv/'
 est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all/A/B
 sim = int(sys.argv[2]) # 1 through 1000 or 1 through 20 if map
 append = str(sys.argv[3])
-#TODO: I CHANGED THIS!
-#if unl:
-#    # This is unlensed!
-#    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-#else:
 clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 # Get input map or alm
 if map_inputs:
@@ -46,6 +41,7 @@ if map_inputs:
     #file_map = f'/scratch/users/yukanaka/full_res_maps/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
     if unl:
         # Unlensed map (i.e. no lensing signal)_
+        #clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
         #file_map = f'/scratch/users/yukanaka/full_res_maps/unl/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}.fits'
         file_map = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim}_lmax4096_nside8192_20230310.fits'
     else:
@@ -53,12 +49,9 @@ if map_inputs:
 else:
     file_alm = f'/scratch/users/yukanaka/alms_llcdm/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap_lmax2048.alm'
 ####################################
-print(f'Doing sim {sim}')
+print(f'Doing sim {sim}, est {est}')
 
 # Run CAMB to get theory Cls
-#if unl:
-#    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile,lmax=lmax)
-#else:
 ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
 
 # Create noise spectra
@@ -66,7 +59,6 @@ bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
 nltt = (np.pi/180./60.*nlev_t)**2 / bl**2
 nlee = (np.pi/180./60.*nlev_p)**2 / bl**2
 nlbb = (np.pi/180./60.*nlev_p)**2 / bl**2
-#nlte = (np.pi/180./60.*nlev_p)*(np.pi/180./60.*nlev_t) / bl**2
 nlte = 0
 
 '''
