@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 N = 1000000
 X_std = 5.0
@@ -44,3 +45,10 @@ Z_opt_var_num = np.var(Z_opt)
 Z_opt_var_an = 1/norm_new**2 * (1/w[0] + 1/w[1])
 print(f'The numerical variance of optimal Z for correlated X and Y is: {Z_opt_var_num}')
 print(f'The analytic variance of optimal Z for correlated X and Y is: {Z_opt_var_an}')
+
+# Plot
+plt.scatter(X_uncorr, Y_uncorr, label='Uncorrelated')
+plt.scatter(X, Y, label='Correlated')
+plt.scatter(X_new, Y_new, label='Correlated, New Basis')
+plt.legend()
+plt.show()
