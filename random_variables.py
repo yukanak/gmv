@@ -47,8 +47,33 @@ print(f'The numerical variance of optimal Z for correlated X and Y is: {Z_opt_va
 print(f'The analytic variance of optimal Z for correlated X and Y is: {Z_opt_var_an}')
 
 # Plot
-plt.scatter(X_uncorr, Y_uncorr, label='Uncorrelated')
-plt.scatter(X, Y, label='Correlated')
-plt.scatter(X_new, Y_new, label='Correlated, New Basis')
+plt.figure(1)
+plt.scatter(X_uncorr, Y_uncorr, marker='x', label='Uncorrelated')
+plt.scatter(X, Y, marker='x', label='Correlated')
+plt.scatter(X_new, Y_new, marker='x', label='Correlated, New Basis')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.legend(loc='upper left')
+plt.ylim(-60,60)
+plt.xlim(-60,60)
+
+fig = plt.figure(2)
+ax = fig.add_subplot(projection='3d')
+ax.scatter(X_uncorr, Y_uncorr, Z_uncorr, marker='x', s=1, label=f'Uncorrelated, Z Variance {Z_uncorr_var_num:.2f}')
+ax.scatter(X, Y, Z_subopt, marker='x', s=1, label=f'Correlated, Suboptimal, Z Variance {Z_subopt_var_num:.2f}')
+ax.scatter(X_new, Y_new, Z_opt, marker='x', s=1, label=f'Correlated, Optimal, Z Variance {Z_opt_var_num:.2f}')
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
 plt.legend()
+
+plt.figure(3)
+plt.subplot(121)
+max_Z_uncorr = max(Z_uncorr)  # Find the maximum y value
+xs = [x for x in range(N) if Z_uncorr[x] > max_Z_uncorr/2.0]
+print(Z_uncorr[max(xs)] -Z_uncorr[min(xs)])
+plt.hist(Z_uncorr, orientation=u'horizontal')
+plt.subplot(122)
+plt.scatter(X_uncorr, Z_uncorr, marker='x', label='Uncorrelated')
+plt.scatter(X_new, Z_opt, marker='x', label='Correlated, New Basis')
 plt.show()

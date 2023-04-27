@@ -18,7 +18,7 @@ import qest_gmv
 
 ####################################
 gmv = True
-unl = True
+unl = False
 map_inputs = True
 #lmax = 1000 # For quick testing
 #nside = 2048
