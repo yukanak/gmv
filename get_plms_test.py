@@ -45,6 +45,7 @@ if map_inputs:
         #file_map = f'/scratch/users/yukanaka/full_res_maps/unl/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}.fits'
         file_map = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim}_lmax4096_nside8192_20230310.fits'
     else:
+        # From scott, /sptlocal/analysis/eete+lensing_19-20/resources/sims/planck2018/inputcmb/tqu1/len/
         file_map = f'/scratch/users/yukanaka/full_res_maps/len/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
 else:
     file_alm = f'/scratch/users/yukanaka/alms_llcdm/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap_lmax2048.alm'
@@ -158,13 +159,13 @@ else:
 
 # Run healqest
 if not gmv:
-    glm,clm = qest_original.qest(est,lmax,clfile,almbar1,almbar2,unl=unl)
+    glm,clm = qest_original.qest(est,lmax,clfile,almbar1,almbar2)
     # Save plm and clm
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     np.save(dir_out+f'/plm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
     np.save(dir_out+f'/clm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
 else:
-    glm,clm = qest_gmv.qest_gmv(lmax,clfile,totalcls,alm1all,alm2all,ests=est,unl=unl)
+    glm,clm = qest_gmv.qest_gmv(lmax,clfile,totalcls,alm1all,alm2all,ests=est)
     # Save plm and clm
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     np.save(dir_out+f'/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)

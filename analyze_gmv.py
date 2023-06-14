@@ -7,10 +7,85 @@ sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 from astropy.io import fits
 import utils
 import matplotlib.pyplot as plt
-import weights_gmv
+import weights_combined
 import qest
 import wignerd
 import resp
+
+def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/',save_fig=True):
+    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    l = np.arange(0,lmax+1)
+    if u is None:
+        u = hp.sphtfunc.gauss_beam(1*(np.pi/180.)/60., lmax=lmax)
+
+    # Flat sky healqest response
+    resp_healqest_TT = get_analytic_response('TTprf',lmax,fwhm=1,nlev_t=5,nlev_p=5,u=u,clfile=clfile,unl=False)
+    inv_resp_healqest_TT = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT[1:] = 1/(resp_healqest_TT)[1:]
+    resp_healqest_TT_sk = get_analytic_response('TTprf',lmax,fwhm=1,nlev_t=5,nlev_p=5,u=u,clfile=clfile,unl=False,
+                                                filename='/scratch/users/yukanaka/gmv/resp/an_resp_TTprf_healqest_lmax{}_fwhm1_nlevt5_nlevp5_SK_TT.npy'.format(lmax),
+                                                qeZA=weights_combined.weights('TT',lmax,clfile))
+    inv_resp_healqest_TT_sk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_sk[1:] = 1/(resp_healqest_TT_sk)[1:]
+
+    # GMV response
+    gmv_resp_data = np.genfromtxt('True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF.txt')
+    inv_resp_gmv = gmv_resp_data[:,3] / l**2
+    inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
+    inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
+    gmv_resp_data_sk = np.genfromtxt('True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SK.txt')
+    inv_resp_gmv_sk = gmv_resp_data_sk[:,3] / l**2
+    inv_resp_gmv_A_sk = gmv_resp_data_sk[:,1] / l**2
+    inv_resp_gmv_B_sk = gmv_resp_data_sk[:,2] / l**2
+    gmv_resp_data_ftt_only = np.genfromtxt('True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SS_FTT_only.txt')
+    inv_resp_gmv_ftt_only = gmv_resp_data[:,3] / l**2
+    inv_resp_gmv_A_ftt_only = gmv_resp_data[:,1] / l**2
+    inv_resp_gmv_B_ftt_only = gmv_resp_data[:,2] / l**2
+    gmv_resp_data_sk_ftt_only = np.genfromtxt('True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SK_FTT_only.txt')
+    inv_resp_gmv_sk_ftt_only = gmv_resp_data_sk[:,3] / l**2
+    inv_resp_gmv_A_sk_ftt_only = gmv_resp_data_sk[:,1] / l**2
+    inv_resp_gmv_B_sk_ftt_only = gmv_resp_data_sk[:,2] / l**2
+
+    # Theory spectrum
+    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+    clkk = slpp * (l*(l+1))**2/4
+
+    plt.figure(0)
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, inv_resp_healqest_TT * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R^{SS}$ (Healqest TT)')
+    plt.plot(l, inv_resp_healqest_TT_sk * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R^{SK}$ (Healqest TT)')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkkhaki', linestyle='-', label='$1/R^{SS}$ (GMV)')
+    plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='seagreen', linestyle='-', label='$1/R^{SS}$ (GMV [TT, EE, TE])')
+    #plt.plot(l, inv_resp_gmv_B * (l*(l+1))**2/4, color='orchid', linestyle='-', label='$1/R^{SS}$ (GMV [TB, EB])')
+    #plt.plot(l, inv_resp_gmv_sk * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/R^{SK}$ (GMV)')
+    plt.plot(l, -1*inv_resp_gmv_A_sk * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='-1 x $1/R^{SK}$ (GMV [TT, EE, TE])')
+    #plt.plot(l, inv_resp_gmv_B_sk * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{SK}$ (GMV [TB, EB])')
+    plt.plot(l, inv_resp_gmv_A_ftt_only * (l*(l+1))**2/4, color='tan', linestyle='-', label='$1/R^{SS}$ (GMV [TT])')
+    plt.plot(l, -1*inv_resp_gmv_A_sk_ftt_only * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='-1 x $1/R^{SK}$ (GMV [TT])')
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title('$1/R$')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    #plt.ylim(8e-9,1e-5)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/profile_response_comparison.png')
+
+    plt.figure(1)
+    plt.clf()
+    plt.plot(l, np.abs(inv_resp_gmv_A/inv_resp_healqest_TT - 1)*100, color='seagreen', linestyle='-', label='$R^{SS}$ Comparison')
+    plt.plot(l, np.abs(-1*inv_resp_gmv_A_sk/inv_resp_healqest_TT_sk - 1)*100, color='lightgreen', linestyle='--', label='$R^{SK}$ Comparison (with x-1)')
+    plt.plot(l, np.abs(inv_resp_gmv_A_ftt_only/inv_resp_healqest_TT - 1)*100, color='tan', linestyle='-', label='$R^{SS}$ Comparison (GMV TT only)')
+    plt.plot(l, np.abs(-1*inv_resp_gmv_A_sk_ftt_only/inv_resp_healqest_TT_sk - 1)*100, color='palegoldenrod', linestyle='--', label='$R^{SK}$ Comparison (with x-1, GMV TT only)')
+    plt.xlabel('$\ell$')
+    plt.title("$|{R_{healqest}}/{R_{GMV,A}} - 1|$ x 100%")
+    plt.legend(loc='upper right', fontsize='small')
+    plt.xlim(10,lmax)
+    plt.ylim(0,30)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff.png')
 
 def compare_gmv_len(sim=2,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/',save_fig=True):
     unl = False
@@ -218,16 +293,26 @@ def compare_gmv_unl(sims=np.arange(10)+1,lmax=4096,nside=8192,dir_out='/scratch/
     plt.figure(0)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, n0_original * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$N_0$ from 10 Unlensed Sims (Original)')
-    plt.plot(l, n0_TT * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$N_0$ from 10 Unlensed Sims (TT)')
-    plt.plot(l, 2 * n0_TE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (TE)')
-    plt.plot(l, n0_EE * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$N_0$ from 10 Unlensed Sims (EE)')
-    plt.plot(l, 2 * n0_TB * (l*(l+1))**2/4, color='gold', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (TB)')
-    plt.plot(l, 2 * n0_EB * (l*(l+1))**2/4, color='orange', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (EB)')
+    #plt.plot(l, n0_original * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$N_0$ from 10 Unlensed Sims (Original)')
+    #plt.plot(l, n0_TT * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$N_0$ from 10 Unlensed Sims (TT)')
+    #plt.plot(l, 2 * n0_TE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (TE)')
+    #plt.plot(l, n0_EE * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$N_0$ from 10 Unlensed Sims (EE)')
+    #plt.plot(l, 2 * n0_TB * (l*(l+1))**2/4, color='gold', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (TB)')
+    #plt.plot(l, 2 * n0_EB * (l*(l+1))**2/4, color='orange', linestyle='-', label='2 x $N_0$ from 10 Unlensed Sims (EB)')
+    plt.plot(l, n0_TT * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$N_0$ (TT)')
+    plt.plot(l, 2 * n0_TE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$N_0$ (TE)')
+    plt.plot(l, n0_EE * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$N_0$ (EE)')
+    plt.plot(l, 2 * n0_TB * (l*(l+1))**2/4, color='gold', linestyle='-', label='$N_0$ (TB)')
+    plt.plot(l, 2 * n0_EB * (l*(l+1))**2/4, color='orange', linestyle='-', label='$N_0$ (EB)')
     #plt.plot(l, n0 * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV)')
     #plt.plot(l, n0_A * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV [TT, EE, TE])')
     #plt.plot(l, n0_B * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$N_0$ from 10 Unlensed Sims (GMV [TB, EB])')
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (Original)')
+    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (Original)')
+    #plt.plot(l, inv_resp_original_TT * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (TT)')
+    #plt.plot(l, inv_resp_original_TE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (TE)')
+    #plt.plot(l, inv_resp_original_EE * (l*(l+1))**2/4, color='plum', linestyle='--', label='1/R (EE)')
+    #plt.plot(l, inv_resp_original_TB * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='1/R (TB)')
+    #plt.plot(l, inv_resp_original_EB * (l*(l+1))**2/4, color='bisque', linestyle='--', label='1/R (EB)')
     plt.plot(l, inv_resp_original_TT * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (TT)')
     plt.plot(l, inv_resp_original_TE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (TE)')
     plt.plot(l, inv_resp_original_EE * (l*(l+1))**2/4, color='plum', linestyle='--', label='1/R (EE)')
@@ -238,7 +323,8 @@ def compare_gmv_unl(sims=np.arange(10)+1,lmax=4096,nside=8192,dir_out='/scratch/
     #plt.plot(l, inv_resp_gmv_B * (l*(l+1))**2/4, color='plum', linestyle='--', label='1/R (GMV [TB, EB])')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
-    plt.title('$N_0$ with Response Correction')
+    #plt.title('$N_0$ with Response Correction')
+    plt.title('$N_0$ from 10 Unlensed Sims, with Response Correction')
     plt.legend(loc='upper right', fontsize='small')
     plt.xscale('log')
     plt.yscale('log')
@@ -247,7 +333,8 @@ def compare_gmv_unl(sims=np.arange(10)+1,lmax=4096,nside=8192,dir_out='/scratch/
     if save_fig:
         #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_test.png')
         #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_unl.png')
-        plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_unl_original.png')
+        #plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_unl_original.png')
+        plt.savefig(dir_out+f'/figs/gmv_comparison_spec_with_resp_unl_original_no_total.png')
 
 def get_n0(sims=np.arange(10)+1,gmv=True,with_BTBE=True,lmax=4096,dir_out='/scratch/users/yukanaka/gmv/'):
     '''
@@ -374,19 +461,20 @@ def get_n0(sims=np.arange(10)+1,gmv=True,with_BTBE=True,lmax=4096,dir_out='/scra
             #np.save(f'/scratch/users/yukanaka/gmv/n0/n0_EB_{num}sims_lmax{lmax}_nside8192_qest_original_unl_from_lensed_cls.npy', n0_EB)
         return n0, n0_TT, n0_TE, n0_EE, n0_TB, n0_EB
 
-def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5,
+def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5, u=None,
                           clfile='/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat',
-                          from_quicklens=False,unl=False):
+                          from_quicklens=False,unl=False,filename=None,qeZA=None):
     '''
     NEEDS PYTHON2 if the analytic response is not already saved and from_quicklens is True.
     See https://github.com/dhanson/quicklens/blob/master/examples/plot_lens_reconstruction_noise_levels.py.
     '''
-    if from_quicklens:
-        filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_quicklens_lmax{}_fwhm{}_nlevt{}_nlevp{}.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
-    elif unl:
-        filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax{}_fwhm{}_nlevt{}_nlevp{}_unl.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
-    else:
-        filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax{}_fwhm{}_nlevt{}_nlevp{}.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
+    if filename is None:
+        if from_quicklens:
+            filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_quicklens_lmax{}_fwhm{}_nlevt{}_nlevp{}.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
+        elif unl:
+            filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax{}_fwhm{}_nlevt{}_nlevp{}_unl.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
+        else:
+            filename = '/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax{}_fwhm{}_nlevt{}_nlevp{}.npy'.format(est,lmax,fwhm,nlev_t,nlev_p)
     if os.path.isfile(filename):
         R = np.load(filename)
     else:
@@ -414,7 +502,7 @@ def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5,
         fle = np.zeros(lmax+1); fle[100:] = 1./clee[100:]
         flb = np.zeros(lmax+1); flb[100:] = 1./clbb[100:]
         # Define qest from quicklens (commented out for Python3)
-        if est == 'TT':
+        if est == 'TT' or est == 'TTprf':
             if from_quicklens:
                 pass
                 #q = ql.qest.lens.phi_TT(sltt)
@@ -461,7 +549,7 @@ def get_analytic_response(est, lmax=4096, fwhm=1, nlev_t=5, nlev_p=5,
             #R = q.fill_resp(q, np.zeros(lmax+1, dtype=np.complex), flX, flY)
         else:
             #pass
-            R = resp.fill_resp(weights_gmv.weights(est,lmax,clfile,unl=unl), np.zeros(lmax+1, dtype=np.complex_), flX, flY, qeZA=None)
+            R = resp.fill_resp(weights_combined.weights(est,lmax,clfile,u=u), np.zeros(lmax+1, dtype=np.complex_), flX, flY, qeZA=qeZA)
         np.save(filename, R)
     return R
 
@@ -485,3 +573,8 @@ def alm_cutlmax(almin,new_lmax):
         almout = almin[lmmap]
 
     return almout
+
+####################
+
+#compare_profile_hardening_resp()
+

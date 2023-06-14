@@ -233,8 +233,6 @@ class qest_gmv(object):
         '''
 
         assert cltype=='grad' or cltype=='len' or cltype=='unl', "cltype expected to be grad/len/unl, got: %s"%cltype
-        if totalcls is None:
-            raise Exception('totalcls needed - the signal + noise spectra for TT, EE, BB, TE')
         if qe == 'all':
             self.ests = ['TT_GMV', 'EE_GMV', 'TE_GMV', 'TB_GMV', 'EB_GMV']
             self.idxs = [0, 1, 2, 3, 4]
@@ -290,7 +288,7 @@ class qest_gmv(object):
             idx = self.idxs[i]
             alm1 = self.alm1all[:,idx]
             alm2 = self.alm2all[:,idx]
-            q = weights_combined_qestobj.weights(est,max(self.lmax1,self.lmax2),self.config,cltype=self.cltype,u=self.u)
+            q = weights_combined_qestobj.weights(est,max(self.lmax1,self.lmax2),self.config,cltype=self.cltype,u=self.u,totalcls=self.totalcls)
             glmsum = 0                        
             clmsum = 0
 

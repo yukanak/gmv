@@ -2,7 +2,7 @@ import numpy as np
 import utils 
 
 class weights():
-    def __init__(self,est,lmax,clfile,totalcls=None,unlclfile=None):
+    def __init__(self,est,lmax,clfile,totalcls=None,unlclfile=None,u=None):
         l  = np.arange(lmax+1,dtype=np.float_)
         ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
         if totalcls is not None:
@@ -12,7 +12,52 @@ class weights():
             clte = totalcls[:,3]
         if unlclfile is not None:
             uell,usltt,uslee,uslbb,uslte,uslpp,usltp,uslep = utils.get_unlensedcls(unlclfile, lmax=lmax)
+        if est=='TTprf' or est=='TT_GMV_PRF' or est=='EE_GMV_PRF' or est=='TE_GMV_PRF' or est=='TB_GMV_PRF' or est=='EB_GMV_PRF':
+            assert u is not None, "Must provide u(ell)"
         self.lmax=lmax
+
+        if est=='TT_GMV_PRF':
+            self.ntrm = 1
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 = u
+            f2 = 1/u
+            self.w[0][0]=f1*clee[:lmax+1]; self.w[0][1]=f1*clee[:lmax+1]; self.w[0][2]=f2; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
+
+        if est=='EE_GMV_PRF':
+            self.ntrm = 1
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 = u
+            f2 = 1/u
+            self.w[0][0]=f1*clte[:lmax+1]; self.w[0][1]=f1*clte[:lmax+1]; self.w[0][2]=f2; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
+
+        if est=='TE_GMV_PRF':
+            self.ntrm = 2
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 = u
+            f2 = 1/u
+            self.w[0][0]=f1*clte[:lmax+1]; self.w[0][1]=-1*f1*clee[:lmax+1]; self.w[0][2]=f2; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
+            self.w[1][0]=f1*clte[:lmax+1]; self.w[1][1]=-1*f1*clee[:lmax+1]; self.w[1][2]=f2; self.s[1][0]=0; self.s[1][1]=0; self.s[1][2]=0  
+
+        if est=='TB_GMV_PRF':
+            #TODO: Is this right???
+            self.ntrm = 1
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 = u
+            f2 = 1/u
+            self.w[0][0]=0; self.w[0][1]=0; self.w[0][2]=0; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
+
+        if est=='EB_GMV_PRF':
+            #TODO: Is this right???
+            self.ntrm = 1
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            f1 = u
+            f2 = 1/u
+            self.w[0][0]=0; self.w[0][1]=0; self.w[0][2]=0; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
 
         if est=='TT_GMV': 
             self.sltt = sltt
@@ -518,6 +563,15 @@ class weights():
             f1 = np.ones_like(l)
             f2 = 0.5*np.ones_like(l)
             self.w[0][0]=f1; self.w[0][1]=f1; self.w[0][2]=f2; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0  
+
+        if est=="TTprf":
+            self.ntrm = 1
+            self.w = { i : {} for i in range(0, self.ntrm) }
+            self.s = { i : {} for i in range(0, self.ntrm) }
+            #f1 = np.ones_like(l)
+            f1 = u 
+            f2 = 1/u
+            self.w[0][0]=f1; self.w[0][1]=f1; self.w[0][2]=f2; self.s[0][0]=0; self.s[0][1]=0; self.s[0][2]=0
 
 '''
 def weights_TT(idx,sltt,lmax):

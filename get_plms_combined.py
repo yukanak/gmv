@@ -26,12 +26,14 @@ nlev_p = 5
 cambini = 'healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 clfile    = 'camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+prf = False
 ####################################
-est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all/A/B
+est = str(sys.argv[1]) # TT/EE/TE/TB/EB/all/TTTEEE/TBEB
 sim = int(sys.argv[2])
 append = str(sys.argv[3])
 # Get input map or alm
 if map_inputs:
+    # From amscott:/sptlocal/analysis/eete+lensing_19-20/resources/sims/planck2018/inputcmb/tqu1/len/
     file_map = f'/scratch/users/yukanaka/full_res_maps/len/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap.fits'
 else:
     file_alm = f'/scratch/users/yukanaka/alms_llcdm/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim}_lmax17000_nside8192_interp1.6_method1_pol_1_lensedmap_lmax2048.alm'
@@ -125,8 +127,14 @@ if not gmv:
     np.save(dir_out+f'/plm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
     np.save(dir_out+f'/clm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
 else:
-    glm,clm = qest.qest(est,lmax,clfile,alm1all,alm2all,gmv=True,totalcls=totalcls)
-    # Save plm and clm
-    Path(dir_out).mkdir(parents=True, exist_ok=True)
-    np.save(dir_out+f'/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
-    np.save(dir_out+f'/clm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
+    if prf:
+        glm,clm = qest.qest(est,lmax,clfile,alm1all,alm2all,gmv=True,totalcls=totalcls,u=u)
+        Path(dir_out).mkdir(parents=True, exist_ok=True)
+        np.save(dir_out+f'/prf_glm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
+        np.save(dir_out+f'/prf_clm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
+    else:
+        glm,clm = qest.qest(est,lmax,clfile,alm1all,alm2all,gmv=True,totalcls=totalcls)
+        # Save plm and clm
+        Path(dir_out).mkdir(parents=True, exist_ok=True)
+        np.save(dir_out+f'/plm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
+        np.save(dir_out+f'/clm_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)

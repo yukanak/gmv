@@ -5,13 +5,13 @@ import numpy as np
 import healpy as hp
 np.seterr(all='ignore')
 
-def qest(est,Lmax,clfile,alm1all,alm2all,gmv=False,totalcls=None):
+def qest(est,Lmax,clfile,alm1all,alm2all,gmv=False,totalcls=None,u=None):
     '''
     If gmv = False, we compute the standard quadratic estimator
     for estimator est. Inputs alm1all and alm2all should be filtered 1D arrays.
 
-    If gmv = True, we expect est to be either 'all', 'A' (TT/TE/EE only) or
-    'B' (TB/EB only). In this case, alm1all and alm2all should be unfiltered
+    If gmv = True, we expect est to be either 'all', 'TTTEEE' (TT/TE/EE only) or
+    'TBEB' (TB/EB only). In this case, alm1all and alm2all should be unfiltered
     and they should be N x 5 arrays for each of the 5 estimators.
     We also need totalcls, the signal + noise spectra for TT, EE, BB, TE,
     for the GMV weights.
@@ -27,10 +27,10 @@ def qest(est,Lmax,clfile,alm1all,alm2all,gmv=False,totalcls=None):
         if est == 'all':
             ests = ['TT_GMV', 'EE_GMV', 'TE_GMV', 'TB_GMV', 'EB_GMV']
             idxs = [0, 1, 2, 3, 4]
-        elif est == 'A':
+        elif est == 'TTTEEE':
             ests = ['TT_GMV', 'EE_GMV', 'TE_GMV']
             idxs = [0, 1, 2]
-        elif est == 'B':
+        elif est == 'TBEB':
             ests = ['TB_GMV', 'EB_GMV']
             idxs = [3, 4]
         else:
@@ -48,7 +48,7 @@ def qest(est,Lmax,clfile,alm1all,alm2all,gmv=False,totalcls=None):
         print("Projecting to nside = %d"%nside)
         lmax1 = hp.Alm.getlmax(alm1.shape[0])
         lmax2 = hp.Alm.getlmax(alm2.shape[0])
-        q = weights.weights(est,max(lmax1,lmax2),clfile,totalcls)
+        q = weights.weights(est,max(lmax1,lmax2),clfile,totalcls,u=u)
         print("lmax = %d"%max(lmax1,lmax2)) 
         print("Lmax = %d"%Lmax)
         glmsum = 0                        
@@ -180,7 +180,7 @@ def qest(est,Lmax,clfile,alm1all,alm2all,gmv=False,totalcls=None):
 
         else:
             # More traditional quicklens style calculation            
-            for i in range (0,q.ntrm):
+            for i in range(0,q.ntrm):
                 wX,wY,wP,sX,sY,sP = q.w[i][0],q.w[i][1],q.w[i][2],q.s[i][0],q.s[i][1],q.s[i][2]
                 print("Computing term %d/%d sj = [%d,%d,%d]"%(i+1,q.ntrm,sX,sY,sP))
                 walm1 = hp.almxfl(alm1,wX)

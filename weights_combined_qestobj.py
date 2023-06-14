@@ -213,6 +213,7 @@ class weights():
         if est=='TB_GMV':
             self.slee = sl['ee']
             self.slte = sl['te']
+            self.slbb = sl['bb']
             #self.ntrm = 12
             self.ntrm = 24
             self.w = { i : {} for i in range(0, self.ntrm) }
@@ -288,6 +289,7 @@ class weights():
         if est=='EB_GMV':
             self.slee = sl['ee']
             self.slte = sl['te']
+            self.slbb = sl['bb']
             #self.ntrm = 12
             self.ntrm = 24
             self.w = { i : {} for i in range(0, self.ntrm) }
@@ -406,7 +408,7 @@ class weights():
             f4 = +np.nan_to_num(np.sqrt((l+3.)*(l-2.)))*sl['te'][:lmax+1]
             f5 = -0.50*np.ones_like(l,dtype=np.float_)
             f6 =  np.nan_to_num(np.sqrt(l*(l+1)))
-            f7 =  np.nan_to_num(np.sqrt(l*(l+1)))*slte[:lmax+1]
+            f7 =  np.nan_to_num(np.sqrt(l*(l+1)))*sl['te'][:lmax+1]
             self.w[0][0]=f3; self.w[0][1]=f1; self.w[0][2]=f2; self.s[0][0]=-1; self.s[0][1]=+2; self.s[0][2]=+1
             self.w[1][0]=f4; self.w[1][1]=f1; self.w[1][2]=f2; self.s[1][0]=-3; self.s[1][1]=+2; self.s[1][2]=-1
             self.w[2][0]=f4; self.w[2][1]=f1; self.w[2][2]=f2; self.s[2][0]=+3; self.s[2][1]=-2; self.s[2][2]=+1
@@ -547,6 +549,7 @@ class weights():
 
         if est=='BE':
             self.slee = sl['ee']
+            self.slbb = sl['bb']
             self.ntrm = 8
             self.w = { i : {} for i in range(0, self.ntrm) }
             self.s = { i : {} for i in range(0, self.ntrm) }
