@@ -528,11 +528,9 @@ class qest_gmv(object):
         '''
         plm1 = self.retglm
         plm2 = self.retglm_prf
-        resp12 = es
-        resp2 = ss
 
-        weight = -1*resp12 / resp2
+        weight = -1*es/ss
         plm    = plm1 + hp.almxfl(plm2, weight)
-        resp   = ee + weight*es
+        resp = ee + 2*weight*es + weight**2*ss
 
         return plm, resp

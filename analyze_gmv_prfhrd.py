@@ -45,9 +45,9 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,dir_out='/scratch/use
     plm_gmv_A_hrd = plm_gmv_A + hp.almxfl(glm_prf_A, weight_gmv)
     plm_gmv_hrd = plm_gmv_A_hrd + plm_gmv_B
     #plm_gmv_hrd = plm_gmv + hp.almxfl(glm_prf_A, weight_gmv)
-    resp_gmv_A_hrd = resp_gmv_A + weight_gmv*resp_gmv_A_sk
+    resp_gmv_A_hrd = resp_gmv_A + 2*weight_gmv*resp_gmv_A_sk + weight_gmv**2*resp_gmv_A_ss
     resp_gmv_hrd = resp_gmv_A_hrd + resp_gmv_B
-    #resp_gmv_hrd   = resp_gmv + weight_gmv*resp_gmv_A_sk
+    #resp_gmv_hrd   = resp_gmv + 2*weight_gmv*resp_gmv_A_sk + weight_gmv**2*resp_gmv_A_ss
     inv_resp_gmv_A_hrd = np.zeros_like(l, dtype=np.complex_); inv_resp_gmv_A_hrd[1:] = 1/(resp_gmv_A_hrd)[1:]
     inv_resp_gmv_hrd = np.zeros_like(l, dtype=np.complex_); inv_resp_gmv_hrd[1:] = 1/(resp_gmv_hrd)[1:]
 
@@ -73,7 +73,7 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,dir_out='/scratch/use
     weight_original = -1 * resp_original_sk / resp_original_ss
     plm_original_TT_hrd = plms_original[:,0] + hp.almxfl(glm_prf_TTprf, weight_original)
     plm_original_hrd = plm_original_TT_hrd + np.sum(plms_original[:,1:], axis=1)
-    resp_original_TT_hrd = resps_original[:,0] + weight_original*resp_original_sk
+    resp_original_TT_hrd = resps_original[:,0] + 2*weight_original*resp_original_sk + weight_original**2*resp_original_ss
     resp_original_hrd = resp_original_TT_hrd + np.sum(resps_original[:,1:], axis=1)
     inv_resp_original_TT_hrd = np.zeros_like(l, dtype=np.complex_); inv_resp_original_TT_hrd[1:] = 1/(resp_original_TT_hrd)[1:]
     inv_resp_original_hrd = np.zeros_like(l, dtype=np.complex_); inv_resp_original_hrd[1:] = 1/(resp_original_hrd)[1:]
