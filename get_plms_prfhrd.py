@@ -19,7 +19,7 @@ unl = False
 ####################################
 lmax = 4096
 nside = 8192
-fluxlim = 0.010
+fluxlim = 0.200
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
