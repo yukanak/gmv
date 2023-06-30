@@ -15,8 +15,6 @@ import wignerd
 import resp
 
 ####################################
-unl = False
-####################################
 lmax = 4096
 nside = 8192
 fluxlim = 0.200
@@ -115,10 +113,11 @@ else:
     q_gmv = qest_combined_qestobj.qest_gmv(config,qe,alm1all,alm2all,totalcls,cltype='len',u=u)
     glm,clm = q_gmv.eval()
     # Save plm and clm
-    append = f'tsrc_fluxlim{fluxlim:.3f}'
+    #append = f'tsrc_fluxlim{fluxlim:.3f}'
+    append = f'tsrc_fluxlim{fluxlim:.3f}_TEl1l2flip'
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     np.save(dir_out+f'/plm_{qe}_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm)
     #np.save(dir_out+f'/clm_{qe}_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',clm)
-    if qe == 'TTEETE':
+    if qe == 'TBEB':
         glm_prf,_ = q_gmv.get_source_estimator()
         np.save(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy',glm_prf)
