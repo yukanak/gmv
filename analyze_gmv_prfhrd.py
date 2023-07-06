@@ -17,26 +17,25 @@ def compare_gmv_specs(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scrat
     '''
     Temporary, to test weight change in GMV TE.
     No hardening.
+    l1/l2 NOT flipped in second half in the old weights.
     '''
     config = utils.parse_yaml(config_file)
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
     l = np.arange(0,lmax+1)
+    sim1 = sim
+    sim2 = sim
 
     # Load GMV plms
     append = f'tsrc_fluxlim{fluxlim:.3f}'
-    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_TEl1l2flip = np.load(dir_out+f'/plm_all_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}_TEl1l2flip.npy')
-    plm_gmv_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}_TEl1l2flip.npy')
+    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    glm_prf_A = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_TEl1l2flip = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
+    plm_gmv_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
+    glm_prf_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
     gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
     inv_resp_gmv = gmv_resp_data[:,3] / l**2
     inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
-
-    print(plm_gmv)
-    print(plm_gmv_TEl1l2flip)
-    print('...')
-    print(plm_gmv_A)
-    print(plm_gmv_A_TEl1l2flip)
 
     # Response correct GMV
     # N is 1/R
@@ -62,12 +61,10 @@ def compare_gmv_specs(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scrat
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
     plt.plot(l, auto_gmv, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
     plt.plot(l, auto_gmv_A, color='dodgerblue', linestyle='-', label=f'Auto Spectrum (GMV [TT, EE, TE])')
-    plt.plot(l, auto_gmv_TEl1l2flip, color='cornflowerblue', linestyle='--', label="Auto Spectrum (GMV) with l1/l2 flipped in second half of TE weights")
-    plt.plot(l, auto_gmv_A_TEl1l2flip, color='deepskyblue', linestyle='--', label=f'Auto Spectrum (GMV [TT, EE, TE]) with l1/l2 flipped in second half of TE weights')
-    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='1/R (GMV)')
-    plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='peru', linestyle='-', label='1/R (GMV [TT, EE, TE])')
-    plt.plot(l, inv_resp_gmv_TEl1l2flip * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (GMV) with l1/l2 flipped in second half of TE weights')
-    plt.plot(l, inv_resp_gmv_A_TEl1l2flip * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='1/R (GMV [TT, EE, TE]) with l1/l2 flipped in second half of TE weights')
+    plt.plot(l, auto_gmv_TEl1l2flip, color='cornflowerblue', linestyle='--', label="Auto Spectrum (GMV) with old TE weights")
+    plt.plot(l, auto_gmv_A_TEl1l2flip, color='deepskyblue', linestyle='--', label=f'Auto Spectrum (GMV [TT, EE, TE]) with old TE weights')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='firebrick', linestyle=':', label='1/R (GMV)')
+    #plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='peru', linestyle=':', label='1/R (GMV [TT, EE, TE])')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra for Sim {sim}, with Point Sources in T (GMV)')
@@ -75,7 +72,7 @@ def compare_gmv_specs(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scrat
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    plt.ylim(5e-9,1e-6)
+    #plt.ylim(5e-9,1e-6)
     if save_fig:
         plt.savefig(dir_out+f'/figs/temp_weight_comparison_spec_gmv_fluxlim{fluxlim:.3f}.png')
 
@@ -88,19 +85,21 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
     l = np.arange(0,lmax+1)
     ests = ['TT', 'EE', 'TE', 'TB', 'EB']
+    sim1 = sim
+    sim2 = sim
+    append = f'tsrc_fluxlim{fluxlim:.3f}'
 
     # Load GMV plms
-    append = f'tsrc_fluxlim{fluxlim:.3f}'
-    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_B = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_B = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
     gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
     inv_resp_gmv = gmv_resp_data[:,3] / l**2
     inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
     inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
 
     # Harden!
-    glm_prf_A = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
+    glm_prf_A = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
     gmv_resp_data_ss = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SS.txt')
     gmv_resp_data_sk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SK.txt')
     #TODO: for some reason we need a -1 factor for SK
@@ -124,11 +123,11 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     inv_resp_gmv_hrd = np.zeros_like(l, dtype=np.complex_); inv_resp_gmv_hrd[1:] = 1/(resp_gmv_hrd)[1:]
 
     # Load healqest plms
-    plms_original = np.zeros((len(np.load(dir_out+f'/plm_TT_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')),5), dtype=np.complex_)
+    plms_original = np.zeros((len(np.load(dir_out+f'/plm_TT_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')),5), dtype=np.complex_)
     resps_original = np.zeros((len(l),5), dtype=np.complex_)
     inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
     for i, est in enumerate(ests):
-        plms_original[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
+        plms_original[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
         resps_original[:,i] = get_analytic_response(est,config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
     plm_original = np.sum(plms_original, axis=1)
@@ -136,7 +135,7 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # Harden!
-    glm_prf_TTprf = np.load(dir_out+f'/plm_TTprf_healqest_seed{sim}_lmax{lmax}_nside{nside}_{append}.npy')
+    glm_prf_TTprf = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
     resp_original_ss = get_analytic_response('TTprf',config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile,
                                               filename='/scratch/users/yukanaka/gmv/resp/an_resp_SS_TTprf_healqest_lmax{}_fwhm0_nlevt0_nlevp0.npy'.format(lmax))
     resp_original_sk = get_analytic_response('TTprf',config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile,
@@ -186,8 +185,8 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     auto_TT_hrd = hp.alm2cl(plm_TT_resp_corr_hrd, plm_TT_resp_corr_hrd, lmax=lmax) * (l*(l+1))**2/4
 
     # Get N0 correction (remember these still need (l*(l+1))**2/4 factor to convert to kappa)
-    n0_gmv = get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=fluxlim,lmax=lmax,u=u,config_file=config_file,dir_out=dir_out)
-    n0_original = get_n0(sims=np.arange(10)+100,qetype='original',fluxlim=fluxlim,lmax=lmax,u=u,config_file=config_file,dir_out=dir_out)
+    n0_gmv = get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=fluxlim,lmax=lmax,nside=nside,u=u,config_file=config_file,dir_out=dir_out,withfg=True)
+    n0_original = get_n0(sims=np.arange(10)+101,qetype='original',fluxlim=fluxlim,lmax=lmax,nside=nside,u=u,config_file=config_file,dir_out=dir_out,withfg=True)
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -205,22 +204,22 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     plt.figure(0)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, auto_gmv_hrd, color='firebrick', label="Auto Spectrum (GMV, hardened)")
-    plt.plot(l, auto_gmv_A_hrd, color='peru', label=f'Auto Spectrum (GMV [TT, EE, TE], hardened)')
-    plt.plot(l, auto_gmv, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
-    plt.plot(l, auto_gmv_A, color='dodgerblue', linestyle='-', label=f'Auto Spectrum (GMV [TT, EE, TE])')
-    #plt.plot(l, auto_gmv_hrd - n0_gmv['total_hrd'] * (l*(l+1))**2/4, color='firebrick', linestyle='-', label="Auto Spectrum - N0 (GMV, hardened)")
-    #plt.plot(l, auto_gmv_A_hrd - n0_gmv['TTEETE_hrd'] * (l*(l+1))**2/4, color='peru', linestyle='-', label=f'Auto Spectrum - N0 (GMV [TT, EE, TE], hardened)')
-    #plt.plot(l, auto_gmv - n0_gmv['total'] * (l*(l+1))**2/4, color='darkblue', linestyle='-', label="Auto Spectrum - N0 (GMV)")
-    #plt.plot(l, auto_gmv_A - n0_gmv['TTEETE'] * (l*(l+1))**2/4, color='dodgerblue', linestyle='-', label=f'Auto Spectrum - N0 (GMV [TT, EE, TE])')
-    plt.plot(l, inv_resp_gmv_hrd * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (GMV, hardened)')
-    plt.plot(l, inv_resp_gmv_A_hrd * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='1/R (GMV [TT, EE, TE], hardened)')
-    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
-    plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='1/R (GMV [TT, EE, TE])')
-    #plt.plot(l, n0_gmv['total_hrd'] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='N0 (GMV, hardened)')
-    #plt.plot(l, n0_gmv['TTEETE_hrd'] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label= 'N0 (GMV [TT, EE, TE], hardened)')
-    #plt.plot(l, n0_gmv['total'] * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='N0 (GMV)')
-    #plt.plot(l, n0_gmv['TTEETE'] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='N0 (GMV [TT, EE, TE])')
+    #plt.plot(l, auto_gmv_hrd, color='firebrick', label="Auto Spectrum (GMV, hardened)")
+    #plt.plot(l, auto_gmv_A_hrd, color='peru', label=f'Auto Spectrum (GMV [TT, EE, TE], hardened)')
+    #plt.plot(l, auto_gmv, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
+    #plt.plot(l, auto_gmv_A, color='dodgerblue', linestyle='-', label=f'Auto Spectrum (GMV [TT, EE, TE])')
+    plt.plot(l, auto_gmv_hrd - n0_gmv['total_hrd'] * (l*(l+1))**2/4, color='firebrick', linestyle='-', label="Auto Spectrum - N0 (GMV, hardened)")
+    plt.plot(l, auto_gmv_A_hrd - n0_gmv['TTEETE_hrd'] * (l*(l+1))**2/4, color='peru', linestyle='-', label=f'Auto Spectrum - N0 (GMV [TT, EE, TE], hardened)')
+    plt.plot(l, auto_gmv - n0_gmv['total'] * (l*(l+1))**2/4, color='darkblue', linestyle='-', label="Auto Spectrum - N0 (GMV)")
+    plt.plot(l, auto_gmv_A - n0_gmv['TTEETE'] * (l*(l+1))**2/4, color='dodgerblue', linestyle='-', label=f'Auto Spectrum - N0 (GMV [TT, EE, TE])')
+    #plt.plot(l, inv_resp_gmv_hrd * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (GMV, hardened)')
+    #plt.plot(l, inv_resp_gmv_A_hrd * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='1/R (GMV [TT, EE, TE], hardened)')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
+    #plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='1/R (GMV [TT, EE, TE])')
+    plt.plot(l, n0_gmv['total_hrd'] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='N0 (GMV, hardened)')
+    plt.plot(l, n0_gmv['TTEETE_hrd'] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label= 'N0 (GMV [TT, EE, TE], hardened)')
+    plt.plot(l, n0_gmv['total'] * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='N0 (GMV)')
+    plt.plot(l, n0_gmv['TTEETE'] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='N0 (GMV [TT, EE, TE])')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra for Sim {sim}, with Point Sources in T (GMV)')
@@ -231,28 +230,28 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     #plt.ylim(5e-9,1e-6)
     plt.ylim(1e-10,1e-4)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_gmv_fluxlim{fluxlim:.3f}.png')
-        #plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_gmv_fluxlim{fluxlim:.3f}_n0_subtracted.png')
+        #plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_gmv_fluxlim{fluxlim:.3f}.png')
+        plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_gmv_fluxlim{fluxlim:.3f}_n0_subtracted.png')
 
     plt.figure(1)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, auto_original_hrd, color='firebrick', label="Auto Spectrum (Original, hardened)")
-    plt.plot(l, auto_TT_hrd, color='peru', label="Auto Spectrum (Original TT, hardened)")
-    plt.plot(l, auto_original, color='darkblue', label="Auto Spectrum (Original)")
-    plt.plot(l, auto_TT, color='dodgerblue', label="Auto Spectrum (Original TT)")
-    #plt.plot(l, auto_original_hrd - n0_original['total_hrd'] * (l*(l+1))**2/4, color='firebrick', label="Auto Spectrum - N0 (Original, hardened)")
-    #plt.plot(l, auto_TT_hrd - n0_original['TT_hrd'] * (l*(l+1))**2/4, color='peru', label="Auto Spectrum - N0 (Original TT, hardened)")
-    #plt.plot(l, auto_original - n0_original['total'] * (l*(l+1))**2/4, color='darkblue', label="Auto Spectrum - N0 (Original)")
-    #plt.plot(l, auto_TT - n0_original['TT'] * (l*(l+1))**2/4, color='dodgerblue', label="Auto Spectrum - N0 (Original TT)")
-    plt.plot(l, inv_resp_original_hrd * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (Original, hardened)')
-    plt.plot(l, inv_resp_original_TT_hrd * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='1/R (Original TT, hardened)')
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (Original)')
-    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='1/R (Original TT)')
-    #plt.plot(l, n0_gmv['total_hrd'] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='N0 (Original, hardened)')
-    #plt.plot(l, n0_gmv['TT_hrd'] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='N0 (Original TT, hardened)')
-    #plt.plot(l, n0_gmv['total'] * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='N0 (Original)')
-    #plt.plot(l, n0_gmv['TT'] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='N0 (Original TT)')
+    #plt.plot(l, auto_original_hrd, color='firebrick', label="Auto Spectrum (Original, hardened)")
+    #plt.plot(l, auto_TT_hrd, color='peru', label="Auto Spectrum (Original TT, hardened)")
+    #plt.plot(l, auto_original, color='darkblue', label="Auto Spectrum (Original)")
+    #plt.plot(l, auto_TT, color='dodgerblue', label="Auto Spectrum (Original TT)")
+    plt.plot(l, auto_TT_hrd - n0_original['TT_hrd'] * (l*(l+1))**2/4, color='peru', label="Auto Spectrum - N0 (Original TT, hardened)")
+    plt.plot(l, auto_original - n0_original['total'] * (l*(l+1))**2/4, color='darkblue', label="Auto Spectrum - N0 (Original)")
+    plt.plot(l, auto_TT - n0_original['TT'] * (l*(l+1))**2/4, color='dodgerblue', label="Auto Spectrum - N0 (Original TT)")
+    plt.plot(l, auto_original_hrd - n0_original['total_hrd'] * (l*(l+1))**2/4, color='firebrick', label="Auto Spectrum - N0 (Original, hardened)")
+    #plt.plot(l, inv_resp_original_hrd * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (Original, hardened)')
+    #plt.plot(l, inv_resp_original_TT_hrd * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='1/R (Original TT, hardened)')
+    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (Original)')
+    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='1/R (Original TT)')
+    plt.plot(l, n0_original['TT_hrd'] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='N0 (Original TT, hardened)')
+    plt.plot(l, n0_original['total'] * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='N0 (Original)')
+    plt.plot(l, n0_original['TT'] * (l*(l+1))**2/4, color='deepskyblue', linestyle='--', label='N0 (Original TT)')
+    plt.plot(l, n0_original['total_hrd'] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='N0 (Original, hardened)')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra for Sim {sim}, with Point Sources in T (healqest)')
@@ -263,17 +262,22 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
     #plt.ylim(5e-9,1e-6)
     plt.ylim(1e-10,1e-4)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}.png')
-        #plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}_n0_subtracted.png')
+        #plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}.png')
+        plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}_n0_subtracted.png')
 
-def get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=0.200,
-           lmax=4096,u=np.ones(4097,dtype=np.complex_),config_file='profhrd_yuka.yaml',dir_out='/scratch/users/yukanaka/gmv/'):
+def get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
+           lmax=4096,nside=8192,u=np.ones(4097,dtype=np.complex_),
+           config_file='profhrd_yuka.yaml',dir_out='/scratch/users/yukanaka/gmv/',
+           withfg=True):
     '''
     Get N0 bias. qetype should be 'gmv' or 'original'.
     '''
     num = len(sims) - 1
     l = np.arange(0,lmax+1)
-    append = f'tsrc_fluxlim{fluxlim:.3f}'
+    if withfg:
+        append = f'tsrc_fluxlim{fluxlim:.3f}'
+    else:
+        append = 'cmbonly'
     config = utils.parse_yaml(config_file)
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
     filename = f'/scratch/users/yukanaka/gmv/n0/n0_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside8192_{append}.npy'
@@ -305,11 +309,11 @@ def get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=0.200,
         for i, sim1 in enumerate(sims[:-1]):
             sim2 = sim1 + 1
             # These are lensed
-            plm_gmv_ij = np.load(dir_out+f'/plm_all_healqest_gmv_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_gmv_A_ij = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_gmv_B_ij = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_ij = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_A_ij = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_B_ij = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
             # Harden!
-            glm_prf_A_ij = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            glm_prf_A_ij = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_gmv_A_hrd_ij = plm_gmv_A_ij + hp.almxfl(glm_prf_A_ij, weight_gmv)
             plm_gmv_hrd_ij = plm_gmv_A_hrd_ij + plm_gmv_B_ij
             # Response correct GMV
@@ -326,11 +330,11 @@ def get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=0.200,
             auto_hrd = hp.alm2cl(plm_all_hrd_ij, plm_all_hrd_ij, lmax=lmax)
             auto_A_hrd = hp.alm2cl(plm_A_hrd_ij, plm_A_hrd_ij, lmax=lmax)
             # Now get the ji sims
-            plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_gmv_A_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_gmv_B_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_A_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_gmv_B_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
             # Harden!
-            glm_prf_A_ji = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            glm_prf_A_ji = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_gmv_A_hrd_ji = plm_gmv_A_ji + hp.almxfl(glm_prf_A_ji, weight_gmv)
             plm_gmv_hrd_ji = plm_gmv_A_hrd_ji + plm_gmv_B_ji
             # Response correct GMV
@@ -380,14 +384,14 @@ def get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=0.200,
         for i, sim1 in enumerate(sims[:-1]):
             sim2 = sim1 + 1
             # These are lensed
-            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
             # Harden!
-            glm_prf_TTprf_ij = np.load(dir_out+f'/plm_TTprf_healqest_seed1{sim1}_seed2{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+            glm_prf_TTprf_ij = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_original_TT_hrd_ij = plm_TT_ij + hp.almxfl(glm_prf_TTprf_ij, weight_original)
             plm_original_hrd_ij = plm_original_TT_hrd_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
             # Response correct healqest
@@ -409,14 +413,14 @@ def get_n0(sims=np.arange(10)+100,qetype='gmv',fluxlim=0.200,
             auto_hrd = hp.alm2cl(plm_total_hrd_ij, plm_total_hrd_ij, lmax=lmax)
             auto_TT_hrd = hp.alm2cl(plm_TT_hrd_ij, plm_TT_hrd_ij, lmax=lmax)
             # Now get the ji sims
-            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
-            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
             # Harden!
-            glm_prf_TTprf_ji = np.load(dir_out+f'/plm_TTprf_healqest_seed1{sim2}_seed2{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
+            glm_prf_TTprf_ji = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim2}_seed2_{sim1}_lmax{lmax}_nside{nside}_{append}.npy')
             plm_original_TT_hrd_ji = plm_TT_ji + hp.almxfl(glm_prf_TTprf_ji, weight_original)
             plm_original_hrd_ji = plm_original_TT_hrd_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
             # Response correct healqest
@@ -680,4 +684,5 @@ def alm_cutlmax(almin,new_lmax):
 #compare_profile_hardening_resp()
 #compare_lensing_resp()
 #compare_profile_hardening()
-compare_gmv_specs()
+#compare_gmv_specs()
+
