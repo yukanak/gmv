@@ -265,6 +265,150 @@ def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out
         #plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}.png')
         plt.savefig(dir_out+f'/figs/prfhrd_comparison_spec_original_fluxlim{fluxlim:.3f}_n0_subtracted.png')
 
+def get_n1(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
+           lmax=4096,nside=8192,u=np.ones(4097,dtype=np.complex_),
+           config_file='profhrd_yuka.yaml',dir_out='/scratch/users/yukanaka/gmv/'):
+    '''
+    Get N1 bias. qetype should be 'gmv' or 'original'.
+    '''
+    num = len(sims)
+    l = np.arange(0,lmax+1)
+    config = utils.parse_yaml(config_file)
+    append = 'cmbonly'
+    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    filename = f'/scratch/users/yukanaka/gmv/n0/n1_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside{nside}_{append}.npy'
+    if os.path.isfile(filename):
+        n1 = np.load(filename)
+    elif qetype == 'gmv':
+        gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
+        inv_resp_gmv = gmv_resp_data[:,3] / l**2
+        inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
+        inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
+        # Abhi's code calculates the reconstruction noise for d field rather than phi field, see GMV_QE.py, line 292 for example
+        resp_gmv = 1/inv_resp_gmv
+        resp_gmv_A = 1/inv_resp_gmv_A
+        resp_gmv_B = 1/inv_resp_gmv_B
+        n1 = {'total':0, 'TTEETE':0, 'TBEB':0}
+        for i, sim in enumerate(sims):
+            # These are reconstructions using sims that were lensed with the same phi but different CMB realizations, no foregrounds
+            plm_gmv_ij = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_gmv_A_ij = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_gmv_B_ij = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            # Response correct GMV
+            # N is 1/R
+            plm_all_ij = hp.almxfl(plm_gmv_ij,inv_resp_gmv)
+            plm_A_ij = hp.almxfl(plm_gmv_A_ij,inv_resp_gmv_A)
+            plm_B_ij = hp.almxfl(plm_gmv_B_ij,inv_resp_gmv_B)
+            # Get ij auto spectra <ijij>
+            auto = hp.alm2cl(plm_all_ij, plm_all_ij, lmax=lmax)
+            auto_A = hp.alm2cl(plm_A_ij, plm_A_ij, lmax=lmax)
+            auto_B = hp.alm2cl(plm_B_ij, plm_B_ij, lmax=lmax)
+            # Now get the ji sims
+            plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_gmv_A_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_gmv_B_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            # Response correct GMV
+            # N is 1/R
+            plms_all_ji = hp.almxfl(plm_gmv_ji,inv_resp_gmv)
+            plms_A_ji = hp.almxfl(plm_gmv_A_ji,inv_resp_gmv_A)
+            plms_B_ji = hp.almxfl(plm_gmv_B_ji,inv_resp_gmv_B)
+            # Get cross spectra <ijji>
+            cross = hp.alm2cl(plm_all_ij, plm_all_ji, lmax=lmax)
+            cross_A = hp.alm2cl(plm_A_ij, plm_A_ji, lmax=lmax)
+            cross_B = hp.alm2cl(plm_B_ij, plm_B_ji, lmax=lmax)
+            cross_hrd = hp.alm2cl(plm_all_hrd_ij, plm_all_hrd_ji, lmax=lmax)
+            cross_A_hrd = hp.alm2cl(plm_A_hrd_ij, plm_A_hrd_ji, lmax=lmax)
+            n1['total'] += auto + cross
+            n1['TTEETE'] += auto_A + cross_A
+            n1['TBEB'] += auto_B + cross_B
+        n1['total'] *= 1/num
+        n1['TTEETE'] *= 1/num
+        n1['TBEB'] *= 1/num
+        n0 = get_n0(sims=sims,qetype=qetype,fluxlim=fluxlim,lmax=lmax,
+                    nside=nside,u=u,config_file=config_file,dir_out=dir_out,
+                    withfg=False)
+        n1['total'] -= n0['total']
+        n1['TTEETE'] -= n0['TTEETE']
+        n1['TBEB'] -= n0['TBEB']
+        np.save(filename, n1)
+    elif qetype == 'original':
+        ests = ['TT', 'EE', 'TE', 'TB', 'EB']
+        resps_original = np.zeros((len(l),5), dtype=np.complex_)
+        inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
+        for i, est in enumerate(ests):
+            resps_original[:,i] = get_analytic_response(est,config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile)
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+        resp_original = np.sum(resps_original, axis=1)
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+        n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'TB':0, 'EB':0}
+        for i, sim in enumerate(sims):
+            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+            plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
+            # Response correct healqest
+            plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
+            plm_TT_ij = hp.almxfl(plm_TT_ij,inv_resps_original[:,0])
+            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
+            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
+            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,3])
+            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,4])
+            # Get ij auto spectra <ijij>
+            auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
+            auto_TT = hp.alm2cl(plm_TT_ij, plm_TT_ij, lmax=lmax)
+            auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
+            auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
+            auto_TB = hp.alm2cl(plm_TB_ij, plm_TB_ij, lmax=lmax)
+            auto_EB = hp.alm2cl(plm_EB_ij, plm_EB_ij, lmax=lmax)
+            # Now get the ji sims
+            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+            plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
+            # Response correct healqest
+            plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
+            plm_TT_ji = hp.almxfl(plm_TT_ji,inv_resps_original[:,0])
+            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
+            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
+            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,3])
+            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,4])
+            # Get cross spectra <ijji>
+            cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
+            cross_TT = hp.alm2cl(plm_TT_ij, plm_TT_ji, lmax=lmax)
+            cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
+            cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
+            cross_TB = hp.alm2cl(plm_TB_ij, plm_TB_ji, lmax=lmax)
+            cross_EB = hp.alm2cl(plm_EB_ij, plm_EB_ji, lmax=lmax)
+            n1['total'] += auto + cross
+            n1['TT'] += auto_TT + cross_TT
+            n1['EE'] += auto_TE + cross_TE
+            n1['TE'] += auto_EE + cross_EE
+            n1['TB'] += auto_TB + cross_TB
+            n1['EB'] += auto_EB + cross_EB
+        n1['total'] *= 1/num
+        n1['TT'] *= 1/num
+        n1['EE'] *= 1/num
+        n1['TE'] *= 1/num
+        n1['TB'] *= 1/num
+        n1['EB'] *= 1/num
+        n0 = get_n0(sims=sims,qetype=qetype,fluxlim=fluxlim,lmax=lmax,
+                    nside=nside,u=u,config_file=config_file,dir_out=dir_out,
+                    withfg=False)
+        n1['total'] -= n0['total']
+        n1['TT'] -= n0['TT']
+        n1['EE'] -= n0['EE']
+        n1['TE'] -= n0['TE']
+        n1['TB'] -= n0['TB']
+        n1['EB'] -= n0['EB']
+        np.save(filename, n1)
+    else:
+        print('Invalid argument qetype.')
+    return n1
+
 def get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
            lmax=4096,nside=8192,u=np.ones(4097,dtype=np.complex_),
            config_file='profhrd_yuka.yaml',dir_out='/scratch/users/yukanaka/gmv/',
@@ -280,7 +424,7 @@ def get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
         append = 'cmbonly'
     config = utils.parse_yaml(config_file)
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
-    filename = f'/scratch/users/yukanaka/gmv/n0/n0_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside8192_{append}.npy'
+    filename = f'/scratch/users/yukanaka/gmv/n0/n0_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside{nside}_{append}.npy'
     if os.path.isfile(filename):
         n0 = np.load(filename)
     elif qetype == 'gmv':
@@ -684,5 +828,4 @@ def alm_cutlmax(almin,new_lmax):
 #compare_profile_hardening_resp()
 #compare_lensing_resp()
 #compare_profile_hardening()
-#compare_gmv_specs()
 
