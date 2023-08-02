@@ -15,11 +15,72 @@ import qest
 import wignerd
 import resp
 
-fsky_corr = 25.308939726920805
-    if est == 'TTTTprf'
 
 
 
+def compare_gmv_specs(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scratch/users/yukanaka/gmv/',
+                      u=np.ones(4097,dtype=np.complex_),save_fig=True,config_file='profhrd_yuka.yaml'):
+    '''
+    Temporary, to test weight change in GMV TE.
+    No hardening.
+    l1/l2 NOT flipped in second half in the old weights.
+    '''
+    config = utils.parse_yaml(config_file)
+    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    l = np.arange(0,lmax+1)
+    sim1 = sim
+    sim2 = sim
+
+    # Load GMV plms
+    append = f'tsrc_fluxlim{fluxlim:.3f}'
+    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    glm_prf_A = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
+    plm_gmv_TEl1l2flip = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
+    plm_gmv_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
+    glm_prf_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
+    gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
+    inv_resp_gmv = gmv_resp_data[:,3] / l**2
+    inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
+
+    # Response correct GMV
+    # N is 1/R
+    plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
+    plm_gmv_A_resp_corr = hp.almxfl(plm_gmv_A,inv_resp_gmv_A)
+    plm_gmv_resp_corr_TEl1l2flip = hp.almxfl(plm_gmv_TEl1l2flip,inv_resp_gmv)
+    plm_gmv_A_resp_corr_TEl1l2flip = hp.almxfl(plm_gmv_A_TEl1l2flip,inv_resp_gmv_A)
+
+    # Get GMV spectra
+    auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+    auto_gmv_A = hp.alm2cl(plm_gmv_A_resp_corr, plm_gmv_A_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+    auto_gmv_TEl1l2flip = hp.alm2cl(plm_gmv_resp_corr_TEl1l2flip, plm_gmv_resp_corr_TEl1l2flip, lmax=lmax) * (l*(l+1))**2/4
+    auto_gmv_A_TEl1l2flip = hp.alm2cl(plm_gmv_A_resp_corr_TEl1l2flip, plm_gmv_A_resp_corr_TEl1l2flip, lmax=lmax) * (l*(l+1))**2/4
+
+    # Theory spectrum
+    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+    clkk = slpp * (l*(l+1))**2/4
+
+    # Plot
+    plt.figure(0)
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, auto_gmv, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
+    plt.plot(l, auto_gmv_A, color='dodgerblue', linestyle='-', label=f'Auto Spectrum (GMV [TT, EE, TE])')
+    plt.plot(l, auto_gmv_TEl1l2flip, color='cornflowerblue', linestyle='--', label="Auto Spectrum (GMV) with old TE weights")
+    plt.plot(l, auto_gmv_A_TEl1l2flip, color='deepskyblue', linestyle='--', label=f'Auto Spectrum (GMV [TT, EE, TE]) with old TE weights')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='firebrick', linestyle=':', label='1/R (GMV)')
+    #plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='peru', linestyle=':', label='1/R (GMV [TT, EE, TE])')
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Spectra for Sim {sim}, with Point Sources in T (GMV)')
+    plt.legend(loc='upper right', fontsize='small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    #plt.ylim(5e-9,1e-6)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/temp_weight_comparison_spec_gmv_fluxlim{fluxlim:.3f}.png')
 
 def compare_profile_hardening(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scratch/users/yukanaka/gmv/',
                               u=np.ones(4097,dtype=np.complex_),save_fig=True,config_file='profhrd_yuka.yaml'):
@@ -600,89 +661,6 @@ def get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
         print('Invalid argument qetype.')
     return n0
 
-def compare_lensing_resp(lmax=5000,dir_out='/scratch/users/yukanaka/gmv/',config_file='profhrd_yuka.yaml',
-                         ilc_noise=True,save_fig=True):
-    # Flat sky healqest response
-    ests = ['TT', 'EE', 'TE', 'TB', 'EB']
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
-    config = utils.parse_yaml(config_file)
-    l = np.arange(0,lmax+1)
-    if ilc_noise:
-        resps_original = np.zeros((len(l),5), dtype=np.complex_)
-        inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
-        for i, est in enumerate(ests):
-            resps_original[:,i] = get_analytic_response(est,config,lmax=5000,lmaxT=3000,lmaxP=5000,clfile=clfile,
-                                                        filename='/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax5000_lmaxT3000_lmaxP5000_2019_2020_ilc_noise.npy'.format(est),
-                                                        ilc_noise=ilc_noise)
-            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
-        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
-
-        # GMV response
-        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_ilc_noise_lmin300.0_lmaxT3000_lmaxP5000_noise2019_2020_ilc_50_with_artificial_noise.txt')
-        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
-        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
-        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
-
-        # Theory spectrum
-        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-        clkk = slpp * (l*(l+1))**2/4
-
-        v = (l*(l+1)/2)**2
-        sumresp = np.load('sum_aresp.npy')
-
-        plt.figure(0)
-        plt.clf()
-        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-        plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
-        plt.plot(l, inv_resp_gmv_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
-        #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
-        plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
-        plt.ylabel("$1/R^{\kappa\kappa}$")
-        #plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
-        plt.xlabel('$\ell$')
-        plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(10,lmax)
-        #plt.ylim(-0.3,0)
-        #plt.ylim(8e-9,1e-5)
-        if save_fig:
-            #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
-            plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
-    else:
-        resp_healqest_TT_kk = get_analytic_response('TT',config,lmax,fwhm=1,nlev_t=3,nlev_p=3,clfile=clfile)
-        inv_resp_healqest_TT_kk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_kk[1:] = 1/(resp_healqest_TT_kk)[1:]
-
-        # GMV response
-        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT1000_lmaxP1000_beam1_noise3_50.txt')
-        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
-        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
-        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
-
-        # Theory spectrum
-        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-        clkk = slpp * (l*(l+1))**2/4
-
-        plt.figure(0)
-        plt.clf()
-        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-        plt.plot(l, inv_resp_healqest_TT_kk * (l*(l+1))**2/4, color='maroon', linestyle=':', label='$1/R^{KK}$ (Healqest TT)')
-        plt.plot(l, inv_resp_gmv_A_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV [TT, EE, TE])')
-        plt.ylabel("$C_\ell^{\kappa\kappa}$")
-        plt.xlabel('$\ell$')
-        plt.title('$1/R$')
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(10,lmax)
-        #plt.ylim(8e-9,1e-5)
-        if save_fig:
-            plt.savefig(dir_out+f'/figs/lensing_response_comparison_noiseless.png')
-
 def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/',
                                    config_file='profhrd_yuka.yaml',save_fig=True):
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
@@ -795,83 +773,124 @@ def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch
         #plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_noiseless.png')
         plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_gmv_with_without_zeroing.png')
 
-def compare_gmv_specs(sim=100,lmax=4096,nside=8192,fluxlim=0.200,dir_out='/scratch/users/yukanaka/gmv/',
-                      u=np.ones(4097,dtype=np.complex_),save_fig=True,config_file='profhrd_yuka.yaml'):
-    '''
-    Temporary, to test weight change in GMV TE.
-    No hardening.
-    l1/l2 NOT flipped in second half in the old weights.
-    '''
-    config = utils.parse_yaml(config_file)
+def compare_lensing_resp(lmax=5000,dir_out='/scratch/users/yukanaka/gmv/',config_file='profhrd_yuka.yaml',
+                         ilc_noise=True,save_fig=True):
+    # Flat sky healqest response
+    ests = ['TT', 'EE', 'TE', 'TB', 'EB']
     clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    config = utils.parse_yaml(config_file)
     l = np.arange(0,lmax+1)
-    sim1 = sim
-    sim2 = sim
+    if ilc_noise:
+        resps_original = np.zeros((len(l),5), dtype=np.complex_)
+        inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
+        for i, est in enumerate(ests):
+            resps_original[:,i] = get_analytic_response(est,config,lmax=5000,lmaxT=3000,lmaxP=5000,clfile=clfile,
+                                                        filename='/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax5000_lmaxT3000_lmaxP5000_2019_2020_ilc_noise.npy'.format(est),
+                                                        ilc_noise=ilc_noise)
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+        resp_original = np.sum(resps_original, axis=1)
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
-    # Load GMV plms
-    append = f'tsrc_fluxlim{fluxlim:.3f}'
-    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_A = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-    glm_prf_A = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}.npy')
-    plm_gmv_TEl1l2flip = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
-    plm_gmv_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
-    glm_prf_A_TEl1l2flip = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmax{lmax}_nside{nside}_{append}_oldGMVTEweights.npy')
-    gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
-    inv_resp_gmv = gmv_resp_data[:,3] / l**2
-    inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
+        # GMV response
+        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_ilc_noise_lmin300.0_lmaxT3000_lmaxP5000_noise2019_2020_ilc_50_with_artificial_noise.txt')
+        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
+        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
+        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
 
-    # Response correct GMV
-    # N is 1/R
-    plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
-    plm_gmv_A_resp_corr = hp.almxfl(plm_gmv_A,inv_resp_gmv_A)
-    plm_gmv_resp_corr_TEl1l2flip = hp.almxfl(plm_gmv_TEl1l2flip,inv_resp_gmv)
-    plm_gmv_A_resp_corr_TEl1l2flip = hp.almxfl(plm_gmv_A_TEl1l2flip,inv_resp_gmv_A)
+        # Theory spectrum
+        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+        clkk = slpp * (l*(l+1))**2/4
 
-    # Get GMV spectra
-    auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
-    auto_gmv_A = hp.alm2cl(plm_gmv_A_resp_corr, plm_gmv_A_resp_corr, lmax=lmax) * (l*(l+1))**2/4
-    auto_gmv_TEl1l2flip = hp.alm2cl(plm_gmv_resp_corr_TEl1l2flip, plm_gmv_resp_corr_TEl1l2flip, lmax=lmax) * (l*(l+1))**2/4
-    auto_gmv_A_TEl1l2flip = hp.alm2cl(plm_gmv_A_resp_corr_TEl1l2flip, plm_gmv_A_resp_corr_TEl1l2flip, lmax=lmax) * (l*(l+1))**2/4
+        v = (l*(l+1)/2)**2
+        sumresp = np.load('sum_aresp.npy')
 
-    # Theory spectrum
-    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-    clkk = slpp * (l*(l+1))**2/4
+        plt.figure(0)
+        plt.clf()
+        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+        plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
+        plt.plot(l, inv_resp_gmv_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
+        #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
+        plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
+        plt.ylabel("$1/R^{\kappa\kappa}$")
+        #plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+        plt.xlabel('$\ell$')
+        plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
+        plt.legend(loc='upper left', fontsize='small')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlim(10,lmax)
+        #plt.ylim(-0.3,0)
+        #plt.ylim(8e-9,1e-5)
+        if save_fig:
+            #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
+            plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
+    else:
+        resp_healqest_TT_kk = get_analytic_response('TT',config,lmax,fwhm=1,nlev_t=3,nlev_p=3,clfile=clfile)
+        inv_resp_healqest_TT_kk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_kk[1:] = 1/(resp_healqest_TT_kk)[1:]
 
-    # Plot
-    plt.figure(0)
-    plt.clf()
-    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, auto_gmv, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
-    plt.plot(l, auto_gmv_A, color='dodgerblue', linestyle='-', label=f'Auto Spectrum (GMV [TT, EE, TE])')
-    plt.plot(l, auto_gmv_TEl1l2flip, color='cornflowerblue', linestyle='--', label="Auto Spectrum (GMV) with old TE weights")
-    plt.plot(l, auto_gmv_A_TEl1l2flip, color='deepskyblue', linestyle='--', label=f'Auto Spectrum (GMV [TT, EE, TE]) with old TE weights')
-    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='firebrick', linestyle=':', label='1/R (GMV)')
-    #plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='peru', linestyle=':', label='1/R (GMV [TT, EE, TE])')
-    plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Spectra for Sim {sim}, with Point Sources in T (GMV)')
-    plt.legend(loc='upper right', fontsize='small')
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlim(10,lmax)
-    #plt.ylim(5e-9,1e-6)
-    if save_fig:
-        plt.savefig(dir_out+f'/figs/temp_weight_comparison_spec_gmv_fluxlim{fluxlim:.3f}.png')
+        # GMV response
+        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT1000_lmaxP1000_beam1_noise3_50.txt')
+        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
+        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
+        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
 
-def get_analytic_response(est, config, gmv,
+        # Theory spectrum
+        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+        clkk = slpp * (l*(l+1))**2/4
+
+        plt.figure(0)
+        plt.clf()
+        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+        plt.plot(l, inv_resp_healqest_TT_kk * (l*(l+1))**2/4, color='maroon', linestyle=':', label='$1/R^{KK}$ (Healqest TT)')
+        plt.plot(l, inv_resp_gmv_A_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV [TT, EE, TE])')
+        plt.ylabel("$C_\ell^{\kappa\kappa}$")
+        plt.xlabel('$\ell$')
+        plt.title('$1/R$')
+        plt.legend(loc='upper left', fontsize='small')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlim(10,lmax)
+        #plt.ylim(8e-9,1e-5)
+        if save_fig:
+            plt.savefig(dir_out+f'/figs/lensing_response_comparison_noiseless.png')
+
+
+
+
+
+
+
+fsky_corr = 25.308939726920805
+    if est == 'TTTTprf'
+noise_file = 'nl_cmbmv_20192020.dat'
+
+
+
+
+
+
+def get_analytic_response(est, config, gmv, cltype='len',
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,
                           noise_file=None, fsky_corr=1,
-                          filename=None):
+                          filename=None,):
     '''
     If gmv, est should be 'TTEETE'/'TBEB'/'all'/'TTEETEprf'/'TTEETETTEETEprf'.
     If not gmv, assume sqe and est should be 'TT'/'EE'/'TE'/'TB'/'EB'/'TTprf'/'TTTTprf'.
+    Also, we are taking lmax values from the config file, so make sure those are right.
+    Note we are also assuming that if we are loading from a noise file, we won't also add
+    noise according to nlev_t and nlev_p.
     '''
+    #TODO: In the GMV case, if lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT.??
     lmax = config['Lmax']
     lmaxT = config['lmaxT']
     lmaxP = config['lmaxP']
-    sl = {ee:config['cls']['lcmb'][ee] for ee in config['cls']['lcmb'].keys()}
+    lmin = config['lmin']
+    tdict = {'grad':'gcmb', 'len':'lcmb', 'unl':'ucmb'}
+    sl = {ee:config['cls'][tdict[cltype]][ee] for ee in config['cls'][tdict[cltype]].keys()}
     ell = np.arange(lmax+1,dtype=np.float_)
+
     if filename is None:
         append = ''
         if gmv:
@@ -879,68 +898,92 @@ def get_analytic_response(est, config, gmv,
             
         else:
             append += '_sqe'
-        append += f'_est_{est}_lmaxT_{lmaxT}_lmaxP_{lmaxP}_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
+        append += f'_est{est}_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}'
         if noise_file:
-            append += '_addednoisefromfile'
+            append += '_added_noise_from_file'
+        else:
+            append += '_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
         filename = f'/scratch/users/yukanaka/gmv/resp/an_resp_{append}.npy'
+
     if os.path.isfile(filename):
         R = np.load(filename)
-        if gmv:
-            if est == 'TTEETE' or est == 'TTEETEprf' or 'TTEETETTEETEprf':
-                R = R[:,1]
-
-
-
-    if est == 'TTTTprf'
-
-
     else:
-        ell,sltt,slee,slbb,slte = utils.get_lensedcls(clfile,lmax=lmax)
+        # File doesn't exist! Calculate from scratch.
         if noise_file:
-            noise_curves = np.loadtxt('nl_cmbmv_20192020.dat')
+            noise_curves = np.loadtxt(noise_file)
             # With fsky correction
-            nltt = 25.308939726920805 * noise_curves[:lmaxT+1,1]
-            nlee = 25.308939726920805 * noise_curves[:lmaxP+1,2]
-            nlbb = 25.308939726920805 * noise_curves[:lmaxP+1,2]
+            nltt = fsky_corr * noise_curves[:lmaxT+1,1]
+            nlee = fsky_corr * noise_curves[:lmaxP+1,2]
+            nlbb = fsky_corr * noise_curves[:lmaxP+1,2]
         else:
             bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
             nltt = (np.pi/180./60.*nlev_t)**2 / bl**2
             nlee=nlbb = (np.pi/180./60.*nlev_p)**2 / bl**2
         # Signal + noise spectra
-        cltt = sltt[:lmaxT+1] + nltt[:lmaxT+1]
-        clee = slee[:lmaxP+1] + nlee[:lmaxP+1]
-        clbb = slbb[:lmaxP+1] + nlbb[:lmaxP+1]
-        # Create 1/Nl filters
-        flt = np.zeros(lmaxT+1); flt[300:] = 1./cltt[300:]
-        fle = np.zeros(lmaxP+1); fle[300:] = 1./clee[300:]
-        flb = np.zeros(lmaxP+1); flb[300:] = 1./clbb[300:]
-        # Define qest from quicklens (commented out for Python3)
-        if est == 'TT' or est == 'TTprf':
-            flX = flt
-            flY = flt
-        elif est == 'EE':
-            flX = fle
-            flY = fle
-        elif est == 'TE':
-            flX = flt
-            flY = fle
-        elif est == 'TB':
-            flX = flt
-            flY = flb
-        elif est == 'BT':
-            flX = flb
-            flY = flt
-        elif est == 'EB':
-            flX = fle
-            flY = flb
-        elif est == 'ET':
-            flX = fle
-            flY = flt
-        elif est == 'BE':
-            flX = flb
-            flY = fle
-        R = resp.fill_resp(weights_combined_qestobj.weights(est,lmax,config,cltype='len',u=u), np.zeros(lmax+1, dtype=np.complex_), flX, flY, qeZA=qeZA)
-        np.save(filename, R)
+        cltt = sl['tt'][:lmaxT+1] + nltt[:lmaxT+1]
+        clee = sl['ee'][:lmaxP+1] + nlee[:lmaxP+1]
+        clbb = sl['bb'][:lmaxP+1] + nlbb[:lmaxP+1]
+        #TODO: Is it lmaxT or lmaxP?
+        clte = sl['te'][:lmaxP+1]
+
+        if not gmv:
+            # Create 1/Nl filters
+            flt = np.zeros(lmaxT+1); flt[lmin:] = 1./cltt[lmin:]
+            fle = np.zeros(lmaxP+1); fle[lmin:] = 1./clee[lmin:]
+            flb = np.zeros(lmaxP+1); flb[lmin:] = 1./clbb[lmin:]
+            if est == 'TT' or est == 'TTprf':
+                flX = flt
+                flY = flt
+            elif est == 'EE':
+                flX = fle
+                flY = fle
+            elif est == 'TE':
+                flX = flt
+                flY = fle
+            elif est == 'ET':
+                flX = fle
+                flY = flt
+            elif est == 'TB':
+                flX = flt
+                flY = flb
+            elif est == 'BT':
+                flX = flb
+                flY = flt
+            elif est == 'EB':
+                flX = fle
+                flY = flb
+            elif est == 'BE':
+                flX = flb
+                flY = fle
+            if est == 'TTTTprf':
+                qeXY = weights.weights('TT',lmax,config,cltype,u=u)
+                qeZA = weights.weights('TTprf',lmax,config,cltype,u=u)
+            else:
+                qeXY = weights.weights(est,lmax,config,cltype,u=u)
+                qeZA = None
+            R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
+            np.save(filename, R)
+        else:
+            # GMV response
+            totalcls = np.vstack((cltt,clee,clbb,clte)).T
+            gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=u,save_path=filename)
+            if est == 'TTEETE' or est == 'TBEB' or est == 'all':
+                gmv_est.calc_tvar()
+            elif est == 'TTEETEprf':
+                gmv_est.calc_tvar_PRF(cross=False)
+            elif est == 'TTEETETTEETEprf':
+                gmv_est.calc_tvar_PRF(cross=True)
+            R = np.genfromtxt(filename)
+
+    if gmv:
+        # If GMV, save file has columns L, TTEETE, TBEB, all
+        if est == 'TTEETE' or est == 'TTEETEprf' or 'TTEETETTEETEprf':
+            R = R[:,1]
+        elif est == 'TBEB':
+            R = R[:,2]
+        elif est == 'all':
+            R = R[:,3]
+
     return R
 
 def alm_cutlmax(almin,new_lmax):
