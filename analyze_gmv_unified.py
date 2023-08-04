@@ -773,103 +773,60 @@ def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch
         #plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_noiseless.png')
         plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_gmv_with_without_zeroing.png')
 
-def compare_lensing_resp(lmax=5000,dir_out='/scratch/users/yukanaka/gmv/',config_file='profhrd_yuka.yaml',
-                         ilc_noise=True,save_fig=True):
+########## Below here is good ##########
+
+def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',config_file='profhrd_yuka.yaml',
+                         fwhm=0,nlev_t=0,nlev_p=0,noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,save_fig=True):
+
+    config = utils.parse_yaml(config_file)
     # Flat sky healqest response
     ests = ['TT', 'EE', 'TE', 'TB', 'EB']
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
-    config = utils.parse_yaml(config_file)
     l = np.arange(0,lmax+1)
-    if ilc_noise:
-        resps_original = np.zeros((len(l),5), dtype=np.complex_)
-        inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
-        for i, est in enumerate(ests):
-            resps_original[:,i] = get_analytic_response(est,config,lmax=5000,lmaxT=3000,lmaxP=5000,clfile=clfile,
-                                                        filename='/scratch/users/yukanaka/gmv/resp/an_resp_{}_healqest_lmax5000_lmaxT3000_lmaxP5000_2019_2020_ilc_noise.npy'.format(est),
-                                                        ilc_noise=ilc_noise)
-            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
-        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+    resps_original = np.zeros((len(l),5), dtype=np.complex_)
+    inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_original[:,i] = get_analytic_response(est,config,gmv=False,cltype=cltype,
+                                                    fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                                    noise_file=noise_file,fsky_corr=fsky_corr)
+        inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+    resp_original = np.sum(resps_original, axis=1)
+    inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
-        # GMV response
-        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_ilc_noise_lmin300.0_lmaxT3000_lmaxP5000_noise2019_2020_ilc_50_with_artificial_noise.txt')
-        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
-        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
-        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
+    # GMV response
+    resp_gmv_all = get_analytic_response('all',config,gmv=False,cltype=cltype,
+                                         fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                         noise_file=noise_file,fsky_corr=fsky_corr)
 
-        # Theory spectrum
-        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-        clkk = slpp * (l*(l+1))**2/4
+    # Theory spectrum
+    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+    clkk = slpp * (l*(l+1))**2/4
 
-        v = (l*(l+1)/2)**2
-        sumresp = np.load('sum_aresp.npy')
+    # Thing from Yuuki
+    v = (l*(l+1)/2)**2
+    sumresp = np.load('sum_aresp.npy')
 
-        plt.figure(0)
-        plt.clf()
-        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-        plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
-        plt.plot(l, inv_resp_gmv_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
-        #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
-        plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
-        plt.ylabel("$1/R^{\kappa\kappa}$")
-        #plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
-        plt.xlabel('$\ell$')
-        plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(10,lmax)
-        #plt.ylim(-0.3,0)
-        #plt.ylim(8e-9,1e-5)
-        if save_fig:
-            #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
-            plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
-    else:
-        resp_healqest_TT_kk = get_analytic_response('TT',config,lmax,fwhm=1,nlev_t=3,nlev_p=3,clfile=clfile)
-        inv_resp_healqest_TT_kk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_kk[1:] = 1/(resp_healqest_TT_kk)[1:]
-
-        # GMV response
-        gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT1000_lmaxP1000_beam1_noise3_50.txt')
-        inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
-        inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
-        inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
-
-        # Theory spectrum
-        clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-        ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-        clkk = slpp * (l*(l+1))**2/4
-
-        plt.figure(0)
-        plt.clf()
-        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-        plt.plot(l, inv_resp_healqest_TT_kk * (l*(l+1))**2/4, color='maroon', linestyle=':', label='$1/R^{KK}$ (Healqest TT)')
-        plt.plot(l, inv_resp_gmv_A_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV [TT, EE, TE])')
-        plt.ylabel("$C_\ell^{\kappa\kappa}$")
-        plt.xlabel('$\ell$')
-        plt.title('$1/R$')
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xscale('log')
-        plt.yscale('log')
-        plt.xlim(10,lmax)
-        #plt.ylim(8e-9,1e-5)
-        if save_fig:
-            plt.savefig(dir_out+f'/figs/lensing_response_comparison_noiseless.png')
-
-
-
-
-
-
-
-fsky_corr = 25.308939726920805
-    if est == 'TTTTprf'
-noise_file = 'nl_cmbmv_20192020.dat'
-
-
-
-
-
+    plt.figure(0)
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
+    plt.plot(l, inv_resp_gmv_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
+    #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
+    plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
+    plt.ylabel("$1/R^{\kappa\kappa}$")
+    #plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    plt.xlabel('$\ell$')
+    plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    #plt.ylim(-0.3,0)
+    #plt.ylim(8e-9,1e-5)
+    if save_fig:
+        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
 
 def get_analytic_response(est, config, gmv, cltype='len',
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,
