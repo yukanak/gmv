@@ -775,16 +775,22 @@ def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch
 
 ########## Below here is good ##########
 
-def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',config_file='profhrd_yuka.yaml',
-                         fwhm=0,nlev_t=0,nlev_p=0,noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,save_fig=True):
+def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
+                         config_file='profhrd_yuka.yaml',
+                         fwhm=0,nlev_t=0,nlev_p=0,
+                         noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
+                         TTEETE_only=True,save_fig=True):
 
     config = utils.parse_yaml(config_file)
     lmax = config['Lmax']
-    # Flat sky healqest response
-    ests = ['TT', 'EE', 'TE', 'TB', 'EB']
     l = np.arange(0,lmax+1)
-    resps_original = np.zeros((len(l),5), dtype=np.complex_)
-    inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
+    # Flat sky healqest response
+    if TTEETE_only:
+        ests = ['TT', 'EE', 'TE']
+    else:
+        ests = ['TT', 'EE', 'TE', 'TB', 'EB']
+    resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
         resps_original[:,i] = get_analytic_response(est,config,gmv=False,cltype=cltype,
                                                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
@@ -794,21 +800,16 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',con
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
-    resp_gmv_all = get_analytic_response('all',config,gmv=True,cltype=cltype,
+    if TTEETE_only:
+        resp_gmv = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
+                                           fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                           noise_file=noise_file,fsky_corr=fsky_corr)
+    else:
+        resp_gmv = get_analytic_response('all',config,gmv=True,cltype=cltype,
                                          fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                                          noise_file=noise_file,fsky_corr=fsky_corr)
-    resp_gmv_A = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
-                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
-                                       noise_file=noise_file,fsky_corr=fsky_corr)
-    resp_gmv_B = get_analytic_response('TBEB',config,gmv=True,cltype=cltype,
-                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
-                                       noise_file=noise_file,fsky_corr=fsky_corr)
-    inv_resp_gmv_all = np.zeros(len(l), dtype=np.complex_)
-    inv_resp_gmv_all[1:] = 1./(resp_gmv_all)[1:]
-    inv_resp_gmv_A = np.zeros(len(l), dtype=np.complex_)
-    inv_resp_gmv_A[1:] = 1/(resp_gmv_A)[1:]
-    inv_resp_gmv_B = np.zeros(len(l), dtype=np.complex_)
-    inv_resp_gmv_B[1:] = 1/(resp_gmv_B)[1:]
+    inv_resp_gmv = np.zeros(len(l), dtype=np.complex_)
+    inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -821,25 +822,25 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',con
 
     plt.figure(0)
     plt.clf()
-    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
-    plt.plot(l, inv_resp_gmv_all * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
-    #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
-    plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
-    plt.ylabel("$1/R^{\kappa\kappa}$")
-    #plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    #plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
+    plt.plot(l, (inv_resp_gmv/inv_resp_original)-1, color='maroon', linestyle='-')
+    #plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
+    #plt.ylabel("$1/R^{\kappa\kappa}$")
+    plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
     plt.xlabel('$\ell$')
     plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
-    plt.legend(loc='upper left', fontsize='small')
-    plt.xscale('log')
-    plt.yscale('log')
+    #plt.legend(loc='upper left', fontsize='small')
+    #plt.xscale('log')
+    #plt.yscale('log')
     plt.xlim(10,lmax)
     #plt.ylim(-0.3,0)
+    plt.ylim(-0.2,0.2)
     #plt.ylim(8e-9,1e-5)
     if save_fig:
-        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
 
 def get_analytic_response(est, config, gmv, cltype='len',
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,
@@ -874,10 +875,10 @@ def get_analytic_response(est, config, gmv, cltype='len',
             append += '_added_noise_from_file'
         else:
             append += '_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
-        filename = f'/scratch/users/yukanaka/gmv/resp/an_resp{append}.txt'
+        filename = f'/scratch/users/yukanaka/gmv/resp/an_resp{append}.npy'
 
     if os.path.isfile(filename):
-        R = np.genfromtxt(filename)
+        R = np.load(filename)
     else:
         # File doesn't exist! Calculate from scratch.
         if noise_file:
@@ -942,11 +943,10 @@ def get_analytic_response(est, config, gmv, cltype='len',
                 qeXY = weights.weights(est,lmax,config,cltype,u=u)
                 qeZA = None
             R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
-            np.savetxt(filename, R)
+            np.save(filename, R)
         else:
             # GMV response
             totalcls = np.vstack((cltt,clee,clbb,clte)).T
-            np.savetxt('totalcls.txt',totalcls)
             gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=u,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
                 gmv_r.calc_tvar()
@@ -954,7 +954,7 @@ def get_analytic_response(est, config, gmv, cltype='len',
                 gmv_r.calc_tvar_PRF(cross=False)
             elif est == 'TTEETETTEETEprf':
                 gmv_r.calc_tvar_PRF(cross=True)
-            R = np.genfromtxt(filename)
+            R = np.load(filename)
 
     if gmv:
         # If GMV, save file has columns L, TTEETE, TBEB, all
