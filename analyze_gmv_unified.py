@@ -779,6 +779,7 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',con
                          fwhm=0,nlev_t=0,nlev_p=0,noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,save_fig=True):
 
     config = utils.parse_yaml(config_file)
+    lmax = config['Lmax']
     # Flat sky healqest response
     ests = ['TT', 'EE', 'TE', 'TB', 'EB']
     l = np.arange(0,lmax+1)
@@ -793,9 +794,21 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',con
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
-    resp_gmv_all = get_analytic_response('all',config,gmv=False,cltype=cltype,
+    resp_gmv_all = get_analytic_response('all',config,gmv=True,cltype=cltype,
                                          fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                                          noise_file=noise_file,fsky_corr=fsky_corr)
+    resp_gmv_A = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
+                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                       noise_file=noise_file,fsky_corr=fsky_corr)
+    resp_gmv_B = get_analytic_response('TBEB',config,gmv=True,cltype=cltype,
+                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                       noise_file=noise_file,fsky_corr=fsky_corr)
+    inv_resp_gmv_all = np.zeros(len(l), dtype=np.complex_)
+    inv_resp_gmv_all[1:] = 1./(resp_gmv_all)[1:]
+    inv_resp_gmv_A = np.zeros(len(l), dtype=np.complex_)
+    inv_resp_gmv_A[1:] = 1/(resp_gmv_A)[1:]
+    inv_resp_gmv_B = np.zeros(len(l), dtype=np.complex_)
+    inv_resp_gmv_B[1:] = 1/(resp_gmv_B)[1:]
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -810,7 +823,7 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',con
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
     plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
-    plt.plot(l, inv_resp_gmv_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
+    plt.plot(l, inv_resp_gmv_all * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
     #plt.plot(l, (inv_resp_gmv_kk/inv_resp_original)-1, color='maroon', linestyle='-')
     plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
     plt.ylabel("$1/R^{\kappa\kappa}$")
@@ -839,7 +852,7 @@ def get_analytic_response(est, config, gmv, cltype='len',
     Note we are also assuming that if we are loading from a noise file, we won't also add
     noise according to nlev_t and nlev_p.
     '''
-    #TODO: In the GMV case, if lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT.??
+    print(f'Computing analytic response for est {est}')
     lmax = config['Lmax']
     lmaxT = config['lmaxT']
     lmaxP = config['lmaxP']
@@ -850,45 +863,55 @@ def get_analytic_response(est, config, gmv, cltype='len',
 
     if filename is None:
         append = ''
-        if gmv:
-            append += '_gmv'
-            
+        if gmv and (est=='all' or est=='TTEETE' or est=='TBEB'):
+            append += '_gmv_estall'
+        elif gmv:
+            append += f'_gmv_est{est}'
         else:
-            append += '_sqe'
-        append += f'_est{est}_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}'
+            append += f'_sqe_est{est}'
+        append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}'
         if noise_file:
             append += '_added_noise_from_file'
         else:
             append += '_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
-        filename = f'/scratch/users/yukanaka/gmv/resp/an_resp_{append}.npy'
+        filename = f'/scratch/users/yukanaka/gmv/resp/an_resp{append}.txt'
 
     if os.path.isfile(filename):
-        R = np.load(filename)
+        R = np.genfromtxt(filename)
     else:
         # File doesn't exist! Calculate from scratch.
         if noise_file:
-            noise_curves = np.loadtxt(noise_file)
+            noise_curves = np.loadtxt(noise_file) # lmax 6000
             # With fsky correction
-            nltt = fsky_corr * noise_curves[:lmaxT+1,1]
-            nlee = fsky_corr * noise_curves[:lmaxP+1,2]
-            nlbb = fsky_corr * noise_curves[:lmaxP+1,2]
+            nltt = fsky_corr * noise_curves[:,1]
+            nlee = fsky_corr * noise_curves[:,2]
+            nlbb = fsky_corr * noise_curves[:,2]
         else:
             bl = hp.gauss_beam(fwhm=fwhm*0.00029088,lmax=lmax)
             nltt = (np.pi/180./60.*nlev_t)**2 / bl**2
             nlee=nlbb = (np.pi/180./60.*nlev_p)**2 / bl**2
         # Signal + noise spectra
-        cltt = sl['tt'][:lmaxT+1] + nltt[:lmaxT+1]
-        clee = sl['ee'][:lmaxP+1] + nlee[:lmaxP+1]
-        clbb = sl['bb'][:lmaxP+1] + nlbb[:lmaxP+1]
-        #TODO: Is it lmaxT or lmaxP?
-        clte = sl['te'][:lmaxP+1]
+        if gmv:
+            # In the GMV case, if lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
+            artificial_noise = np.zeros(lmax+1)
+            artificial_noise[lmaxT+2:] = 1.e10
+            cltt = sl['tt'][:lmax+1] + nltt[:lmax+1] + artificial_noise
+            clee = sl['ee'][:lmax+1] + nlee[:lmax+1]
+            clbb = sl['bb'][:lmax+1] + nlbb[:lmax+1]
+            clte = sl['te'][:lmax+1]
+        else:
+            cltt = sl['tt'][:lmaxT+1] + nltt[:lmaxT+1]
+            clee = sl['ee'][:lmaxP+1] + nlee[:lmaxP+1]
+            clbb = sl['bb'][:lmaxP+1] + nlbb[:lmaxP+1]
+            #TODO: Is it lmaxT or lmaxP?
+            clte = sl['te'][:lmaxP+1]
 
         if not gmv:
             # Create 1/Nl filters
             flt = np.zeros(lmaxT+1); flt[lmin:] = 1./cltt[lmin:]
             fle = np.zeros(lmaxP+1); fle[lmin:] = 1./clee[lmin:]
             flb = np.zeros(lmaxP+1); flb[lmin:] = 1./clbb[lmin:]
-            if est == 'TT' or est == 'TTprf':
+            if est == 'TT' or est == 'TTprf' or est == 'TTTTprf':
                 flX = flt
                 flY = flt
             elif est == 'EE':
@@ -919,22 +942,23 @@ def get_analytic_response(est, config, gmv, cltype='len',
                 qeXY = weights.weights(est,lmax,config,cltype,u=u)
                 qeZA = None
             R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
-            np.save(filename, R)
+            np.savetxt(filename, R)
         else:
             # GMV response
             totalcls = np.vstack((cltt,clee,clbb,clte)).T
+            np.savetxt('totalcls.txt',totalcls)
             gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=u,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
-                gmv_est.calc_tvar()
+                gmv_r.calc_tvar()
             elif est == 'TTEETEprf':
-                gmv_est.calc_tvar_PRF(cross=False)
+                gmv_r.calc_tvar_PRF(cross=False)
             elif est == 'TTEETETTEETEprf':
-                gmv_est.calc_tvar_PRF(cross=True)
+                gmv_r.calc_tvar_PRF(cross=True)
             R = np.genfromtxt(filename)
 
     if gmv:
         # If GMV, save file has columns L, TTEETE, TBEB, all
-        if est == 'TTEETE' or est == 'TTEETEprf' or 'TTEETETTEETEprf':
+        if est == 'TTEETE' or est == 'TTEETEprf' or est == 'TTEETETTEETEprf':
             R = R[:,1]
         elif est == 'TBEB':
             R = R[:,2]
@@ -967,6 +991,6 @@ def alm_cutlmax(almin,new_lmax):
 ####################
 
 #compare_profile_hardening_resp()
-#compare_lensing_resp()
+compare_lensing_resp()
 #compare_profile_hardening()
 
