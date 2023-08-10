@@ -661,61 +661,46 @@ def get_n0(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
         print('Invalid argument qetype.')
     return n0
 
-def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch/users/yukanaka/gmv/',
-                                   config_file='profhrd_yuka.yaml',save_fig=True):
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+########## Below here is good ##########
+
+def compare_profile_hardening_resp(u=None,cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
+                                   config_file='profhrd_yuka.yaml',
+                                   fwhm=1,nlev_t=5,nlev_p=5,
+                                   noise_file=None,fsky_corr=1,save_fig=True):
     config = utils.parse_yaml(config_file)
+    lmax = config['Lmax']
     l = np.arange(0,lmax+1)
     if u is None:
-        #u=np.ones(4097,dtype=np.complex_)
+        #u=np.ones(lmax+1,dtype=np.complex_)
         u = hp.sphtfunc.gauss_beam(1*(np.pi/180.)/60., lmax=lmax)
 
     # Flat sky healqest response
-    resp_healqest_TT = get_analytic_response('TTprf',config,lmax,fwhm=1,nlev_t=5,nlev_p=5,u=u,clfile=clfile)
-    #resp_healqest_TT = get_analytic_response('TTprf',config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile,
-    #                                          filename='/scratch/users/yukanaka/gmv/resp/an_resp_SS_TTprf_healqest_lmax{}_fwhm0_nlevt0_nlevp0.npy'.format(lmax))
-    inv_resp_healqest_TT = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT[1:] = 1/(resp_healqest_TT)[1:]
-    resp_healqest_TT_sk = get_analytic_response('TTprf',config,lmax,fwhm=1,nlev_t=5,nlev_p=5,u=u,clfile=clfile,
-                                                filename='/scratch/users/yukanaka/gmv/resp/an_resp_TTprf_healqest_lmax{}_fwhm1_nlevt5_nlevp5_SK_TT.npy'.format(lmax),
-                                                qeZA=weights_combined_qestobj.weights('TT',lmax,config,cltype='len'))
-    #resp_healqest_TT_sk = get_analytic_response('TTprf',config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile,
-    #                                         filename='/scratch/users/yukanaka/gmv/resp/an_resp_SK_TTprf_TT_healqest_lmax{}_fwhm0_nlevt0_nlevp0.npy'.format(lmax),
-    #                                         qeZA=weights_combined_qestobj.weights('TT',lmax,config,cltype='len'))
+    resp_healqest_TT_ss = get_analytic_response('TTprf',config,gmv=False,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
+    inv_resp_healqest_TT_ss = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_ss[1:] = 1/(resp_healqest_TT_ss)[1:]
+    resp_healqest_TT_sk = get_analytic_response('TTTTprf',config,gmv=False,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
     inv_resp_healqest_TT_sk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_sk[1:] = 1/(resp_healqest_TT_sk)[1:]
-    resp_healqest_TT_kk = get_analytic_response('TT',config,lmax,fwhm=1,nlev_t=5,nlev_p=5,clfile=clfile)
-    #resp_healqest_TT_kk = get_analytic_response('TT',config,lmax,fwhm=0,nlev_t=0,nlev_p=0,clfile=clfile)
+    resp_healqest_TT_kk = get_analytic_response('TT',config,gmv=False,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
     inv_resp_healqest_TT_kk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_kk[1:] = 1/(resp_healqest_TT_kk)[1:]
 
     # GMV response
-    gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF.txt')
-    #gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SS.txt')
-    inv_resp_gmv = gmv_resp_data[:,3] / l**2
-    inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
-    inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
-    gmv_resp_data_sk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SK.txt')
-    #gmv_resp_data_sk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SK.txt')
-    inv_resp_gmv_sk = gmv_resp_data_sk[:,3] / l**2
-    inv_resp_gmv_A_sk = gmv_resp_data_sk[:,1] / l**2
-    inv_resp_gmv_B_sk = gmv_resp_data_sk[:,2] / l**2
-    gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50.txt')
-    #gmv_resp_data_kk = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
-    inv_resp_gmv_kk = gmv_resp_data_kk[:,3] / l**2
-    inv_resp_gmv_A_kk = gmv_resp_data_kk[:,1] / l**2
-    inv_resp_gmv_B_kk = gmv_resp_data_kk[:,2] / l**2
-    gmv_resp_data_ftt_only = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SS_FTT_only_no_clte.txt')
-    #gmv_resp_data_ftt_only = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SS_FTT_only_no_clte.txt')
-    inv_resp_gmv_ftt_only = gmv_resp_data_ftt_only[:,3] / l**2
-    inv_resp_gmv_A_ftt_only = gmv_resp_data_ftt_only[:,1] / l**2
-    inv_resp_gmv_B_ftt_only = gmv_resp_data_ftt_only[:,2] / l**2
-    gmv_resp_data_sk_ftt_only = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_PRF_SK_FTT_only_no_clte.txt')
-    #gmv_resp_data_sk_ftt_only = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50_PRF_SK_FTT_only_no_clte.txt')
-    inv_resp_gmv_sk_ftt_only = gmv_resp_data_sk_ftt_only[:,3] / l**2
-    inv_resp_gmv_A_sk_ftt_only = gmv_resp_data_sk_ftt_only[:,1] / l**2
-    inv_resp_gmv_B_sk_ftt_only = gmv_resp_data_sk_ftt_only[:,2] / l**2
-    gmv_resp_data_kk_ftt_only = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin0.0_lmaxT4096_lmaxP4096_beam1_noise5_50_FTT_only_no_clte.txt')
-    inv_resp_gmv_kk_ftt_only = gmv_resp_data_kk_ftt_only[:,3] / l**2
-    inv_resp_gmv_A_kk_ftt_only = gmv_resp_data_kk_ftt_only[:,1] / l**2
-    inv_resp_gmv_B_kk_ftt_only = gmv_resp_data_kk_ftt_only[:,2] / l**2
+    resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
+    inv_resp_gmv_TTEETE_ss = np.zeros(len(l), dtype=np.complex_); inv_resp_gmv_TTEETE_ss[1:] = 1./(resp_gmv_TTEETE_ss)[1:]
+    resp_gmv_TTEETE_sk = get_analytic_response('TTEETETTEETEprf',config,gmv=True,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
+    inv_resp_gmv_TTEETE_sk = np.zeros(len(l), dtype=np.complex_); inv_resp_gmv_TTEETE_sk[1:] = 1./(resp_gmv_TTEETE_sk)[1:]
+    resp_gmv_TTEETE_kk = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
+    inv_resp_gmv_TTEETE_kk = np.zeros(len(l), dtype=np.complex_); inv_resp_gmv_TTEETE_kk[1:] = 1./(resp_gmv_TTEETE_kk)[1:]
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -725,19 +710,12 @@ def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch
     plt.figure(0)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, inv_resp_healqest_TT * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R^{SS}$ (Healqest TT)')
+    plt.plot(l, inv_resp_healqest_TT_ss * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R^{SS}$ (Healqest TT)')
     plt.plot(l, inv_resp_healqest_TT_sk * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R^{SK}$ (Healqest TT)')
     plt.plot(l, inv_resp_healqest_TT_kk * (l*(l+1))**2/4, color='maroon', linestyle=':', label='$1/R^{KK}$ (Healqest TT)')
-    ##plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkkhaki', linestyle='-', label='$1/R^{SS}$ (GMV)')
-    plt.plot(l, inv_resp_gmv_A * (l*(l+1))**2/4, color='seagreen', linestyle='-', label='$1/R^{SS}$ (GMV [TT, EE, TE])')
-    ##plt.plot(l, inv_resp_gmv_B * (l*(l+1))**2/4, color='orchid', linestyle='-', label='$1/R^{SS}$ (GMV [TB, EB])')
-    ##plt.plot(l, inv_resp_gmv_sk * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/R^{SK}$ (GMV)')
-    plt.plot(l, -1*inv_resp_gmv_A_sk * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='-1 x $1/R^{SK}$ (GMV [TT, EE, TE])')
-    plt.plot(l, inv_resp_gmv_A_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV [TT, EE, TE])')
-    ##plt.plot(l, inv_resp_gmv_B_sk * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{SK}$ (GMV [TB, EB])')
-    plt.plot(l, inv_resp_gmv_A_ftt_only * (l*(l+1))**2/4, color='tan', linestyle='-', label='$1/R^{SS}$ (GMV [TT])')
-    plt.plot(l, -1*inv_resp_gmv_A_sk_ftt_only * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='-1 x $1/R^{SK}$ (GMV [TT])')
-    plt.plot(l, inv_resp_gmv_A_kk_ftt_only * (l*(l+1))**2/4, color='darkgoldenrod', linestyle=':', label='$1/R^{KK}$ (GMV [TT])')
+    plt.plot(l, inv_resp_gmv_TTEETE_ss * (l*(l+1))**2/4, color='seagreen', linestyle='-', label='$1/R^{SS}$ (GMV [TT, EE, TE])')
+    plt.plot(l, inv_resp_gmv_TTEETE_sk * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/R^{SK}$ (GMV [TT, EE, TE])')
+    plt.plot(l, inv_resp_gmv_TTEETE_kk * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV [TT, EE, TE])')
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title('$1/R$')
@@ -752,28 +730,18 @@ def compare_profile_hardening_resp(u=None,lmax=4096,nside=8192,dir_out='/scratch
 
     plt.figure(1)
     plt.clf()
-    #plt.plot(l, np.abs(inv_resp_gmv_A/inv_resp_healqest_TT - 1)*100, color='seagreen', linestyle='-', label='$R^{SS}$ Comparison')
-    #plt.plot(l, np.abs(-1*inv_resp_gmv_A_sk/inv_resp_healqest_TT_sk - 1)*100, color='lightgreen', linestyle='--', label='$R^{SK}$ Comparison (with x-1)')
-    #plt.plot(l, np.abs(inv_resp_gmv_A_kk/inv_resp_healqest_TT_kk - 1)*100, color='darkgreen', linestyle=':', label='$R^{KK}$ Comparison')
-    #plt.plot(l, np.abs(inv_resp_gmv_A_ftt_only/inv_resp_healqest_TT - 1)*100, color='tan', linestyle='-', label='$R^{SS}$ Comparison (GMV TT only)')
-    #plt.plot(l, np.abs(-1*inv_resp_gmv_A_sk_ftt_only/inv_resp_healqest_TT_sk - 1)*100, color='palegoldenrod', linestyle='--', label='$R^{SK}$ Comparison (with x-1, GMV TT only)')
-    #plt.plot(l, np.abs(inv_resp_gmv_A_kk_ftt_only/inv_resp_healqest_TT_kk - 1)*100, color='darkgoldenrod', linestyle=':', label='$R^{KK}$ Comparison (GMV TT only)')
-    plt.plot(l, np.abs(inv_resp_gmv_A/inv_resp_gmv_A_ftt_only - 1)*100, color='seagreen', linestyle='-', label='$R^{SS}$ Comparison')
-    plt.plot(l, np.abs(inv_resp_gmv_A_sk/inv_resp_gmv_A_sk_ftt_only - 1)*100, color='lightgreen', linestyle='--', label='$R^{SK}$ Comparison')
-    plt.plot(l, np.abs(inv_resp_gmv_A_kk/inv_resp_gmv_A_kk_ftt_only - 1)*100, color='darkgreen', linestyle=':', label='$R^{KK}$ Comparison')
+    plt.plot(l, np.abs(inv_resp_gmv_TTEETE_ss/inv_resp_healqest_TT_ss - 1)*100, color='seagreen', linestyle='-', label='$R^{SS}$ Comparison')
+    plt.plot(l, np.abs(inv_resp_gmv_TTEETE_sk/inv_resp_healqest_TT_sk - 1)*100, color='lightgreen', linestyle='--', label='$R^{SK}$ Comparison')
+    plt.plot(l, np.abs(inv_resp_gmv_TTEETE_kk/inv_resp_healqest_TT_kk - 1)*100, color='darkgreen', linestyle=':', label='$R^{KK}$ Comparison')
     plt.xlabel('$\ell$')
-    #plt.title("$|{R_{healqest}}/{R_{GMV,A}} - 1|$ x 100%")
-    plt.title("$|{R_{GMV [TT]}}/{R_{GMV [TT, EE, TE]}} - 1|$ x 100%")
+    plt.title("$|{R_{healqest}}/{R_{GMV,A}} - 1|$ x 100%")
     plt.legend(loc='upper right', fontsize='small')
     plt.xlim(10,lmax)
     plt.ylim(0,30)
     #plt.ylim(0,50)
     if save_fig:
-        #plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff.png')
+        plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff.png')
         #plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_noiseless.png')
-        plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_gmv_with_without_zeroing.png')
-
-########## Below here is good ##########
 
 def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
                          config_file='profhrd_yuka.yaml',
@@ -990,7 +958,7 @@ def alm_cutlmax(almin,new_lmax):
 
 ####################
 
-#compare_profile_hardening_resp()
-compare_lensing_resp()
+compare_profile_hardening_resp()
+#compare_lensing_resp()
 #compare_profile_hardening()
 
