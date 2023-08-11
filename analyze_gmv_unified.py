@@ -669,6 +669,7 @@ def compare_profile_hardening_resp(u=None,cltype='len',dir_out='/scratch/users/y
                                    noise_file=None,fsky_corr=1,save_fig=True):
     config = utils.parse_yaml(config_file)
     lmax = config['Lmax']
+    lmin = config['lmin']
     l = np.arange(0,lmax+1)
     if u is None:
         #u=np.ones(lmax+1,dtype=np.complex_)
@@ -689,6 +690,7 @@ def compare_profile_hardening_resp(u=None,cltype='len',dir_out='/scratch/users/y
     inv_resp_healqest_TT_kk = np.zeros_like(l,dtype=np.complex_); inv_resp_healqest_TT_kk[1:] = 1/(resp_healqest_TT_kk)[1:]
 
     # GMV response
+    u = u[lmin:]
     resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,cltype=cltype,
                                                 fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
                                                 noise_file=noise_file,fsky_corr=fsky_corr)
@@ -747,7 +749,7 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
                          config_file='profhrd_yuka.yaml',
                          fwhm=0,nlev_t=0,nlev_p=0,
                          noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
-                         TTEETE_only=True,save_fig=True):
+                         TTEETE_only=False,TBEB_only=False,save_fig=True):
 
     config = utils.parse_yaml(config_file)
     lmax = config['Lmax']
@@ -755,6 +757,8 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
     # Flat sky healqest response
     if TTEETE_only:
         ests = ['TT', 'EE', 'TE']
+    elif TBEB_only:
+        ests = ['TB', 'EB']
     else:
         ests = ['TT', 'EE', 'TE', 'TB', 'EB']
     resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
@@ -770,8 +774,12 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
     # GMV response
     if TTEETE_only:
         resp_gmv = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
-                                           fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
-                                           noise_file=noise_file,fsky_corr=fsky_corr)
+                                          fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                          noise_file=noise_file,fsky_corr=fsky_corr)
+    elif TBEB_only:
+        resp_gmv = get_analytic_response('TBEB',config,gmv=True,cltype=cltype,
+                                          fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                          noise_file=noise_file,fsky_corr=fsky_corr)
     else:
         resp_gmv = get_analytic_response('all',config,gmv=True,cltype=cltype,
                                          fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
@@ -790,25 +798,35 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
 
     plt.figure(0)
     plt.clf()
-    #plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
-    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
-    plt.plot(l, (inv_resp_gmv/inv_resp_original)-1, color='maroon', linestyle='-')
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='blue', linestyle=':', label='$1/R^{KK}$ (Healqest)')
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkgreen', linestyle=':', label='$1/R^{KK}$ (GMV)')
     #plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
-    #plt.ylabel("$1/R^{\kappa\kappa}$")
+    plt.ylabel("$1/R^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    #plt.ylim(-0.3,0)
+    #plt.ylim(-0.2,0.2)
+    #plt.ylim(8e-9,1e-5)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
+
+    plt.figure(1)
+    plt.clf()
+    plt.plot(l, (inv_resp_gmv/inv_resp_original)-1, color='maroon', linestyle='-')
     plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
     plt.xlabel('$\ell$')
     plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
-    #plt.legend(loc='upper left', fontsize='small')
-    #plt.xscale('log')
-    #plt.yscale('log')
     plt.xlim(10,lmax)
-    #plt.ylim(-0.3,0)
-    plt.ylim(-0.2,0.2)
-    #plt.ylim(8e-9,1e-5)
+    plt.ylim(-0.3,0)
+    #plt.ylim(-0.2,0.2)
+    #plt.ylim(-0.6,-0.2)
     if save_fig:
         plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
-        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
 
 def get_analytic_response(est, config, gmv, cltype='len',
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,
@@ -958,7 +976,7 @@ def alm_cutlmax(almin,new_lmax):
 
 ####################
 
-compare_profile_hardening_resp()
-#compare_lensing_resp()
+#compare_profile_hardening_resp()
+compare_lensing_resp()
 #compare_profile_hardening()
 
