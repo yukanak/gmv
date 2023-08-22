@@ -15,160 +15,7 @@ import qest
 import wignerd
 import resp
 
-
-
-
-def get_n1(sims=np.arange(10)+101,qetype='gmv',fluxlim=0.200,
-           lmax=4096,nside=8192,u=np.ones(4097,dtype=np.complex_),
-           config_file='profhrd_yuka.yaml',dir_out='/scratch/users/yukanaka/gmv/'):
-    '''
-    Get N1 bias. qetype should be 'gmv' or 'original'.
-    '''
-    num = len(sims)
-    l = np.arange(0,lmax+1)
-    config = utils.parse_yaml(config_file)
-    append = 'cmbonly'
-    clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
-    #filename = f'/scratch/users/yukanaka/gmv/n0/n1_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside{nside}_{append}.npy'
-    filename = f'/scratch/users/yukanaka/gmv/n0/n1_{num}simpairs_healqest_{qetype}_lmax{lmax}_nside{nside}_{append}.pkl'
-    if os.path.isfile(filename):
-        n1 = pickle.load(open(filename,'rb'))
-        #n1 = np.load(filename,allow_pickle=True)
-    elif qetype == 'gmv':
-        gmv_resp_data = np.genfromtxt('gmv_resp/True_variance_individual_custom_lmin2.0_lmaxT4096_lmaxP4096_beam0_noise0_50.txt')
-        inv_resp_gmv = gmv_resp_data[:,3] / l**2
-        inv_resp_gmv_A = gmv_resp_data[:,1] / l**2
-        inv_resp_gmv_B = gmv_resp_data[:,2] / l**2
-        # Abhi's code calculates the reconstruction noise for d field rather than phi field, see GMV_QE.py, line 292 for example
-        resp_gmv = 1/inv_resp_gmv
-        resp_gmv_A = 1/inv_resp_gmv_A
-        resp_gmv_B = 1/inv_resp_gmv_B
-        n1 = {'total':0, 'TTEETE':0, 'TBEB':0}
-        for i, sim in enumerate(sims):
-            # These are reconstructions using sims that were lensed with the same phi but different CMB realizations, no foregrounds
-            plm_gmv_ij = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_gmv_A_ij = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_gmv_B_ij = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            # Response correct GMV
-            # N is 1/R
-            plm_all_ij = hp.almxfl(plm_gmv_ij,inv_resp_gmv)
-            plm_A_ij = hp.almxfl(plm_gmv_A_ij,inv_resp_gmv_A)
-            plm_B_ij = hp.almxfl(plm_gmv_B_ij,inv_resp_gmv_B)
-            # Get ij auto spectra <ijij>
-            auto = hp.alm2cl(plm_all_ij, plm_all_ij, lmax=lmax)
-            auto_A = hp.alm2cl(plm_A_ij, plm_A_ij, lmax=lmax)
-            auto_B = hp.alm2cl(plm_B_ij, plm_B_ij, lmax=lmax)
-            # Now get the ji sims
-            plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_gmv_A_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_gmv_B_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            # Response correct GMV
-            # N is 1/R
-            plm_all_ji = hp.almxfl(plm_gmv_ji,inv_resp_gmv)
-            plm_A_ji = hp.almxfl(plm_gmv_A_ji,inv_resp_gmv_A)
-            plm_B_ji = hp.almxfl(plm_gmv_B_ji,inv_resp_gmv_B)
-            # Get cross spectra <ijji>
-            cross = hp.alm2cl(plm_all_ij, plm_all_ji, lmax=lmax)
-            cross_A = hp.alm2cl(plm_A_ij, plm_A_ji, lmax=lmax)
-            cross_B = hp.alm2cl(plm_B_ij, plm_B_ji, lmax=lmax)
-            n1['total'] += auto + cross
-            n1['TTEETE'] += auto_A + cross_A
-            n1['TBEB'] += auto_B + cross_B
-        n1['total'] *= 1/num
-        n1['TTEETE'] *= 1/num
-        n1['TBEB'] *= 1/num
-        n0 = get_n0(sims=sims,qetype=qetype,fluxlim=fluxlim,lmax=lmax,
-                    nside=nside,u=u,config_file=config_file,dir_out=dir_out,
-                    withfg=False)
-        n1['total'] -= n0['total']
-        n1['TTEETE'] -= n0['TTEETE']
-        n1['TBEB'] -= n0['TBEB']
-        #np.save(filename, n1)
-        with open(filename, 'wb') as f:
-            pickle.dump(n1, f)
-    elif qetype == 'original':
-        ests = ['TT', 'EE', 'TE', 'TB', 'EB']
-        resps_original = np.zeros((len(l),5), dtype=np.complex_)
-        inv_resps_original = np.zeros((len(l),5) ,dtype=np.complex_)
-        for i, est in enumerate(ests):
-            resps_original[:,i] = get_analytic_response(est,config,lmax,fwhm=0,nlev_t=0,nlev_p=0,u=u,clfile=clfile)
-            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
-        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
-        n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'TB':0, 'EB':0}
-        for i, sim in enumerate(sims):
-            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
-            # Response correct healqest
-            plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
-            plm_TT_ij = hp.almxfl(plm_TT_ij,inv_resps_original[:,0])
-            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
-            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
-            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,3])
-            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,4])
-            # Get ij auto spectra <ijij>
-            auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
-            auto_TT = hp.alm2cl(plm_TT_ij, plm_TT_ij, lmax=lmax)
-            auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
-            auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
-            auto_TB = hp.alm2cl(plm_TB_ij, plm_TB_ij, lmax=lmax)
-            auto_EB = hp.alm2cl(plm_EB_ij, plm_EB_ij, lmax=lmax)
-            # Now get the ji sims
-            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmax{lmax}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
-            # Response correct healqest
-            plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
-            plm_TT_ji = hp.almxfl(plm_TT_ji,inv_resps_original[:,0])
-            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
-            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
-            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,3])
-            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,4])
-            # Get cross spectra <ijji>
-            cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
-            cross_TT = hp.alm2cl(plm_TT_ij, plm_TT_ji, lmax=lmax)
-            cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
-            cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
-            cross_TB = hp.alm2cl(plm_TB_ij, plm_TB_ji, lmax=lmax)
-            cross_EB = hp.alm2cl(plm_EB_ij, plm_EB_ji, lmax=lmax)
-            n1['total'] += auto + cross
-            n1['TT'] += auto_TT + cross_TT
-            n1['EE'] += auto_TE + cross_TE
-            n1['TE'] += auto_EE + cross_EE
-            n1['TB'] += auto_TB + cross_TB
-            n1['EB'] += auto_EB + cross_EB
-        n1['total'] *= 1/num
-        n1['TT'] *= 1/num
-        n1['EE'] *= 1/num
-        n1['TE'] *= 1/num
-        n1['TB'] *= 1/num
-        n1['EB'] *= 1/num
-        n0 = get_n0(sims=sims,qetype=qetype,fluxlim=fluxlim,lmax=lmax,
-                    nside=nside,u=u,config_file=config_file,dir_out=dir_out,
-                    withfg=False)
-        n1['total'] -= n0['total']
-        n1['TT'] -= n0['TT']
-        n1['EE'] -= n0['EE']
-        n1['TE'] -= n0['TE']
-        n1['TB'] -= n0['TB']
-        n1['EB'] -= n0['EB']
-        #np.save(filename, n1)
-        with open(filename, 'wb') as f:
-            pickle.dump(n1, f)
-    else:
-        print('Invalid argument qetype.')
-    return n1
-
-########## Below here is good ##########
-
-def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(29)+100,
+def analyze(sims=np.arange(29)+100,n0_n1_sims=np.arange(29)+100,
             u=None,fluxlim=0.200,
             config_file='profhrd_yuka.yaml',
             #config_file='test_yuka.yaml',
@@ -177,14 +24,16 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
             noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
             #noise_file=None,fsky_corr=1,
             cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
-            save_fig=True,unl=False,
-            n0=False,n1=False):
+            save_fig=True,
+            unl=False,
+            #unl=True,
+            n0=True,n1=True):
     '''
     Compare with N0/N1 subtraction.
     '''
-    #sims = np.delete(sims,[10,12,14,20,22])
+    # For some reason the reconstruction failed for this sim
     sims = np.delete(sims,[3])
-    n0_sims = np.delete(n0_sims,[3])
+    n0_n1_sims = np.delete(n0_n1_sims,[3])
     config = utils.parse_yaml(config_file)
     lmax = config['Lmax']
     lmin = config['lmin']
@@ -211,7 +60,9 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
                                                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                                                     noise_file=noise_file,fsky_corr=fsky_corr)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-    resp_original = np.sum(resps_original, axis=1)
+    #TODO
+    resp_original = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]+2*resps_original[:,3]+2*resps_original[:,4]
+    #resp_original = np.sum(resps_original, axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # Get GMV analytic response
@@ -254,11 +105,11 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
 
     if n0:
         # Get N0 correction (remember these still need (l*(l+1))**2/4 factor to convert to kappa)
-        n0_gmv = get_n0(sims=n0_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out,u=None,fluxlim=fluxlim)
+        n0_gmv = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out,u=None,fluxlim=fluxlim)
         n0_gmv_total = n0_gmv['total'] * (l*(l+1))**2/4
         n0_gmv_TTEETE = n0_gmv['TTEETE'] * (l*(l+1))**2/4
         n0_gmv_TBEB = n0_gmv['TBEB'] * (l*(l+1))**2/4
-        n0_original = get_n0(sims=n0_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out,u=None,fluxlim=fluxlim)
+        n0_original = get_n0(sims=n0_n1_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out,u=None,fluxlim=fluxlim)
         n0_original_total = n0_original['total'] * (l*(l+1))**2/4
         n0_original_TT = n0_original['TT'] * (l*(l+1))**2/4
         n0_original_EE = n0_original['EE'] * (l*(l+1))**2/4
@@ -266,20 +117,20 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
         n0_original_TB = n0_original['TB'] * (l*(l+1))**2/4
         n0_original_EB = n0_original['EB'] * (l*(l+1))**2/4
         if u is not None:
-            n0_gmv_hrd = get_n0(sims=n0_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out,u=u,fluxlim=fluxlim)
+            n0_gmv_hrd = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out,u=u,fluxlim=fluxlim)
             n0_gmv_total_hrd = n0_gmv_hrd['total'] * (l*(l+1))**2/4
             n0_gmv_TTEETE_hrd = n0_gmv_hrd['TTEETE'] * (l*(l+1))**2/4
-            n0_original_hrd = get_n0(sims=n0_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out,u=u,fluxlim=fluxlim)
+            n0_original_hrd = get_n0(sims=n0_n1_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out,u=u,fluxlim=fluxlim)
             n0_original_total_hrd = n0_original_hrd['total'] * (l*(l+1))**2/4
             n0_original_TT_hrd = n0_original_hrd['TT'] * (l*(l+1))**2/4
 
     if n1:
         # Get N1 correction (remember these still need (l*(l+1))**2/4 factor to convert to kappa)
-        n1_gmv = get_n1(sims=n1_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out)
+        n1_gmv = get_n1(sims=n0_n1_sims,qetype='gmv',config=config,cltype=cltype,dir_out=dir_out)
         n1_gmv_total = n1_gmv['total'] * (l*(l+1))**2/4
         n1_gmv_TTEETE = n1_gmv['TTEETE'] * (l*(l+1))**2/4
         n1_gmv_TBEB = n1_gmv['TBEB'] * (l*(l+1))**2/4
-        n1_original = get_n1(sims=n1_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out)
+        n1_original = get_n1(sims=n0_n1_sims,qetype='sqe',config=config,cltype=cltype,dir_out=dir_out)
         n1_original_total = n1_original['total'] * (l*(l+1))**2/4
         n1_original_TT = n1_original['TT'] * (l*(l+1))**2/4
         n1_original_EE = n1_original['EE'] * (l*(l+1))**2/4
@@ -293,7 +144,14 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
     cross_original_all = 0
     auto_input_all = 0
     cross_gmv_uncorrected_all = 0
+    cross_gmv_uncorrected_all_TTEETE = 0
+    cross_gmv_uncorrected_all_TBEB = 0
     cross_original_uncorrected_all = 0
+    cross_original_uncorrected_all_TT = 0
+    cross_original_uncorrected_all_EE = 0
+    cross_original_uncorrected_all_TE = 0
+    cross_original_uncorrected_all_TB = 0
+    cross_original_uncorrected_all_EB = 0
     #cross_original_uncorrected_all_EE = 0
     auto_original_all_TT = 0
     auto_original_all_EE = 0
@@ -307,21 +165,25 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
     auto_gmv_debiased_all = 0
     auto_original_debiased_all = 0
 
-    #resp_gmv = np.load(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
-    #resp_original = np.load(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
-    #inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
-    #inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+    #TODO: using response from sims!!
+    resp_gmv = np.load(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+    resp_original = np.load(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+    inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+    inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
 
     for ii, sim in enumerate(sims):
         # Load GMV plms
         plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
         plm_gmv_TTEETE = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
+        plm_gmv_TBEB = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
 
         # Load SQE plms
         plms_original = np.zeros((len(np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')),5), dtype=np.complex_)
         for i, est in enumerate(ests):
             plms_original[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
-        plm_original = np.sum(plms_original, axis=1)
+        #TODO
+        plm_original = plms_original[:,0]+plms_original[:,1]+2*plms_original[:,2]+2*plms_original[:,3]+2*plms_original[:,4]
+        #plm_original = np.sum(plms_original, axis=1)
         #plm_original_EE = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
 
         if u is not None:
@@ -389,22 +251,29 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
             auto_gmv_all_TTEETE_hrd += auto_gmv_TTEETE_hrd
     
         # Cross correlate with input plm
-        if not unl:
-            if os.path.isfile(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits'):
-                input_plm = hp.read_alm(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits')
-            else:
-                input_phi = hp.read_map(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}.fits')
-                input_phi = hp.pixelfunc.ud_grade(input_phi,8192)
-                input_plm = hp.map2alm(input_phi,lmax=lmax)
-                # Saving as alms because these maps are huge
-                hp.fitsfunc.write_alm(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits',input_plm)
-            cross_gmv_all += hp.alm2cl(input_plm, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
-            cross_original_all += hp.alm2cl(input_plm, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
-            # For response from sims, want to use plms that are not response corrected
-            cross_gmv_uncorrected_all += hp.alm2cl(input_plm, plm_gmv, lmax=lmax) * (l*(l+1))**2/4
-            cross_original_uncorrected_all += hp.alm2cl(input_plm, plm_original, lmax=lmax) * (l*(l+1))**2/4
-            auto_input_all += hp.alm2cl(input_plm, input_plm, lmax=lmax) * (l*(l+1))**2/4
-            #cross_original_uncorrected_all_EE += hp.alm2cl(input_plm, plm_original_EE, lmax=lmax) * (l*(l+1))**2/4
+        #if not unl:
+        #    if os.path.isfile(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits'):
+        #        input_plm = hp.read_alm(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits')
+        #    else:
+        #        input_phi = hp.read_map(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}.fits')
+        #        input_phi = hp.pixelfunc.ud_grade(input_phi,8192)
+        #        input_plm = hp.map2alm(input_phi,lmax=lmax)
+        #        # Saving as alms because these maps are huge
+        #        hp.fitsfunc.write_alm(f'/scratch/users/yukanaka/input_phi1/phi_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim}_alm_lmax{lmax}.fits',input_plm)
+        #    cross_gmv_all += hp.alm2cl(input_plm, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+        #    cross_original_all += hp.alm2cl(input_plm, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+        #    # For response from sims, want to use plms that are not response corrected
+        #    cross_gmv_uncorrected_all += hp.alm2cl(input_plm, plm_gmv, lmax=lmax) * (l*(l+1))**2/4
+        #    cross_gmv_uncorrected_all_TTEETE += hp.alm2cl(input_plm, plm_gmv_TTEETE, lmax=lmax) * (l*(l+1))**2/4
+        #    cross_gmv_uncorrected_all_TBEB += hp.alm2cl(input_plm, plm_gmv_TBEB, lmax=lmax) * (l*(l+1))**2/4
+        #    cross_original_uncorrected_all += hp.alm2cl(input_plm, plm_original, lmax=lmax) * (l*(l+1))**2/4
+        #    cross_original_uncorrected_all_TT += hp.alm2cl(input_plm, plms_original[:,0], lmax=lmax) * (l*(l+1))**2/4 
+        #    cross_original_uncorrected_all_EE += hp.alm2cl(input_plm, plms_original[:,1], lmax=lmax) * (l*(l+1))**2/4 
+        #    cross_original_uncorrected_all_TE += hp.alm2cl(input_plm, plms_original[:,2], lmax=lmax) * (l*(l+1))**2/4 
+        #    cross_original_uncorrected_all_TB += hp.alm2cl(input_plm, plms_original[:,3], lmax=lmax) * (l*(l+1))**2/4 
+        #    cross_original_uncorrected_all_EB += hp.alm2cl(input_plm, plms_original[:,4], lmax=lmax) * (l*(l+1))**2/4 
+        #    auto_input_all += hp.alm2cl(input_plm, input_plm, lmax=lmax) * (l*(l+1))**2/4
+        #    #cross_original_uncorrected_all_EE += hp.alm2cl(input_plm, plm_original_EE, lmax=lmax) * (l*(l+1))**2/4
 
     # Save, because I'm paranoid
     #np.save(dir_out+f'/auto_gmv_all_{num}sims_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',auto_gmv_all)
@@ -427,20 +296,41 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
         auto_original_avg_TT_hrd += auto_original_all_TT_hrd
         auto_gmv_avg_TTEETE_hrd += auto_gmv_all_TTEETE_hrd
 
-    if not unl:
-        cross_gmv_avg = cross_gmv_all / num
-        cross_original_avg = cross_original_all / num
-        auto_input_avg = auto_input_all / num
-        cross_gmv_uncorrected_avg = cross_gmv_uncorrected_all / num
-        cross_original_uncorrected_avg = cross_original_uncorrected_all / num
-        #cross_original_uncorrected_avg_EE = cross_original_uncorrected_all_EE / num
-    
-        # Get "response from sims" calculated the same way as the MC response
-        sim_resp_gmv = cross_gmv_uncorrected_avg / auto_input_avg
-        sim_resp_original = cross_original_uncorrected_avg / auto_input_avg
-        np.save(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_gmv)
-        np.save(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original)
-        #sim_resp_original_EE = cross_original_uncorrected_avg_EE / auto_input_avg
+    #if not unl:
+    #    cross_gmv_avg = cross_gmv_all / num
+    #    cross_original_avg = cross_original_all / num
+    #    auto_input_avg = auto_input_all / num
+    #    cross_gmv_uncorrected_avg_TTEETE = cross_gmv_uncorrected_all_TTEETE / num
+    #    cross_gmv_uncorrected_avg_TBEB = cross_gmv_uncorrected_all_TBEB / num
+    #    cross_gmv_uncorrected_avg = cross_gmv_uncorrected_all / num
+    #    cross_original_uncorrected_avg = cross_original_uncorrected_all / num
+    #    cross_original_uncorrected_avg_TT = cross_original_uncorrected_all_TT / num
+    #    cross_original_uncorrected_avg_EE = cross_original_uncorrected_all_EE / num
+    #    cross_original_uncorrected_avg_TE = cross_original_uncorrected_all_TE / num
+    #    cross_original_uncorrected_avg_TB = cross_original_uncorrected_all_TB / num
+    #    cross_original_uncorrected_avg_EB = cross_original_uncorrected_all_EB / num
+    #    #cross_original_uncorrected_avg_EE = cross_original_uncorrected_all_EE / num
+    #
+    #    # Get "response from sims" calculated the same way as the MC response
+    #    sim_resp_gmv = cross_gmv_uncorrected_avg / auto_input_avg
+    #    sim_resp_gmv_TTEETE = cross_gmv_uncorrected_avg_TTEETE / auto_input_avg
+    #    sim_resp_gmv_TBEB = cross_gmv_uncorrected_avg_TBEB / auto_input_avg
+    #    sim_resp_original = cross_original_uncorrected_avg / auto_input_avg
+    #    sim_resp_original_TT = cross_original_uncorrected_avg_TT / auto_input_avg
+    #    sim_resp_original_EE = cross_original_uncorrected_avg_EE / auto_input_avg
+    #    sim_resp_original_TE = cross_original_uncorrected_avg_TE / auto_input_avg
+    #    sim_resp_original_TB = cross_original_uncorrected_avg_TB / auto_input_avg
+    #    sim_resp_original_EB = cross_original_uncorrected_avg_EB / auto_input_avg
+    #    np.save(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_gmv)
+    #    np.save(dir_out+f'/resp/sim_resp_gmv_estTTEETE_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_gmv_TTEETE)
+    #    np.save(dir_out+f'/resp/sim_resp_gmv_estTBEB_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_gmv_TBEB)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estTT_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original_TT)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estEE_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original_EE)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estTE_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original_TE)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estTB_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original_TB)
+    #    np.save(dir_out+f'/resp/sim_resp_sqe_estEB_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy',sim_resp_original_EB)
+    #    #sim_resp_original_EE = cross_original_uncorrected_avg_EE / auto_input_avg
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -451,17 +341,19 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
     plt.figure(0)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
-    plt.plot(l, auto_gmv_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
-    #plt.plot(l, auto_original_debiased_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
-    #plt.plot(l, auto_gmv_debiased_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
+    #plt.plot(l, auto_gmv_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
+    #plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
+    plt.plot(l, auto_gmv_debiased_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
+    plt.plot(l, auto_original_debiased_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
     plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
 
+    #plt.plot(l, auto_original_avg_TT, color='sienna', linestyle='-', label=f'Auto Spectrum (SQE, TT)')
     #plt.plot(l, 2*auto_original_avg_TE, color='forestgreen', linestyle='-', label=f'2 x Auto Spectrum (SQE, TE)')
     #plt.plot(l, auto_original_avg_EE, color='mediumorchid', linestyle='-', label=f'Auto Spectrum (SQE, EE)')
     #plt.plot(l, 2*auto_original_avg_TB, color='gold', linestyle='-', label=f'2 x Auto Spectrum (SQE, TB)')
     #plt.plot(l, 2*auto_original_avg_EB, color='orange', linestyle='-', label=f'2 x Auto Spectrum (SQE, EB)')
+    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R^{KK}$ (SQE, TT)')
     #plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/R^{KK}$ (SQE, TE)')
     #plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{KK}$ (SQE, EE)')
     #plt.plot(l, inv_resps_original[:,3] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/R^{KK}$ (SQE, TB)')
@@ -477,10 +369,11 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
     plt.ylim(8e-9,1e-6)
     if save_fig:
         #plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_comparison.png')
-        plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_comparison_{append}.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_comparison_{append}.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_comparison_{append}_n0subtracted.png',bbox_inches='tight')
-
+        plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_comparison_{append}_n0n1subtracted.png',bbox_inches='tight')
     """
+
     plt.figure(1)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
@@ -531,6 +424,40 @@ def analyze(sims=np.arange(29)+100,n0_sims=np.arange(29)+100,n1_sims=np.arange(2
     plt.ylim(0.8,1.2)
     if save_fig:
         plt.savefig(dir_out+f'/figs/{num}_sims_no_hardening_sim_response_comparison_ratio.png')
+
+    plt.figure(4)
+    plt.clf()
+    plt.plot(l, (n0_gmv_total/n0_original_total)-1, color='maroon', linestyle='-')
+    plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    plt.xlabel('$\ell$')
+    plt.title('$N_0$ Comparison with 2019+2020 ILC Noise Curves, Total')
+    plt.xlim(10,lmax)
+    #plt.ylim(-0.3,0)
+    plt.ylim(-0.2,0.2)
+    #plt.ylim(-0.6,-0.2)
+    #plt.ylim(-2,2)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/n0_comparison_ilc_noise_frac_diff_total.png',bbox_inches='tight')
+
+    plt.figure(5)
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    #plt.plot(l, (1/n0_gmv_total+1/n0_gmv_TTEETE+1/n0_gmv_TBEB)**(-1), color='darkblue', linestyle='-',label='1/Sum(1/N0) (GMV)')
+    #plt.plot(l, (1/n0_original_TT+1/n0_original_EE+2/n0_original_TE+2/n0_original_TB+2/n0_original_EB)**(-1), color='darkgreen', linestyle='-',label='1/Sum(1/N0) with x2 factors (SQE)')
+    plt.plot(l, n0_gmv_total, color='darkblue', linestyle='-',label='N0 Total (GMV)')
+    plt.plot(l, n0_original_total, color='firebrick', linestyle='-',label='N0 Total (SQE)')
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Spectra Averaged over {num} Sims')
+    plt.legend(loc='upper right', fontsize='small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(5e-9,1e-6)
+    if save_fig:
+        plt.savefig(dir_out+f'/figs/n0_comparison_ilc_noise_total.png',bbox_inches='tight')
     """
 
 def compare_profile_hardening_resp(u=None,cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
@@ -617,12 +544,12 @@ def compare_profile_hardening_resp(u=None,cltype='len',dir_out='/scratch/users/y
         #plt.savefig(dir_out+f'/figs/profile_response_comparison_frac_diff_noiseless.png')
 
 def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
-                         #config_file='profhrd_yuka.yaml',
-                         config_file='test_yuka.yaml',
-                         fwhm=1,nlev_t=5,nlev_p=5,
-                         #fwhm=0,nlev_t=0,nlev_p=0,
-                         noise_file=None,fsky_corr=1,
-                         #noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
+                         config_file='profhrd_yuka.yaml',
+                         #config_file='test_yuka.yaml',
+                         fwhm=0,nlev_t=0,nlev_p=0,
+                         #fwhm=1,nlev_t=5,nlev_p=5,
+                         noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
+                         #noise_file=None,fsky_corr=1,
                          TTEETE_only=False,TBEB_only=False,save_fig=True):
 
     config = utils.parse_yaml(config_file)
@@ -642,7 +569,9 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
                                                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                                                     noise_file=noise_file,fsky_corr=fsky_corr)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-    resp_original = np.sum(resps_original, axis=1)
+    #TODO
+    resp_original = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]+2*resps_original[:,3]+2*resps_original[:,4]
+    #resp_original = np.sum(resps_original, axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
@@ -673,43 +602,39 @@ def compare_lensing_resp(cltype='len',dir_out='/scratch/users/yukanaka/gmv/',
     plt.figure(0)
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='darkblue', linestyle='--', label='$1/R^{KK}$ (Healqest)')
-    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='$1/R^{KK}$ (Healqest, TT)')
-    plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='--', label='$1/R^{KK}$ (Healqest, TE)')
-    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='--', label='$1/R^{KK}$ (Healqest, EE)')
-    plt.plot(l, inv_resps_original[:,3] * (l*(l+1))**2/4, color='gold', linestyle='--', label='$1/R^{KK}$ (Healqest, TE)')
-    plt.plot(l, inv_resps_original[:,4] * (l*(l+1))**2/4, color='orange', linestyle='--', label='$1/R^{KK}$ (Healqest, EB)')
-    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='--', label='$1/R^{KK}$ (GMV)')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='$1/R^{KK}$ (Healqest)')
+    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='$1/R^{KK}$ (Healqest, TT)')
+    #plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='--', label='$1/R^{KK}$ (Healqest, TE)')
+    #plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='--', label='$1/R^{KK}$ (Healqest, EE)')
+    #plt.plot(l, inv_resps_original[:,3] * (l*(l+1))**2/4, color='gold', linestyle='--', label='$1/R^{KK}$ (Healqest, TE)')
+    #plt.plot(l, inv_resps_original[:,4] * (l*(l+1))**2/4, color='orange', linestyle='--', label='$1/R^{KK}$ (Healqest, EB)')
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='--', label='$1/R^{KK}$ (GMV)')
     #plt.plot(l,gf1(v*1/(sumresp[:lmax+1]),10),color='crimson',alpha=1.0,label='MV')
     plt.ylabel("$1/R^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
-    #plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
-    plt.title('$1/R$ Comparison with 5 uK-arcmin Noise')
+    plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves, Total')
+    #plt.title('$1/R$ Comparison with 5 uK-arcmin Noise')
     plt.legend(loc='lower right', fontsize='x-small')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    #plt.ylim(-0.3,0)
-    #plt.ylim(-0.2,0.2)
     plt.ylim(8e-9,1e-6)
     if save_fig:
-        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/lensing_response_comparison_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_total.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/lensing_response_comparison_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}.png',bbox_inches='tight')
 
-    """
     plt.figure(1)
     plt.clf()
     plt.plot(l, (inv_resp_gmv/inv_resp_original)-1, color='maroon', linestyle='-')
     plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
     plt.xlabel('$\ell$')
-    plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves')
+    plt.title('$1/R$ Comparison with 2019+2020 ILC Noise Curves, Total')
     plt.xlim(10,lmax)
-    plt.ylim(-0.3,0)
+    #plt.ylim(-0.3,0)
     #plt.ylim(-0.2,0.2)
     #plt.ylim(-0.6,-0.2)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff.png',bbox_inches='tight')
-    """
+        plt.savefig(dir_out+f'/figs/lensing_response_comparison_ilc_noise_frac_diff_total.png',bbox_inches='tight')
 
 def get_n0(sims,qetype,config,cltype='len',
            fwhm=0,nlev_t=0,nlev_p=0,
@@ -736,6 +661,7 @@ def get_n0(sims,qetype,config,cltype='len',
         append = 'cmbonly'
     filename = f'/scratch/users/yukanaka/gmv/n0/n0_{num}simpairs_healqest_{qetype}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.pkl'
 
+    #if False:
     if os.path.isfile(filename):
         n0 = pickle.load(open(filename,'rb'))
 
@@ -762,6 +688,14 @@ def get_n0(sims,qetype,config,cltype='len',
             weight_gmv = -1 * resp_gmv_TTEETE_sk / resp_gmv_TTEETE_ss
             resp_gmv = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
             resp_gmv_TTEETE = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
+        inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+        inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
+        inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
+
+        #TODO: USING RESP FROM SIMS
+        resp_gmv = np.load(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        resp_gmv_TTEETE = np.load(dir_out+f'/resp/sim_resp_gmv_estTTEETE_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        resp_gmv_TBEB = np.load(dir_out+f'/resp/sim_resp_gmv_estTBEB_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
         inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
         inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
         inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
@@ -830,7 +764,10 @@ def get_n0(sims,qetype,config,cltype='len',
                                                         fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                                                         noise_file=noise_file,fsky_corr=fsky_corr)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
+        #TODO
+        # Eight estimators!!!
+        resp_original = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]+2*resps_original[:,3]+2*resps_original[:,4]
+        #resp_original = np.sum(resps_original, axis=1)
         if u is not None:
             # If we are hardening, get the profile response and weight
             resp_original_TT_ss = get_analytic_response('TTprf',config,gmv=False,cltype=cltype,
@@ -844,6 +781,13 @@ def get_n0(sims,qetype,config,cltype='len',
             resps_original[:,0] = resps_original[:,0] + weight_original*resp_original_TT_sk
             inv_resps_original[1:,0] = 1/(resps_original)[1:,0]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+
+        #TODO: USING RESP FROM SIMS
+        resp_original = np.load(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+        for i, est in enumerate(ests):
+            resps_original[:,i] = np.load(dir_out+f'/resp/sim_resp_sqe_est{est}_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
 
         n0 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'TB':0, 'EB':0}
         for i, sim1 in enumerate(sims):
@@ -871,8 +815,12 @@ def get_n0(sims,qetype,config,cltype='len',
                 glm_prf_TT_ji = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.npy')
                 plm_TT_ji = plm_TT_ji + hp.almxfl(glm_prf_TT_ji, weight_original)
 
-            plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
-            plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
+            #TODO:
+            #plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
+            #plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
+            # Eight estimators!!!
+            plm_total_ij = plm_TT_ij + plm_EE_ij + 2*plm_TE_ij + 2*plm_TB_ij + 2*plm_EB_ij
+            plm_total_ji = plm_TT_ji + plm_EE_ji + 2*plm_TE_ji + 2*plm_TB_ji + 2*plm_EB_ji
 
             # Response correct healqest
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
@@ -925,6 +873,216 @@ def get_n0(sims,qetype,config,cltype='len',
         print('Invalid argument qetype.')
 
     return n0
+
+def get_n1(sims,qetype,config,cltype='len',
+           fwhm=0,nlev_t=0,nlev_p=0,
+           noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
+           dir_out='/scratch/users/yukanaka/gmv/'):
+    '''
+    Get N1 bias. qetype should be 'gmv' or 'sqe'.
+    No foregrounds in sims used in N1 calculation.
+    Returns dictionary containing keys 'total', 'TTEETE', and 'TBEB' for GMV.
+    Similarly for SQE.
+    '''
+    lmax = config['Lmax']
+    lmaxT = config['lmaxT']
+    lmaxP = config['lmaxP']
+    lmin = config['lmin']
+    tdict = {'grad':'gcmb', 'len':'lcmb', 'unl':'ucmb'}
+    sl = {ee:config['cls'][tdict[cltype]][ee] for ee in config['cls'][tdict[cltype]].keys()}
+    l = np.arange(lmax+1,dtype=np.float_)
+    num = len(sims)
+    append = 'cmbonly'
+    filename = f'/scratch/users/yukanaka/gmv/n1/n1_{num}simpairs_healqest_{qetype}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_{append}.pkl'
+
+    #if False:
+    if os.path.isfile(filename):
+        n1 = pickle.load(open(filename,'rb'))
+
+    elif qetype == 'gmv':
+        # Get GMV analytic response
+        resp_gmv = get_analytic_response('all',config,gmv=True,cltype=cltype,
+                                         fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                         noise_file=noise_file,fsky_corr=fsky_corr)
+        resp_gmv_TTEETE = get_analytic_response('TTEETE',config,gmv=True,cltype=cltype,
+                                                fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                                noise_file=noise_file,fsky_corr=fsky_corr)
+        resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True,cltype=cltype,
+                                              fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                              noise_file=noise_file,fsky_corr=fsky_corr)
+        inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+        inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
+        inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
+
+        #TODO: USING RESP FROM SIMS
+        resp_gmv = np.load(dir_out+f'/resp/sim_resp_gmv_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        resp_gmv_TTEETE = np.load(dir_out+f'/resp/sim_resp_gmv_estTTEETE_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        resp_gmv_TBEB = np.load(dir_out+f'/resp/sim_resp_gmv_estTBEB_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+        inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
+        inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
+
+        n1 = {'total':0, 'TTEETE':0, 'TBEB':0}
+        for i, sim in enumerate(sims):
+            # These are reconstructions using sims that were lensed with the same phi but different CMB realizations, no foregrounds
+            # Get the lensed ij sims
+            plm_gmv_ij = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_gmv_TTEETE_ij = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_gmv_TBEB_ij = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+
+            # Now get the ji sims
+            plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_gmv_TTEETE_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_gmv_TBEB_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+
+            # Response correct
+            plm_gmv_resp_corr_ij = hp.almxfl(plm_gmv_ij,inv_resp_gmv)
+            plm_gmv_resp_corr_TTEETE_ij = hp.almxfl(plm_gmv_TTEETE_ij,inv_resp_gmv_TTEETE)
+            plm_gmv_resp_corr_TBEB_ij = hp.almxfl(plm_gmv_TBEB_ij,inv_resp_gmv_TBEB)
+
+            plm_gmv_resp_corr_ji = hp.almxfl(plm_gmv_ji,inv_resp_gmv)
+            plm_gmv_resp_corr_TTEETE_ji = hp.almxfl(plm_gmv_TTEETE_ji,inv_resp_gmv_TTEETE)
+            plm_gmv_resp_corr_TBEB_ji = hp.almxfl(plm_gmv_TBEB_ji,inv_resp_gmv_TBEB)
+
+            # Get ij auto spectra <ijij>
+            auto = hp.alm2cl(plm_gmv_resp_corr_ij, plm_gmv_resp_corr_ij, lmax=lmax)
+            auto_A = hp.alm2cl(plm_gmv_resp_corr_TTEETE_ij, plm_gmv_resp_corr_TTEETE_ij, lmax=lmax)
+            auto_B = hp.alm2cl(plm_gmv_resp_corr_TBEB_ij, plm_gmv_resp_corr_TBEB_ij, lmax=lmax)
+
+            # Get cross spectra <ijji>
+            cross = hp.alm2cl(plm_gmv_resp_corr_ij, plm_gmv_resp_corr_ji, lmax=lmax)
+            cross_A = hp.alm2cl(plm_gmv_resp_corr_TTEETE_ij, plm_gmv_resp_corr_TTEETE_ji, lmax=lmax)
+            cross_B = hp.alm2cl(plm_gmv_resp_corr_TBEB_ij, plm_gmv_resp_corr_TBEB_ji, lmax=lmax)
+
+            n1['total'] += auto + cross
+            n1['TTEETE'] += auto_A + cross_A
+            n1['TBEB'] += auto_B + cross_B
+
+        n1['total'] *= 1/num
+        n1['TTEETE'] *= 1/num
+        n1['TBEB'] *= 1/num
+
+        n0 = get_n0(sims=sims,qetype=qetype,config=config,cltype=cltype,
+                    fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                    noise_file=noise_file,fsky_corr=fsky_corr,
+                    dir_out=dir_out,u=None)
+
+        n1['total'] -= n0['total']
+        n1['TTEETE'] -= n0['TTEETE']
+        n1['TBEB'] -= n0['TBEB']
+
+        with open(filename, 'wb') as f:
+            pickle.dump(n1, f)
+
+    elif qetype == 'sqe':
+        # Get SQE analytic response
+        ests = ['TT', 'EE', 'TE', 'TB', 'EB']
+        resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
+        inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+        for i, est in enumerate(ests):
+            resps_original[:,i] = get_analytic_response(est,config,gmv=False,cltype=cltype,
+                                                        fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                                                        noise_file=noise_file,fsky_corr=fsky_corr)
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+        #TODO
+        # Eight estimators!!!
+        resp_original = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]+2*resps_original[:,3]+2*resps_original[:,4]
+        #resp_original = np.sum(resps_original, axis=1)
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+
+        #TODO: USING RESP FROM SIMS
+        resp_original = np.load(dir_out+f'/resp/sim_resp_sqe_estall_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+        for i, est in enumerate(ests):
+            resps_original[:,i] = np.load(dir_out+f'/resp/sim_resp_sqe_est{est}_{num}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly.npy')
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+
+        n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'TB':0, 'EB':0}
+        for i, sim in enumerate(sims):
+            # Get the lensed ij sims
+            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu1tqu2.npy')
+
+            # Now get the ji sims
+            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside8192_cmbonly_phi1_tqu2tqu1.npy')
+
+            #TODO:
+            #plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_TB_ij + plm_EB_ij
+            #plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_TB_ji + plm_EB_ji
+            # Eight estimators!!!
+            plm_total_ij = plm_TT_ij + plm_EE_ij + 2*plm_TE_ij + 2*plm_TB_ij + 2*plm_EB_ij
+            plm_total_ji = plm_TT_ji + plm_EE_ji + 2*plm_TE_ji + 2*plm_TB_ji + 2*plm_EB_ji
+
+            # Response correct healqest
+            plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
+            plm_TT_ij = hp.almxfl(plm_TT_ij,inv_resps_original[:,0])
+            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
+            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
+            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,3])
+            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,4])
+
+            plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
+            plm_TT_ji = hp.almxfl(plm_TT_ji,inv_resps_original[:,0])
+            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
+            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
+            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,3])
+            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,4])
+
+            # Get ij auto spectra <ijij>
+            auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
+            auto_TT = hp.alm2cl(plm_TT_ij, plm_TT_ij, lmax=lmax)
+            auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
+            auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
+            auto_TB = hp.alm2cl(plm_TB_ij, plm_TB_ij, lmax=lmax)
+            auto_EB = hp.alm2cl(plm_EB_ij, plm_EB_ij, lmax=lmax)
+
+            # Get cross spectra <ijji>
+            cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
+            cross_TT = hp.alm2cl(plm_TT_ij, plm_TT_ji, lmax=lmax)
+            cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
+            cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
+            cross_TB = hp.alm2cl(plm_TB_ij, plm_TB_ji, lmax=lmax)
+            cross_EB = hp.alm2cl(plm_EB_ij, plm_EB_ji, lmax=lmax)
+
+            n1['total'] += auto + cross
+            n1['TT'] += auto_TT + cross_TT
+            n1['EE'] += auto_TE + cross_TE
+            n1['TE'] += auto_EE + cross_EE
+            n1['TB'] += auto_TB + cross_TB
+            n1['EB'] += auto_EB + cross_EB
+
+        n1['total'] *= 1/num
+        n1['TT'] *= 1/num
+        n1['EE'] *= 1/num
+        n1['TE'] *= 1/num
+        n1['TB'] *= 1/num
+        n1['EB'] *= 1/num
+
+        n0 = get_n0(sims=sims,qetype=qetype,config=config,cltype=cltype,
+                    fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
+                    noise_file=noise_file,fsky_corr=fsky_corr,
+                    dir_out=dir_out,u=None)
+
+        n1['total'] -= n0['total']
+        n1['TT'] -= n0['TT']
+        n1['EE'] -= n0['EE']
+        n1['TE'] -= n0['TE']
+        n1['TB'] -= n0['TB']
+        n1['EB'] -= n0['EB']
+
+        with open(filename, 'wb') as f:
+            pickle.dump(n1, f)
+    else:
+        print('Invalid argument qetype.')
+
+    return n1
 
 def get_analytic_response(est, config, gmv, cltype='len',
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,

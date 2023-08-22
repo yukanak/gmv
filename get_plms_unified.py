@@ -27,9 +27,9 @@ cltype = 'len'
 noise_file='nl_cmbmv_20192020.dat'
 fsky_corr=25.308939726920805
 #append = f'tsrc_fluxlim{fluxlim:.3f}'
-#append = 'cmbonly_phi1_tqu1tqu2'
+append = 'cmbonly_phi1_tqu1tqu2'
 #append = 'cmbonly_phi1_tqu2tqu1'
-append = 'cmbonly'
+#append = 'cmbonly'
 #append = 'unl'
 ####################################
 qe = str(sys.argv[1])
@@ -123,38 +123,41 @@ else:
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
     
     # Adding noise!
-    #TODO: probably for tqu2 we need a different noise rlz even for the same sim number...
     if noise_file is not None:
         noise_curves = np.loadtxt(noise_file)
         nltt = fsky_corr * noise_curves[:,1]
         nlee = fsky_corr * noise_curves[:,2]
         nlbb = fsky_corr * noise_curves[:,2]
-        nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.npy'
-        nlm2_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.npy'
-        if os.path.isfile(nlm1_filename):
-            nlm1 = np.load(nlm1_filename,allow_pickle=True)
-            nlmt1 = nlm1[:,0]
-            nlme1 = nlm1[:,1]
-            nlmb1 = nlm1[:,2]
+        if append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1':
+            # For the N1 calc, it’s fine to not add noise to the maps; you’d filter the maps as if there were noise
+            nlmt1 = 0; nlme1 = 0; nlmb1 = 0; nlmt2 = 0; nlme2 = 0; nlmb2 = 0
         else:
-            np.random.seed(hash('tora')%2**32+sim1)
-            nlmt1,nlme1,nlmb1 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-            #nlmt1 = utils.reduce_lmax(nlmt1,lmax=lmaxT)
-            nlm1 = np.zeros((len(nlmt1),3),dtype=np.complex_)
-            nlm1[:,0] = nlmt1; nlm1[:,1] = nlme1; nlm1[:,2] = nlmb1
-            np.save(nlm1_filename, nlm1)
-        if os.path.isfile(nlm2_filename):
-            nlm2 = np.load(nlm2_filename,allow_pickle=True)
-            nlmt2 = nlm2[:,0]
-            nlme2 = nlm2[:,1]
-            nlmb2 = nlm2[:,2]
-        else:
-            np.random.seed(hash('tora')%2**32+sim2)
-            nlmt2,nlme2,nlmb2 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-            #nlmt2 = utils.reduce_lmax(nlmt2,lmax=lmaxT)
-            nlm2 = np.zeros((len(nlmt2),3),dtype=np.complex_)
-            nlm2[:,0] = nlmt2; nlm2[:,1] = nlme2; nlm2[:,2] = nlmb2
-            np.save(nlm2_filename, nlm2)
+            nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.npy'
+            nlm2_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.npy'
+            if os.path.isfile(nlm1_filename):
+                nlm1 = np.load(nlm1_filename,allow_pickle=True)
+                nlmt1 = nlm1[:,0]
+                nlme1 = nlm1[:,1]
+                nlmb1 = nlm1[:,2]
+            else:
+                np.random.seed(hash('tora')%2**32+sim1)
+                nlmt1,nlme1,nlmb1 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+                #nlmt1 = utils.reduce_lmax(nlmt1,lmax=lmaxT)
+                nlm1 = np.zeros((len(nlmt1),3),dtype=np.complex_)
+                nlm1[:,0] = nlmt1; nlm1[:,1] = nlme1; nlm1[:,2] = nlmb1
+                np.save(nlm1_filename, nlm1)
+            if os.path.isfile(nlm2_filename):
+                nlm2 = np.load(nlm2_filename,allow_pickle=True)
+                nlmt2 = nlm2[:,0]
+                nlme2 = nlm2[:,1]
+                nlmb2 = nlm2[:,2]
+            else:
+                np.random.seed(hash('tora')%2**32+sim2)
+                nlmt2,nlme2,nlmb2 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+                #nlmt2 = utils.reduce_lmax(nlmt2,lmax=lmaxT)
+                nlm2 = np.zeros((len(nlmt2),3),dtype=np.complex_)
+                nlm2[:,0] = nlmt2; nlm2[:,1] = nlme2; nlm2[:,2] = nlmb2
+                np.save(nlm2_filename, nlm2)
         tlm1 += nlmt1
         elm1 += nlme1
         blm1 += nlmb1
