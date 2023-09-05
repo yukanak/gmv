@@ -15,33 +15,43 @@ import wignerd
 import resp
 
 ####################################
-nside = 8192
+#nside = 8192
+nside = 2048
 fluxlim = 0.200
 #fluxlim = 0.010
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 config_file = 'profhrd_yuka.yaml'
-cltype = 'len'
-#u = np.ones(lmax+1, dtype=np.complex_)
-noise_file='nl_cmbmv_20192020.dat'
+#noise_file='nl_cmbmv_20192020.dat'
+noise_file = None
 fsky_corr=25.308939726920805
-#append = f'tsrc_fluxlim{fluxlim:.3f}'
-append = 'cmbonly_phi1_tqu1tqu2'
+append = f'tsrc_fluxlim{fluxlim:.3f}'
+#append = 'cmbonly_phi1_tqu1tqu2'
 #append = 'cmbonly_phi1_tqu2tqu1'
 #append = 'cmbonly'
+#append = 'noiseless_cmbonly'
 #append = 'unl'
+#append = 'noiseless_unl'
 ####################################
 qe = str(sys.argv[1])
 sim1 = int(sys.argv[2])
 sim2 = int(sys.argv[3])
+
+config = utils.parse_yaml(config_file)
+lmax = config['lmax']
+lmaxT = config['lmaxt']
+lmaxP = config['lmaxp']
+lmin = config['lmint']
+u = np.ones(lmax+1, dtype=np.complex_)
+
 tlm_with_sources_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim1}.fits'
 tlm_with_sources_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim2}.fits'
 alm_cmb_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU1phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim1}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
 alm_cmb_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU1phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim2}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
 alm_cmb_sim1_tqu2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU2phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim1}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
-#unl_map_sim1 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim1}_lmax{lmax}_nside{nside}_20230623.fits'
-#unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230623.fits'
+unl_map_sim1 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim1}_lmax{lmax}_nside{nside}_20230905.fits'
+unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230905.fits'
 if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
     gmv = True
 elif qe == 'TT' or qe == 'TE' or qe == 'EE' or qe == 'TB' or qe == 'EB' or qe == 'TTprf':
@@ -50,13 +60,9 @@ else:
     print('Invalid qe')
 ####################################
 
-config = utils.parse_yaml(config_file)
-lmax = config['Lmax']
-lmaxT = config['lmaxT']
-lmaxP = config['lmaxP']
-lmin = config['lmin']
-tdict = {'grad':'gcmb', 'len':'lcmb', 'unl':'ucmb'}
-sl = {ee:config['cls'][tdict[cltype]][ee] for ee in config['cls'][tdict[cltype]].keys()}
+cltype = config['cltype']
+cls = config['cls']
+sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
 filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
     
@@ -66,19 +72,11 @@ else:
     print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}')
 
     # Load inputs: full-sky noiseless alms
-    if append == 'unl':
+    if append == 'unl' or append == 'noiseless_unl':
         t1,q1,u1 = hp.read_map(unl_map_sim1,field=[0,1,2])
-        t1 = hp.pixelfunc.ud_grade(t1,nside)
-        q1 = hp.pixelfunc.ud_grade(q1,nside)
-        u1 = hp.pixelfunc.ud_grade(u1,nside)
         tlm1,elm1,blm1 = hp.map2alm([t1,q1,u1],lmax=lmax)
-        #tlm1 = utils.reduce_lmax(tlm1,lmax=lmaxT)
         t2,q2,u2 = hp.read_map(unl_map_sim2,field=[0,1,2])
-        t2 = hp.pixelfunc.ud_grade(t2,nside)
-        q2 = hp.pixelfunc.ud_grade(q2,nside)
-        u2 = hp.pixelfunc.ud_grade(u2,nside)
         tlm2,elm2,blm2 = hp.map2alm([t2,q2,u2],lmax=lmax)
-        #tlm2 = utils.reduce_lmax(tlm2,lmax=lmaxT)
     elif append == 'cmbonly_phi1_tqu1tqu2':
         # Sims that were lensed with the same phi but different CMB realizations, no foregrounds for N1
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
@@ -99,7 +97,7 @@ else:
         tlm1 = utils.reduce_lmax(tlm1,lmax=lmax)
         elm1 = utils.reduce_lmax(elm1,lmax=lmax)
         blm1 = utils.reduce_lmax(blm1,lmax=lmax)
-    elif append == 'cmbonly':
+    elif append == 'cmbonly' or append == 'noiseless_cmbonly':
         # No foregrounds, lensed CMB sims for N0 calculation used to subtract from N1
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
         tlm1 = utils.reduce_lmax(tlm1,lmax=lmax)
@@ -128,8 +126,8 @@ else:
         nltt = fsky_corr * noise_curves[:,1]
         nlee = fsky_corr * noise_curves[:,2]
         nlbb = fsky_corr * noise_curves[:,2]
-        if append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1':
-            # For the N1 calc, it’s fine to not add noise to the maps; you’d filter the maps as if there were noise
+        if append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1' or append == 'noiseless_cmbonly' or append == f'tsrc_fluxlim{fluxlim:.3f}' or append == 'noiseless_unl':
+            # For the N1 calc, it’s fine to not add noise to the maps; but you’d filter the maps as if there were noise so that you suppress the modes exactly as in the signal map
             nlmt1 = 0; nlme1 = 0; nlmb1 = 0; nlmt2 = 0; nlme2 = 0; nlmb2 = 0
         else:
             nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.npy'
@@ -165,7 +163,7 @@ else:
         elm2 += nlme2
         blm2 += nlmb2
     else:
-        nltt = 0; nlee = 0; nlbb = 0
+        nltt = np.zeros(lmax+1); nlee = np.zeros(lmax+1); nlbb = np.zeros(lmax+1)
     
     # Signal + Noise spectra
     # TODO: If you have foregrounds, without fgtt, the 1/R won't match the N0 bias
@@ -220,14 +218,16 @@ else:
     
     # Run healqest
     if not gmv:
-        q_original = qest.qest(config,qe,almbar1,almbar2,cltype=cltype)
-        glm,clm = q_original.eval()
+        #q_original = qest.qest(config,qe,almbar1,almbar2,cltype=cltype)
+        q_original = qest.qest(config,cls)
+        glm,clm = q_original.eval(qe,almbar1,almbar2,u=u)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_sqe,glm)
     else:
-        q_gmv = qest.qest_gmv(config,qe,alm1all,alm2all,totalcls,cltype=cltype)
-        glm,clm = q_gmv.eval()
+        #q_gmv = qest.qest_gmv(config,qe,alm1all,alm2all,totalcls,cltype=cltype)
+        q_gmv = qest.qest_gmv(config,cls)
+        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,u=u)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)
