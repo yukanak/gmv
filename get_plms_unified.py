@@ -13,23 +13,22 @@ import os
 import matplotlib.pyplot as plt
 import wignerd
 import resp
+from time import time
 
+time0 = time()
 ####################################
-#nside = 8192
-nside = 2048
 fluxlim = 0.200
-#fluxlim = 0.010
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 config_file = 'profhrd_yuka.yaml'
-#noise_file='nl_cmbmv_20192020.dat'
-noise_file = None
+noise_file='nl_cmbmv_20192020.dat'
+#noise_file = None
 fsky_corr=25.308939726920805
-append = f'tsrc_fluxlim{fluxlim:.3f}'
+#append = f'tsrc_fluxlim{fluxlim:.3f}'
 #append = 'cmbonly_phi1_tqu1tqu2'
 #append = 'cmbonly_phi1_tqu2tqu1'
-#append = 'cmbonly'
+append = 'cmbonly'
 #append = 'noiseless_cmbonly'
 #append = 'unl'
 #append = 'noiseless_unl'
@@ -43,13 +42,21 @@ lmax = config['lmax']
 lmaxT = config['lmaxt']
 lmaxP = config['lmaxp']
 lmin = config['lmint']
+nside = config['nside']
+cltype = config['cltype']
+cls = config['cls']
+sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
+filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
+filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 u = np.ones(lmax+1, dtype=np.complex_)
 
-tlm_with_sources_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim1}.fits'
-tlm_with_sources_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim2}.fits'
-alm_cmb_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU1phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim1}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
-alm_cmb_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU1phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim2}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
-alm_cmb_sim1_tqu2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000/lensedTQU2phi1_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_seed{sim1}_lmax9000_nside8192_interp1.0_method1_pol_1_lensed_alm_lowpass5000.fits'
+#tlm_with_sources_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim1}.fits'
+#tlm_with_sources_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim2}.fits'
+tlm_with_sources_sim1 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim1}.fits'
+tlm_with_sources_sim2 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim2}.fits'
+alm_cmb_sim1 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
+alm_cmb_sim2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim2}_alm_lmax{lmax}.fits'
+alm_cmb_sim1_tqu2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu2/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim1}_alm_lmax{lmax}.fits'
 unl_map_sim1 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim1}_lmax{lmax}_nside{nside}_20230905.fits'
 unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230905.fits'
 if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
@@ -59,13 +66,6 @@ elif qe == 'TT' or qe == 'TE' or qe == 'EE' or qe == 'TB' or qe == 'EB' or qe ==
 else:
     print('Invalid qe')
 ####################################
-
-cltype = config['cltype']
-cls = config['cls']
-sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
-filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
-filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
-    
 if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
     print('File already exists!')
 else:
@@ -119,7 +119,7 @@ else:
         tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
         elm2 = utils.reduce_lmax(elm2,lmax=lmax)
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
-    
+   
     # Adding noise!
     if noise_file is not None:
         noise_curves = np.loadtxt(noise_file)
@@ -164,13 +164,21 @@ else:
         blm2 += nlmb2
     else:
         nltt = np.zeros(lmax+1); nlee = np.zeros(lmax+1); nlbb = np.zeros(lmax+1)
+        if append == 'noiseless_cmbonly' or append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1' or append == 'noiseless_unl':
+            append += f'_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
+
+    if append == f'tsrc_fluxlim{fluxlim:.3f}':
+        # Point source maps have a flat Cl power spectrum at 2.18e-05 uK^2
+        # If you have foregrounds, without fgtt, the 1/R won't match the N0 bias
+        fgtt =  np.ones(lmax+1) * 2.18e-5
+    else:
+        fgtt = np.zeros(lmax+1)
     
     # Signal + Noise spectra
-    # TODO: If you have foregrounds, without fgtt, the 1/R won't match the N0 bias
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
     artificial_noise = np.zeros(lmax+1)
     artificial_noise[lmaxT+2:] = 1.e10
-    cltt = sl['tt'][:lmax+1] + nltt[:lmax+1] + artificial_noise
+    cltt = sl['tt'][:lmax+1] + nltt[:lmax+1] + fgtt + artificial_noise
     clee = sl['ee'][:lmax+1] + nlee[:lmax+1]
     clbb = sl['bb'][:lmax+1] + nlbb[:lmax+1]
     clte = sl['te'][:lmax+1]
@@ -231,3 +239,7 @@ else:
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)
+
+elapsed = time() - time0
+elapsed /= 60
+print('Time taken (minutes): ', elapsed)
