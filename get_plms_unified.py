@@ -20,7 +20,6 @@ time0 = time()
 fluxlim = 0.200
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
-clfile = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
 config_file = 'profhrd_yuka.yaml'
 noise_file='nl_cmbmv_20192020.dat'
 #noise_file = None
@@ -52,8 +51,8 @@ u = np.ones(lmax+1, dtype=np.complex_)
 
 #tlm_with_sources_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim1}.fits'
 #tlm_with_sources_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim2}.fits'
-tlm_with_sources_sim1 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim1}.fits'
-tlm_with_sources_sim2 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim2}.fits'
+flm_sim1 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim1}.fits'
+flm_sim2 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim2}.fits'
 alm_cmb_sim1 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
 alm_cmb_sim2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim2}_alm_lmax{lmax}.fits'
 alm_cmb_sim1_tqu2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu2/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim1}_alm_lmax{lmax}.fits'
@@ -109,13 +108,15 @@ else:
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
     else:
         # With foregrounds in T, used for N0 calculation and the actual reconstruction
-        tlm1 = hp.read_alm(tlm_with_sources_sim1,hdu=[1])
-        _,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
+        flm1 = hp.read_alm(flm_sim1,hdu=[1])
+        tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
+        tlm1 += flm1
         tlm1 = utils.reduce_lmax(tlm1,lmax=lmax)
         elm1 = utils.reduce_lmax(elm1,lmax=lmax)
         blm1 = utils.reduce_lmax(blm1,lmax=lmax)
-        tlm2 = hp.read_alm(tlm_with_sources_sim2,hdu=[1])
-        _,elm2,blm2 = hp.read_alm(alm_cmb_sim2,hdu=[1,2,3])
+        flm2 = hp.read_alm(flm_sim2,hdu=[1])
+        tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim2,hdu=[1,2,3])
+        tlm2 += flm2
         tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
         elm2 = utils.reduce_lmax(elm2,lmax=lmax)
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
@@ -130,32 +131,20 @@ else:
             # For the N1 calc, it’s fine to not add noise to the maps; but you’d filter the maps as if there were noise so that you suppress the modes exactly as in the signal map
             nlmt1 = 0; nlme1 = 0; nlmb1 = 0; nlmt2 = 0; nlme2 = 0; nlmb2 = 0
         else:
-            nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.npy'
-            nlm2_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.npy'
+            nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.alm'
+            nlm2_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.alm'
             if os.path.isfile(nlm1_filename):
-                nlm1 = np.load(nlm1_filename,allow_pickle=True)
-                nlmt1 = nlm1[:,0]
-                nlme1 = nlm1[:,1]
-                nlmb1 = nlm1[:,2]
+                nlmt1,nlme1,nlmb1 = hp.read_alm(nlm1_filename,hdu=[1,2,3])
             else:
                 np.random.seed(hash('tora')%2**32+sim1)
                 nlmt1,nlme1,nlmb1 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-                #nlmt1 = utils.reduce_lmax(nlmt1,lmax=lmaxT)
-                nlm1 = np.zeros((len(nlmt1),3),dtype=np.complex_)
-                nlm1[:,0] = nlmt1; nlm1[:,1] = nlme1; nlm1[:,2] = nlmb1
-                np.save(nlm1_filename, nlm1)
+                hp.write_alm(nlm1_filename,[nlmt1,nlme1,nlmb1])
             if os.path.isfile(nlm2_filename):
-                nlm2 = np.load(nlm2_filename,allow_pickle=True)
-                nlmt2 = nlm2[:,0]
-                nlme2 = nlm2[:,1]
-                nlmb2 = nlm2[:,2]
+                nlmt2,nlme2,nlmb2 = hp.read_alm(nlm2_filename,hdu=[1,2,3])
             else:
                 np.random.seed(hash('tora')%2**32+sim2)
                 nlmt2,nlme2,nlmb2 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
-                #nlmt2 = utils.reduce_lmax(nlmt2,lmax=lmaxT)
-                nlm2 = np.zeros((len(nlmt2),3),dtype=np.complex_)
-                nlm2[:,0] = nlmt2; nlm2[:,1] = nlme2; nlm2[:,2] = nlmb2
-                np.save(nlm2_filename, nlm2)
+                hp.write_alm(nlm2_filename,[nlmt2,nlme2,nlmb2])
         tlm1 += nlmt1
         elm1 += nlme1
         blm1 += nlmb1
