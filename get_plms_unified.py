@@ -21,16 +21,16 @@ fluxlim = 0.200
 cambini = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
 dir_out = '/scratch/users/yukanaka/gmv/'
 config_file = 'profhrd_yuka.yaml'
-noise_file='nl_cmbmv_20192020.dat'
-#noise_file = None
+#noise_file='nl_cmbmv_20192020.dat'
+noise_file = None
 fsky_corr=25.308939726920805
 #append = f'tsrc_fluxlim{fluxlim:.3f}'
 #append = 'cmbonly_phi1_tqu1tqu2'
 #append = 'cmbonly_phi1_tqu2tqu1'
-append = 'cmbonly'
+#append = 'cmbonly'
 #append = 'noiseless_cmbonly'
 #append = 'unl'
-#append = 'noiseless_unl'
+append = 'unl_with_fg'
 ####################################
 qe = str(sys.argv[1])
 sim1 = int(sys.argv[2])
@@ -49,8 +49,6 @@ filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmax
 filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 u = np.ones(lmax+1, dtype=np.complex_)
 
-#tlm_with_sources_sim1 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim1}.fits'
-#tlm_with_sources_sim2 = f'/scratch/users/yukanaka/spt3g_planck2018alms_lowpass5000_withptsrc/cmb_Tsrc_fluxlim{fluxlim:.3f}_set1_rlz{sim2}.fits'
 flm_sim1 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim1}.fits'
 flm_sim2 = f'/scratch/users/yukanaka/rand_ptsrc_rlz/src_fluxlim{fluxlim:.3f}_alm_set1_rlz{sim2}.fits'
 alm_cmb_sim1 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
@@ -71,11 +69,22 @@ else:
     print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}')
 
     # Load inputs: full-sky noiseless alms
-    if append == 'unl' or append == 'noiseless_unl':
+    if append == 'unl':
         t1,q1,u1 = hp.read_map(unl_map_sim1,field=[0,1,2])
         tlm1,elm1,blm1 = hp.map2alm([t1,q1,u1],lmax=lmax)
         t2,q2,u2 = hp.read_map(unl_map_sim2,field=[0,1,2])
         tlm2,elm2,blm2 = hp.map2alm([t2,q2,u2],lmax=lmax)
+    if append == 'unl_with_fg':
+        flm1 = hp.read_alm(flm_sim1,hdu=[1])
+        flm1 = utils.reduce_lmax(flm1,lmax=lmax)
+        t1,q1,u1 = hp.read_map(unl_map_sim1,field=[0,1,2])
+        tlm1,elm1,blm1 = hp.map2alm([t1,q1,u1],lmax=lmax)
+        tlm1 += flm1
+        flm2 = hp.read_alm(flm_sim2,hdu=[1])
+        flm2 = utils.reduce_lmax(flm2,lmax=lmax)
+        t2,q2,u2 = hp.read_map(unl_map_sim2,field=[0,1,2])
+        tlm2,elm2,blm2 = hp.map2alm([t2,q2,u2],lmax=lmax)
+        tlm2 += flm2
     elif append == 'cmbonly_phi1_tqu1tqu2':
         # Sims that were lensed with the same phi but different CMB realizations, no foregrounds for N1
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
@@ -106,20 +115,22 @@ else:
         tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
         elm2 = utils.reduce_lmax(elm2,lmax=lmax)
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
-    else:
+    elif append == f'tsrc_fluxlim{fluxlim:.3f}':
         # With foregrounds in T, used for N0 calculation and the actual reconstruction
         flm1 = hp.read_alm(flm_sim1,hdu=[1])
+        flm1 = utils.reduce_lmax(flm1,lmax=lmax)
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
-        tlm1 += flm1
         tlm1 = utils.reduce_lmax(tlm1,lmax=lmax)
         elm1 = utils.reduce_lmax(elm1,lmax=lmax)
         blm1 = utils.reduce_lmax(blm1,lmax=lmax)
+        tlm1 += flm1
         flm2 = hp.read_alm(flm_sim2,hdu=[1])
+        flm2 = utils.reduce_lmax(flm2,lmax=lmax)
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim2,hdu=[1,2,3])
-        tlm2 += flm2
         tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
         elm2 = utils.reduce_lmax(elm2,lmax=lmax)
         blm2 = utils.reduce_lmax(blm2,lmax=lmax)
+        tlm2 += flm2
    
     # Adding noise!
     if noise_file is not None:
@@ -127,7 +138,7 @@ else:
         nltt = fsky_corr * noise_curves[:,1]
         nlee = fsky_corr * noise_curves[:,2]
         nlbb = fsky_corr * noise_curves[:,2]
-        if append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1' or append == 'noiseless_cmbonly' or append == f'tsrc_fluxlim{fluxlim:.3f}' or append == 'noiseless_unl':
+        if append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1' or append == 'noiseless_cmbonly':
             # For the N1 calc, it’s fine to not add noise to the maps; but you’d filter the maps as if there were noise so that you suppress the modes exactly as in the signal map
             nlmt1 = 0; nlme1 = 0; nlmb1 = 0; nlmt2 = 0; nlme2 = 0; nlmb2 = 0
         else:
@@ -153,10 +164,8 @@ else:
         blm2 += nlmb2
     else:
         nltt = np.zeros(lmax+1); nlee = np.zeros(lmax+1); nlbb = np.zeros(lmax+1)
-        if append == 'noiseless_cmbonly' or append == 'cmbonly_phi1_tqu1tqu2' or append == 'cmbonly_phi1_tqu2tqu1' or append == 'noiseless_unl':
-            append += f'_fwhm{fwhm}_nlevt{nlev_t}_nlevp{nlev_p}'
 
-    if append == f'tsrc_fluxlim{fluxlim:.3f}':
+    if u is not None:
         # Point source maps have a flat Cl power spectrum at 2.18e-05 uK^2
         # If you have foregrounds, without fgtt, the 1/R won't match the N0 bias
         fgtt =  np.ones(lmax+1) * 2.18e-5

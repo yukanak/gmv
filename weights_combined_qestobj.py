@@ -642,4 +642,4 @@ def weights_TE(idx,slte,lmax):
     if idx==4: w1=f5; w2=f7; wL=f6; s1=+0; s2=-1; sL=-1
     if idx==5: w1=f5; w2=f7; wL=f6; s1=+0; s2=+1; sL=+1
     return w1,w2,wL,s1,s2,sL
-''' 
+'''
