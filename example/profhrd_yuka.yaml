@@ -1,0 +1,86 @@
+base:
+    # Location of healqest
+    dir_healqest: '/home/users/yukanaka/healqest/healqest/src/'
+    # Location of output files
+    dir_out     : '/scratch/users/yukanaka/gmv/'
+
+lensing:
+    # CAMB files
+    #cambcls : 'camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    cambini : '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_params.ini'
+
+    iqu: 
+        # Directory of input alms
+        dir   : '/'
+        # Name of alm (string must contain {cmbid} and {seed})
+        prefix: 'cmb{cmbid}_cmbmv_phiG_tszG_kszG_cibG_radG_{seed}.alm' 
+        # Hash of version used 
+        hash  : 'dsalkjdlkjlkjeqwlkjeqwuewqou'
+
+    plm:
+        # Directory of output plm
+        dir   : '/scratch/users/yukanaka/gmv/'
+
+        # Name of output plm (string must contain {qe}, {seed1}, {cmbset1}, {seed2}, {cmbset2})
+        prefix: 'plm{qe}_{seed1}{cmbset1}_{seed2}{cmbset2}_prfhrd.npz'
+
+        # List of QE to use
+        #qes   : ['TT', 'TTsrc'] 
+    
+        #harden: 'TT_bh_src'
+
+        # Sim indices to use for MC response
+        range : null
+
+        #klmin: #for MC response calc
+        # Location of input klms
+        #dir   : null 
+
+        # Name of input klm in file (must include {seed})
+        #prefix: null 
+
+    cls:
+        # These files should be in polspice format ell/cltt/clee/clbb/clte/cleb
+        file_lcmb      : '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+        file_gcmb      : '/home/users/yukanaka/healqest/healqest/camb/qe_lensed_gradient_Cls.dat'
+        #file_gcmb      : '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls_gradlensedCls.dat'
+        file_ucmb      : '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+        file_noise     : '/lcrc/project/SPT3G/users/ac.yomori/repo/cross-ilc/src/lensing/spt3g/noise/cls_noise_cmbmv.dat'
+        file_foreground: '/lcrc/project/SPT3G/users/ac.yomori/repo/cross-ilc/src/lensing/spt3g/fgcls/cls_totfg_cmbmv.dat'
+    
+    lmint   : 300
+    lminp   : 300
+    lmaxt   : 3000
+    lmaxp   : 4096
+    lmax    : 4096
+    Lmax    : 4096
+    cltype  : 'lcmb'
+    nside   : 2048
+
+    #pspec:
+        # nside to use for powerspectrum calculation
+        #nside: 2048
+
+        # Lmin/Lmax to use for calculation
+        #Lmin : 100
+        #Lmax : 3000
+
+        # Mask to apply
+        #file_mask: null 
+
+        # Directory to store cls
+        #dir_cls: '/global/homes/w/wlwu/sptfs/srchard_est_test/healqest_pipe/cl_cmbsrcmap_lmax3000_clfg/'
+
+        # polspice settings
+        #nlmax       : 3000
+        #apodizesigma: 170
+        #thetamax    : 180
+
+    #file_resp : null #null=use analytical or filename "respavg%s.npz'%qe"
+
+    #file_mf   : null #or filename 'plmstack%s_%s.alm.npz'%(qe,ktype)
+
+    #std       : True
+    #rdn0      : True
+    #n1        : True
+
