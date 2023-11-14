@@ -171,13 +171,13 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
         # Get N1 correction (remember these still need (l*(l+1))**2/4 factor to convert to kappa)
         n1_gmv = get_n1(sims=n0_n1_sims,qetype='gmv',config=config,dir_out=dir_out,u=u,fluxlim=fluxlim,
                         fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
-                        noise_file=noise_file,fsky_corr=fsky_corr,resp_from_sims=resp_from_sims)
+                        noise_file=noise_file,fsky_corr=fsky_corr,resp_from_sims=resp_from_sims,harden=False)
         n1_gmv_total = n1_gmv['total'] * (l*(l+1))**2/4
         n1_gmv_TTEETE = n1_gmv['TTEETE'] * (l*(l+1))**2/4
         n1_gmv_TBEB = n1_gmv['TBEB'] * (l*(l+1))**2/4
         n1_original = get_n1(sims=n0_n1_sims,qetype='sqe',config=config,dir_out=dir_out,u=u,fluxlim=fluxlim,
                              fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
-                             noise_file=noise_file,fsky_corr=fsky_corr,resp_from_sims=resp_from_sims)
+                             noise_file=noise_file,fsky_corr=fsky_corr,resp_from_sims=resp_from_sims,harden=False)
         n1_original_total = n1_original['total'] * (l*(l+1))**2/4
         n1_original_TT = n1_original['TT'] * (l*(l+1))**2/4
         n1_original_EE = n1_original['EE'] * (l*(l+1))**2/4
@@ -575,6 +575,7 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
     #plt.plot(bin_centers, binned_auto_gmv_debiased_avg, color='darkblue', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV)")
     #plt.plot(bin_centers, binned_auto_gmv_debiased_avg_TBEB, color='blueviolet', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV, TBEB)")
     #plt.plot(bin_centers, binned_auto_gmv_debiased_avg_TTEETE, color='forestgreen', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV, TTEETE)")
+    #plt.plot(bin_centers, binned_auto_gmv_debiased_avg_hrd, color='darkblue', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV, hardened)")
     plt.plot(bin_centers, binned_auto_gmv_debiased_avg_TTEETE_hrd, color='darkblue', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV, TTEETE hardened)")
 
     #plt.plot(bin_centers, binned_auto_original_debiased_avg, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE)")
@@ -583,6 +584,7 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
     #plt.plot(bin_centers, binned_auto_original_debiased_avg_TE, color='forestgreen', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE, TE)")
     #plt.plot(bin_centers, binned_auto_original_debiased_avg_TB, color='gold', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE, TB)")
     #plt.plot(bin_centers, binned_auto_original_debiased_avg_EB, color='orange', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE, EB)")
+    #plt.plot(bin_centers, binned_auto_original_debiased_avg_hrd, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE, hardened)")
     plt.plot(bin_centers, binned_auto_original_debiased_avg_TT_hrd, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE, TT hardened)")
 
     #plt.plot(l, n0_gmv_total, color='powderblue', linestyle='-',label='N0 (GMV)')
@@ -613,8 +615,8 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    #plt.ylim(1e-9,1e-6)
-    plt.ylim(1e-9,3e-6)
+    plt.ylim(1e-9,1e-6)
+    #plt.ylim(1e-9,3e-6)
     #plt.ylim(1e-9,2e-8)
     if save_fig:
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}.png',bbox_inches='tight')
@@ -623,7 +625,8 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0subtracted.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0subtracted_resp_from_sims.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_resp_from_sims.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_resp_from_sims.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_resp_from_sims_hrdn1.png',bbox_inches='tight')
 
     #plt.clf()
     #plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
@@ -663,35 +666,61 @@ def analyze(sims=np.arange(100)+1,n0_n1_sims=np.arange(99)+1,
 
     plt.figure(1)
     plt.clf()
+    ratio_gmv_TTEETE_hrdn1 = np.load('ratio_gmv_TTEETE_hrdn1.npy')
+    ratio_original_TT_hrdn1 = np.load('ratio_original_TT_hrdn1.npy')
+    ratio_gmv_hrdn1 = np.load('ratio_gmv_hrdn1.npy')
+    ratio_original_hrdn1 = np.load('ratio_original_hrdn1.npy')
+    errorbars_gmv_TTEETE_hrdn1 = np.load('errorbars_gmv_TTEETE_hrdn1.npy')
+    errorbars_original_TT_hrdn1 = np.load('errorbars_original_TT_hrdn1.npy')
+    errorbars_gmv_hrdn1 = np.load('errorbars_gmv_hrdn1.npy')
+    errorbars_original_hrdn1 = np.load('errorbars_original_hrdn1.npy')
+    ratio_gmv_TTEETE__hrd_hrdn1 = np.load('ratio_gmv_TTEETE__hrd_hrdn1.npy')
+    ratio_original_TT_hrd_hrdn1 = np.load('ratio_original_TT_hrd_hrdn1.npy')
+    ratio_gmv_hrd_hrdn1 = np.load('ratio_gmv_hrd_hrdn1.npy')
+    ratio_original_hrd_hrdn1 = np.load('ratio_original_hrd_hrdn1.npy')
+    errorbars_gmv_TTEETE_hrd_hrdn1 = np.load('errorbars_gmv_TTEETE_hrd_hrdn1.npy')
+    errorbars_original_TT_hrd_hrdn1 = np.load('errorbars_original_TT_hrd_hrdn1.npy')
+    errorbars_gmv_hrd_hrdn1 = np.load('errorbars_gmv_hrd_hrdn1.npy')
+    errorbars_original_hrd_hrdn1 = np.load('errorbars_original_hrd_hrdn1.npy')
     # Ratios with error bars
     plt.axhline(y=1, color='k', linestyle='--')
-    plt.errorbar(bin_centers,ratio_gmv_TTEETE,yerr=errorbars_gmv_TTEETE,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV TTEETE/Input")
-    plt.errorbar(bin_centers,ratio_original_TT,yerr=errorbars_original_TT,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original TT/Input")
+    #plt.errorbar(bin_centers,ratio_gmv_TTEETE,yerr=errorbars_gmv_TTEETE,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV TTEETE/Input")
+    #plt.errorbar(bin_centers,ratio_original_TT,yerr=errorbars_original_TT,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original TT/Input")
+    plt.errorbar(bin_centers,ratio_gmv,yerr=errorbars_gmv,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input")
+    plt.errorbar(bin_centers,ratio_original,yerr=errorbars_original,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original/Input")
+    plt.errorbar(bin_centers,ratio_gmv_hrdn1,yerr=errorbars_gmv_hrdn1,color='cornflowerblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input (Hardened N1)")
+    plt.errorbar(bin_centers,ratio_original_hrdn1,yerr=errorbars_original_hrdn1,color='pink', marker='o', linestyle='None', ms=3, label="Ratio Original/Input (Hardened N1)")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra Averaged over {num} Sims')
     plt.legend(loc='lower left', fontsize='x-small')
     plt.xscale('log')
     #plt.ylim(0.99,1.01)
-    plt.ylim(0.90,8.0)
+    #plt.ylim(0.90,8.0)
     plt.xlim(10,lmax)
     if save_fig:
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_no_hrd.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_no_hrd.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_no_hrd_hrdn1.png',bbox_inches='tight')
 
     plt.clf()
     plt.axhline(y=1, color='k', linestyle='--')
-    plt.errorbar(bin_centers,ratio_gmv_TTEETE_hrd,yerr=errorbars_gmv_TTEETE_hrd,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV TTEETE/Input, Hardened")
-    plt.errorbar(bin_centers,ratio_original_TT_hrd,yerr=errorbars_original_TT_hrd,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original TT/Input, Hardened")
+    #plt.errorbar(bin_centers,ratio_gmv_TTEETE_hrd,yerr=errorbars_gmv_TTEETE_hrd,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV TTEETE/Input, Hardened")
+    #plt.errorbar(bin_centers,ratio_original_TT_hrd,yerr=errorbars_original_TT_hrd,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original TT/Input, Hardened")
+    plt.errorbar(bin_centers,ratio_gmv_hrd,yerr=errorbars_gmv_hrd,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input, Hardened")
+    plt.errorbar(bin_centers,ratio_original_hrd,yerr=errorbars_original_hrd,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original/Input, Hardened")
+    plt.errorbar(bin_centers,ratio_gmv_hrd_hrdn1,yerr=errorbars_gmv_hrd_hrdn1,color='cornflowerblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input, Hardened (Hardened N1)")
+    plt.errorbar(bin_centers,ratio_original_hrd_hrdn1,yerr=errorbars_original_hrd_hrdn1,color='pink', marker='o', linestyle='None', ms=3, label="Ratio Original/Input, Hardened (Hardened N1)")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra Averaged over {num} Sims')
     plt.legend(loc='lower left', fontsize='x-small')
     plt.xscale('log')
     #plt.ylim(0.99,1.01)
-    plt.ylim(0.9,1.1)
+    #plt.ylim(0.9,1.1)
     plt.xlim(10,lmax)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_hrd.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_hrd.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio_resp_from_sims_hrd_hdn1.png',bbox_inches='tight')
 
     """
     plt.figure(2)
@@ -1283,7 +1312,7 @@ def get_n1(sims,qetype,config,
            noise_file='nl_cmbmv_20192020.dat',fsky_corr=25.308939726920805,
            dir_out='/scratch/users/yukanaka/gmv/',
            u=None,fluxlim=0.200,
-           resp_from_sims=True):
+           resp_from_sims=True,harden=True):
     '''
     Get N1 bias. qetype should be 'gmv' or 'sqe'.
     No foregrounds in sims used in N1 calculation.
@@ -1302,6 +1331,8 @@ def get_n1(sims,qetype,config,
     filename = f'/scratch/users/yukanaka/gmv/n1/n1_{num}simpairs_healqest_{qetype}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly'
     if resp_from_sims:
         filename += '_resp_from_sims'
+    if not harden:
+        filename += '_no_hrd'
     filename += '.pkl'
 
     #if False:
@@ -1326,9 +1357,26 @@ def get_n1(sims,qetype,config,
             resp_gmv_TTEETE = get_analytic_response('TTEETE',config,gmv=True,
                                                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
                                                     noise_file=noise_file,fsky_corr=fsky_corr)
-        resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True,
-                                              fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
-                                              noise_file=noise_file,fsky_corr=fsky_corr)
+            resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True,
+                                                  fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                  noise_file=noise_file,fsky_corr=fsky_corr)
+
+        if harden:
+            # If we are hardening, get the profile response and weight
+            u = u[lmin:]
+            resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,
+                                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                       noise_file=noise_file,fsky_corr=fsky_corr)
+            resp_gmv_TTEETE_sk = get_analytic_response('TTEETETTEETEprf',config,gmv=True,
+                                                       fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                       noise_file=noise_file,fsky_corr=fsky_corr)
+            weight_gmv = -1 * resp_gmv_TTEETE_sk / resp_gmv_TTEETE_ss
+            if resp_from_sims:
+                resp_gmv = np.load(f'/scratch/users/yukanaka/gmv/resp/sim_resp_gmv_estall_hrd_{num+1}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_tsrc_fluxlim{fluxlim:.3f}.npy')
+                resp_gmv_TTEETE = np.load(f'/scratch/users/yukanaka/gmv/resp/sim_resp_gmv_estTTEETE_hrd_{num+1}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_tsrc_fluxlim{fluxlim:.3f}.npy')
+            else:
+                resp_gmv = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
+                resp_gmv_TTEETE = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
         inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
         inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
         inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
@@ -1345,6 +1393,16 @@ def get_n1(sims,qetype,config,
             plm_gmv_ji = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
             plm_gmv_TTEETE_ji = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
             plm_gmv_TBEB_ji = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+
+            if harden:
+                # Harden!
+                glm_prf_TTEETE_ij = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+                plm_gmv_ij = plm_gmv_ij + hp.almxfl(glm_prf_TTEETE_ij, weight_gmv) # Equivalent to plm_gmv_TTEETE_ij (hardened) + plm_gmv_TBEB_ij (unhardened)
+                plm_gmv_TTEETE_ij = plm_gmv_TTEETE_ij + hp.almxfl(glm_prf_TTEETE_ij, weight_gmv)
+
+                glm_prf_TTEETE_ji = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+                plm_gmv_ji = plm_gmv_ji + hp.almxfl(glm_prf_TTEETE_ji, weight_gmv) # Equivalent to plm_gmv_TTEETE_ji (hardened) + plm_gmv_TBEB_ji (unhardened)
+                plm_gmv_TTEETE_ji = plm_gmv_TTEETE_ji + hp.almxfl(glm_prf_TTEETE_ji, weight_gmv)
 
             # Response correct
             plm_gmv_resp_corr_ij = hp.almxfl(plm_gmv_ij,inv_resp_gmv)
@@ -1376,7 +1434,7 @@ def get_n1(sims,qetype,config,
         n0 = get_n0(sims=sims,qetype=qetype,config=config,
                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                     noise_file=noise_file,fsky_corr=fsky_corr,
-                    dir_out=dir_out,u=u,noiseless=True,resp_from_sims=resp_from_sims,harden=False)
+                    dir_out=dir_out,u=u,noiseless=True,resp_from_sims=resp_from_sims,harden=harden)
 
         n1['total'] -= n0['total']
         n1['TTEETE'] -= n0['TTEETE']
@@ -1409,7 +1467,28 @@ def get_n1(sims,qetype,config,
                                                             noise_file=noise_file,fsky_corr=fsky_corr)
                 inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
             resp_original = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]+2*resps_original[:,3]+2*resps_original[:,4]
+
+        if harden:
+            # If we are hardening, get the profile response and weight
+            resp_original_TT_ss = get_analytic_response('TTprf',config,gmv=False,
+                                                        fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                        noise_file=noise_file,fsky_corr=fsky_corr)
+            resp_original_TT_sk = get_analytic_response('TTTTprf',config,gmv=False,
+                                                        fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,u=u,
+                                                        noise_file=noise_file,fsky_corr=fsky_corr)
+            weight_original = -1 * resp_original_TT_sk / resp_original_TT_ss
+            if resp_from_sims:
+                resp_original = np.load(f'/scratch/users/yukanaka/gmv/resp/sim_resp_sqe_estall_hrd_{num+1}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_tsrc_fluxlim{fluxlim:.3f}.npy')
+                resps_original[:,0] = np.load(f'/scratch/users/yukanaka/gmv/resp/sim_resp_sqe_estTT_hrd_{num+1}sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_tsrc_fluxlim{fluxlim:.3f}.npy')
+            else:
+                resp_original = resp_original + weight_original*resp_original_TT_sk # Equivalent to resp_original_TT (hardened) + np.sum(resps_original[:,1:], axis=1)
+                resps_original[:,0] = resps_original[:,0] + weight_original*resp_original_TT_sk
+            inv_resps_original[1:,0] = 1/(resps_original)[1:,0]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+        resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+2*resps_original[:,2]
+        resp_original_TBEB = 2*resps_original[:,3]+2*resps_original[:,4]
+        inv_resp_original_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TTEETE[1:] = 1/(resp_original_TTEETE)[1:]
+        inv_resp_original_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TBEB[1:] = 1/(resp_original_TBEB)[1:]
 
         n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'TB':0, 'EB':0}
         for i, sim in enumerate(sims):
@@ -1426,6 +1505,14 @@ def get_n1(sims,qetype,config,
             plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
             plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
             plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+
+            if harden:
+                # Harden!
+                glm_prf_TT_ij = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu1tqu2.npy')
+                plm_TT_ij = plm_TT_ij + hp.almxfl(glm_prf_TT_ij, weight_original)
+
+                glm_prf_TT_ji = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_cmbonly_phi1_tqu2tqu1.npy')
+                plm_TT_ji = plm_TT_ji + hp.almxfl(glm_prf_TT_ji, weight_original)
 
             # Eight estimators!!!
             plm_total_ij = plm_TT_ij + plm_EE_ij + 2*plm_TE_ij + 2*plm_TB_ij + 2*plm_EB_ij
@@ -1479,7 +1566,7 @@ def get_n1(sims,qetype,config,
         n0 = get_n0(sims=sims,qetype=qetype,config=config,
                     fwhm=fwhm,nlev_t=nlev_t,nlev_p=nlev_p,
                     noise_file=noise_file,fsky_corr=fsky_corr,
-                    dir_out=dir_out,u=u,noiseless=True,resp_from_sims=resp_from_sims,harden=False)
+                    dir_out=dir_out,u=u,noiseless=True,resp_from_sims=resp_from_sims,harden=harden)
 
         n1['total'] -= n0['total']
         n1['TT'] -= n0['TT']

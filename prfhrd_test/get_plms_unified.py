@@ -117,19 +117,21 @@ else:
         if noise_file is not None:
             noise_curves = np.loadtxt(noise_file)
             nltt = fsky_corr * noise_curves[:,1]; nlee = fsky_corr * noise_curves[:,2]; nlbb = fsky_corr * noise_curves[:,2]
-            nlm1_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.alm'
-            nlm2_filename = f'/scratch/users/yukanaka/gmv/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.alm'
+            nlm1_filename = dir_out + f'/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.alm'
+            nlm2_filename = dir_out + f'/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.alm'
             if os.path.isfile(nlm1_filename):
                 nlmt1,nlme1,nlmb1 = hp.read_alm(nlm1_filename,hdu=[1,2,3])
             else:
                 np.random.seed(hash('tora')%2**32+sim1)
                 nlmt1,nlme1,nlmb1 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+                Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
                 hp.write_alm(nlm1_filename,[nlmt1,nlme1,nlmb1])
             if os.path.isfile(nlm2_filename):
                 nlmt2,nlme2,nlmb2 = hp.read_alm(nlm2_filename,hdu=[1,2,3])
             else:
                 np.random.seed(hash('tora')%2**32+sim2)
                 nlmt2,nlme2,nlmb2 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+                Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
                 hp.write_alm(nlm2_filename,[nlmt2,nlme2,nlmb2])
             tlm1 += nlmt1; elm1 += nlme1; blm1 += nlmb1
             tlm2 += nlmt2; elm2 += nlme2; blm2 += nlmb2
