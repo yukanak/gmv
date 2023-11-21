@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Run like python3 get_plms_example.py TT 100 101
+# Run like python3 get_plms_unified.py TT 100 101
 import os, sys
 import numpy as np
 import healpy as hp
@@ -9,11 +9,15 @@ sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 import utils
 import qest
 
+qe = str(sys.argv[1])
+sim1 = int(sys.argv[2])
+sim2 = int(sys.argv[3])
 ####################################
 # EDIT THIS PART!
 config_file = 'mh_yuka.yaml'
 config = utils.parse_yaml(config_file)
 lmax = config['lmax']
+nside = config['nside']
 # Even if your sims here don't have added noise, you can keep the noise files defined to include the nl in the filtering
 # (e.g. when you are computing noiseless sims for the N1 calculation but you want the filter to still include nl to suppress modes exactly as in the signal map)
 noise_file_090_090='noise_curves/nl_fromstack_090_090.txt'
@@ -54,16 +58,15 @@ unl_map_sim1 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_f
 unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230905.fits'
 
 # ILC weights
-# Dimension (3, 6001)
+# Dimension (3, 6001) for 90, 150, 220 GHz respectively
 weights_tsz_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbynull.dat'
 weights_mv_ilc_T = 'ilc_weights/weights1d_TT_spt3g_cmbmv.dat'
+weights_mv_ilc_E = 'ilc_weights/weights1d_EE_spt3g_cmbmv.dat'
+weights_mv_ilc_B = 'ilc_weights/weights1d_BB_spt3g_cmbmv.dat'
 weights_cib_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbcibnull.dat'
 ####################################
 time0 = time()
 
-qe = str(sys.argv[1])
-sim1 = int(sys.argv[2])
-sim2 = int(sys.argv[3])
 if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
     gmv = True
 elif qe == 'TT' or qe == 'TE' or qe == 'EE' or qe == 'TB' or qe == 'EB' or qe == 'TTprf':
@@ -71,14 +74,12 @@ elif qe == 'TT' or qe == 'TE' or qe == 'EE' or qe == 'TB' or qe == 'EB' or qe ==
 else:
     print('Invalid qe!')
 
-config = utils.parse_yaml(config_file)
 cambini = config['cambini']
 dir_out = config['dir_out']
 lmax = config['lmax']
-lmaxT = config['lmaxt']
-lmaxP = config['lmaxp']
-lmin = config['lmint']
-nside = config['nside']
+lmaxT = config['lmaxT']
+lmaxP = config['lmaxP']
+lmin = config['lminT']
 cltype = config['cltype']
 cls = config['cls']
 sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
@@ -145,19 +146,18 @@ else:
     # Adding noise!
     if append == 'mh' or append == 'mh_unl':
         if noise_file_090_090 is not None:
-            noise_curves_090_090 = np.loadtxt(noise_file_090_090)
-            noise_curves_150_150 = np.loadtxt(noise_file_150_150)
-            noise_curves_220_220 = np.loadtxt(noise_file_220_220)
-            noise_curves_090_150 = np.loadtxt(noise_file_090_150)
-            noise_curves_090_220 = np.loadtxt(noise_file_090_220)
-            noise_curves_150_220 = np.loadtxt(noise_file_150_220)
-            #TODO: noise curves only for T?
-            nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,2]
-            nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,2]
-            nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,2]
-            nltt_090_150 = fsky_corr * noise_curves_090_150[:,1]; nlee_090_150 = fsky_corr * noise_curves_090_150[:,2]; nlbb_090_150 = fsky_corr * noise_curves_090_150[:,2]
-            nltt_090_220 = fsky_corr * noise_curves_090_220[:,1]; nlee_090_220 = fsky_corr * noise_curves_090_220[:,2]; nlbb_090_220 = fsky_corr * noise_curves_090_220[:,2]
-            nltt_150_220 = fsky_corr * noise_curves_150_220[:,1]; nlee_150_220 = fsky_corr * noise_curves_150_220[:,2]; nlbb_150_220 = fsky_corr * noise_curves_150_220[:,2]
+            noise_curves_090_090 = np.nan_to_num(np.loadtxt(noise_file_090_090))
+            noise_curves_150_150 = np.nan_to_num(np.loadtxt(noise_file_150_150))
+            noise_curves_220_220 = np.nan_to_num(np.loadtxt(noise_file_220_220))
+            noise_curves_090_150 = np.nan_to_num(np.loadtxt(noise_file_090_150))
+            noise_curves_090_220 = np.nan_to_num(np.loadtxt(noise_file_090_220))
+            noise_curves_150_220 = np.nan_to_num(np.loadtxt(noise_file_150_220))
+            nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
+            nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
+            nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
+            nltt_090_150 = fsky_corr * noise_curves_090_150[:,1]; nlee_090_150 = fsky_corr * noise_curves_090_150[:,2]; nlbb_090_150 = fsky_corr * noise_curves_090_150[:,3]
+            nltt_090_220 = fsky_corr * noise_curves_090_220[:,1]; nlee_090_220 = fsky_corr * noise_curves_090_220[:,2]; nlbb_090_220 = fsky_corr * noise_curves_090_220[:,3]
+            nltt_150_220 = fsky_corr * noise_curves_150_220[:,1]; nlee_150_220 = fsky_corr * noise_curves_150_220[:,2]; nlbb_150_220 = fsky_corr * noise_curves_150_220[:,3]
             nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim1}.alm'
             nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim1}.alm'
             nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim1}.alm'
@@ -179,7 +179,7 @@ else:
                 # Seed "A"
                 # Quick note, the hash part returns a different value for different python processes
                 np.random.seed(4190002645+sim1)
-                nltt_T2a = (nltt_090_150)**2 / nltt_090_090; nlee_T2a = (nlee_090_150)**2 / nlee_090_090; nlbb_T2a = (nlbb_090_150)**2 / nlbb_090_090
+                nltt_T2a = np.nan_to_num((nltt_090_150)**2 / nltt_090_090); nlee_T2a = np.nan_to_num((nlee_090_150)**2 / nlee_090_090); nlbb_T2a = np.nan_to_num((nlbb_090_150)**2 / nlbb_090_090)
                 nlmt1_T2a,nlme1_T2a,nlmb1_T2a = hp.synalm([nltt_T2a,nlee_T2a,nlbb_T2a,nltt_T2a*0],new=True,lmax=lmax)
                 # Seed "B"
                 np.random.seed(89052206+sim1)
@@ -189,13 +189,13 @@ else:
 
                 # Seed "A"
                 np.random.seed(4190002645+sim1)
-                nltt_T3a = (nltt_090_220)**2 / nltt_090_090; nlee_T3a = (nlee_090_220)**2 / nlee_090_090; nlbb_T3a = (nlbb_090_220)**2 / nlbb_090_090
+                nltt_T3a = np.nan_to_num((nltt_090_220)**2 / nltt_090_090); nlee_T3a = np.nan_to_num((nlee_090_220)**2 / nlee_090_090); nlbb_T3a = np.nan_to_num((nlbb_090_220)**2 / nlbb_090_090)
                 nlmt1_T3a,nlme1_T3a,nlmb1_T3a = hp.synalm([nltt_T3a,nlee_T3a,nlbb_T3a,nltt_T3a*0],new=True,lmax=lmax)
                 # Seed "B"
                 np.random.seed(89052206+sim1)
-                nltt_T3b = (nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b
-                nlee_T3b = (nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b
-                nlbb_T3b = (nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b
+                nltt_T3b = np.nan_to_num((nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b)
+                nlee_T3b = np.nan_to_num((nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b)
+                nlbb_T3b = np.nan_to_num((nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b)
                 nlmt1_T3b,nlme1_T3b,nlmb1_T3b = hp.synalm([nltt_T3b,nlee_T3b,nlbb_T3b,nltt_T3b*0],new=True,lmax=lmax)
                 # Seed "C"
                 np.random.seed(978540195+sim1)
@@ -257,9 +257,10 @@ else:
 
     if append == 'mh' or append == 'mh_unl':
         # Load weights
-        #TODO: i need weights for E and B also?
         w_tsz_null = np.loadtxt(weights_tsz_null_T)
         w_Tmv = np.loadtxt(weights_mv_ilc_T)
+        w_Emv = np.loadtxt(weights_mv_ilc_E)
+        w_Bmv = np.loadtxt(weights_mv_ilc_B)
         # MV ILC for sim 1, tSZ nulled for sim 2
         tlm1 = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
         elm1 = hp.almxfl(elm1_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm1_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm1_220,w_Emv[2][:lmax+1])
@@ -271,24 +272,18 @@ else:
     # Get signal + noise residuals spectra for constructing fl filters
     print('Getting signal + noise residuals spectra for filtering')
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
-    artificial_noise = np.zeros(lmax+1)
-    artificial_noise[lmaxT+2:] = 1.e10
-    #TODO: i think this is right? from yuuki's note, cltt -> clt1t2 and clte -> clt3e
-    #TODO: even for cmbonly we want the filters to have noise residuals !!
-    cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise
-    clee = hp.alm2cl(elm1,elm2)
-    clbb = hp.alm2cl(blm1,blm2)
-    clte = hp.alm2cl(tlm1,elm2)
-    totalcls = np.vstack((cltt,clee,clbb,clte)).T
-    np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
-    #totalcls = np.load(dir_out+f'totalcls/totalcls_avg_40_sims_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-    #cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
-
-
-
-    #TODO: this time we use alm2cl to get the total cl spectra and not calculating from theory. to save on compute time (and also for analytic resp), should i average total cls from N sim realz and save to file?
-
-'''
+    #artificial_noise = np.zeros(lmax+1)
+    #artificial_noise[lmaxT+2:] = 1.e10
+    #if not (append == 'mh' or append == 'mh_unl'):
+    #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
+    #cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise
+    #clee = hp.alm2cl(elm1,elm2)
+    #clbb = hp.alm2cl(blm1,blm2)
+    #clte = hp.alm2cl(tlm1,elm2)
+    #totalcls = np.vstack((cltt,clee,clbb,clte)).T
+    #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
+    totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
+    cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
     
     if not gmv:
         print('Creating filters...')
@@ -329,23 +324,20 @@ else:
         alm1all[:,4] = hp.almxfl(elm1,invDl)
         alm2all[:,4] = hp.almxfl(blm2,flb)
     
-        totalcls = np.vstack((cltt,clee,clbb,clte)).T
-    
     # Run healqest
     print('Running healqest...')
     if not gmv:
         q_original = qest.qest(config,cls)
-        glm,clm = q_original.eval(qe,almbar1,almbar2,u=u)
+        glm,clm = q_original.eval(qe,almbar1,almbar2)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_sqe,glm)
     else:
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,u=u)
+        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)
-'''
 
 elapsed = time() - time0
 elapsed /= 60

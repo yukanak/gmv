@@ -48,10 +48,11 @@ lensing:
         file_noise     : '/lcrc/project/SPT3G/users/ac.yomori/repo/cross-ilc/src/lensing/spt3g/noise/cls_noise_cmbmv.dat'
         file_foreground: '/lcrc/project/SPT3G/users/ac.yomori/repo/cross-ilc/src/lensing/spt3g/fgcls/cls_totfg_cmbmv.dat'
     
-    lmint   : 300
-    lminp   : 300
-    lmaxt   : 3000
-    lmaxp   : 4096
+    lminT   : 300
+    lminP   : 300
+    lmin    : 300
+    lmaxT   : 3000
+    lmaxP   : 4096
     lmax    : 4096
     Lmax    : 4096
     cltype  : 'lcmb'
