@@ -10,8 +10,8 @@ config = utils.parse_yaml(config_file)
 lmax = config['lmax']
 nside = config['nside']
 dir_out = config['dir_out']
-lmaxT = config['lmaxt']
-lmaxP = config['lmaxp']
+lmaxT = config['lmaxT']
+lmaxP = config['lmaxP']
 append = f'mh'
 l = np.arange(0,lmax+1)
 
@@ -24,6 +24,8 @@ clbb = np.zeros(lmax+1)
 clte = np.zeros(lmax+1)
 for i in np.arange(n)+1:
     totalcls = np.load(dir_out+f'totalcls/totalcls_seed1_{i}_seed2_{i}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+    totalcls_mv = np.load(dir_out+f'totalcls/totalcls_mvTT_seed1_{i}_seed2_{i}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+    totalcls_tszn = np.load(dir_out+f'totalcls/totalcls_tsznulledTT_seed1_{i}_seed2_{i}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
     cltt += totalcls[:,0]
     clee += totalcls[:,1]
     clbb += totalcls[:,2]
@@ -34,6 +36,8 @@ clbb /= 40
 clte /= 40
 totalcls_avg = np.vstack((cltt,clee,clbb,clte)).T
 np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
+#np.save(dir_out+f'totalcls/totalcls_mvTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
+#np.save(dir_out+f'totalcls/totalcls_tsznulledTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
 
 plt.figure(0)
 plt.clf()

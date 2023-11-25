@@ -87,6 +87,7 @@ filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmax
 filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 
 if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
+#if False:
     print('File already exists!')
 else:
     print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}')
@@ -277,11 +278,17 @@ else:
     #if not (append == 'mh' or append == 'mh_unl'):
     #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
     #cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise
+    #cltt_mv = hp.alm2cl(tlm1,tlm1) + artificial_noise
+    #cltt_tszn = hp.alm2cl(tlm2,tlm2) + artificial_noise
     #clee = hp.alm2cl(elm1,elm2)
     #clbb = hp.alm2cl(blm1,blm2)
     #clte = hp.alm2cl(tlm1,elm2)
     #totalcls = np.vstack((cltt,clee,clbb,clte)).T
+    #totalcls_mv = np.vstack((cltt_mv,clee,clbb,clte)).T
+    #totalcls_tszn = np.vstack((cltt_tszn,clee,clbb,clte)).T
     #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
+    #np.save(dir_out+f'totalcls/totalcls_mvTT_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_mv)
+    #np.save(dir_out+f'totalcls/totalcls_tsznulledTT_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_tszn)
     totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
     cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
     
