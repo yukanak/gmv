@@ -2,7 +2,7 @@ base:
     # Location of healqest
     dir_healqest: '/home/users/yukanaka/healqest/healqest/src/'
     # Location of output files
-    dir_out     : '/scratch/users/yukanaka/gmv/'
+    dir_out     : '/oak/stanford/orgs/kipac/users/yukanaka/outputs/'
 
 lensing:
     # CAMB files
@@ -19,7 +19,7 @@ lensing:
 
     plm:
         # Directory of output plm
-        dir   : '/scratch/users/yukanaka/gmv/'
+        dir   : '/oak/stanford/orgs/kipac/users/yukanaka/outputs/'
 
         # Name of output plm (string must contain {qe}, {seed1}, {cmbset1}, {seed2}, {cmbset2})
         prefix: 'plm{qe}_{seed1}{cmbset1}_{seed2}{cmbset2}_prfhrd.npz'

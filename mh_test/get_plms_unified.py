@@ -20,13 +20,13 @@ lmax = config['lmax']
 nside = config['nside']
 # Even if your sims here don't have added noise, you can keep the noise files defined to include the nl in the filtering
 # (e.g. when you are computing noiseless sims for the N1 calculation but you want the filter to still include nl to suppress modes exactly as in the signal map)
-noise_file_090_090='noise_curves/nl_fromstack_090_090.txt'
-noise_file_150_150='noise_curves/nl_fromstack_150_150.txt'
-noise_file_220_220='noise_curves/nl_fromstack_220_220.txt'
-noise_file_090_150='noise_curves/nl_fromstack_090_150.txt'
-noise_file_090_220='noise_curves/nl_fromstack_090_220.txt'
-noise_file_150_220='noise_curves/nl_fromstack_150_220.txt'
 fsky_corr=1
+noise_curves_090_090 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_090.txt'))
+noise_curves_150_150 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_150.txt'))
+noise_curves_220_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_220_220.txt'))
+noise_curves_090_150 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_150.txt'))
+noise_curves_090_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_220.txt'))
+noise_curves_150_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_220.txt'))
 
 # Sims used for actual reconstruction and N0 calculation, lensed CMB + foregrounds + noise, using MV ILC map + tSZ nulled map (MH)
 append = f'mh'
@@ -59,11 +59,19 @@ unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_f
 
 # ILC weights
 # Dimension (3, 6001) for 90, 150, 220 GHz respectively
-weights_tsz_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbynull.dat'
-weights_mv_ilc_T = 'ilc_weights/weights1d_TT_spt3g_cmbmv.dat'
-weights_mv_ilc_E = 'ilc_weights/weights1d_EE_spt3g_cmbmv.dat'
-weights_mv_ilc_B = 'ilc_weights/weights1d_BB_spt3g_cmbmv.dat'
-weights_cib_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbcibnull.dat'
+w_tsz_null = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbynull.dat')
+w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
+w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
+w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
+
+# Foreground curves
+# Shape (16501, 10); ell, TT, EE, BB, TE, TB, EB, (ET, BT, BE)
+fg_curves_090_090 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg90_allfg90.dat'))
+fg_curves_150_150 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg150_allfg150.dat'))
+fg_curves_220_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg220_allfg220.dat'))
+fg_curves_090_150 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg90_allfg150.dat'))
+fg_curves_090_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg90_allfg220.dat'))
+fg_curves_150_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg150_allfg220.dat'))
 ####################################
 time0 = time()
 
@@ -146,122 +154,108 @@ else:
    
     # Adding noise!
     if append == 'mh' or append == 'mh_unl':
-        if noise_file_090_090 is not None:
-            noise_curves_090_090 = np.nan_to_num(np.loadtxt(noise_file_090_090))
-            noise_curves_150_150 = np.nan_to_num(np.loadtxt(noise_file_150_150))
-            noise_curves_220_220 = np.nan_to_num(np.loadtxt(noise_file_220_220))
-            noise_curves_090_150 = np.nan_to_num(np.loadtxt(noise_file_090_150))
-            noise_curves_090_220 = np.nan_to_num(np.loadtxt(noise_file_090_220))
-            noise_curves_150_220 = np.nan_to_num(np.loadtxt(noise_file_150_220))
-            nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
-            nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
-            nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
-            nltt_090_150 = fsky_corr * noise_curves_090_150[:,1]; nlee_090_150 = fsky_corr * noise_curves_090_150[:,2]; nlbb_090_150 = fsky_corr * noise_curves_090_150[:,3]
-            nltt_090_220 = fsky_corr * noise_curves_090_220[:,1]; nlee_090_220 = fsky_corr * noise_curves_090_220[:,2]; nlbb_090_220 = fsky_corr * noise_curves_090_220[:,3]
-            nltt_150_220 = fsky_corr * noise_curves_150_220[:,1]; nlee_150_220 = fsky_corr * noise_curves_150_220[:,2]; nlbb_150_220 = fsky_corr * noise_curves_150_220[:,3]
-            nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim1}.alm'
-            nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim1}.alm'
-            nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim1}.alm'
-            nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim2}.alm'
-            nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim2}.alm'
-            nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim2}.alm'
-            if os.path.isfile(nlm1_090_filename):
-                nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
-                nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
-                nlmt1_220,nlme1_220,nlmb1_220 = hp.read_alm(nlm1_220_filename,hdu=[1,2,3])
-            else:
-                # See appendix of https://arxiv.org/pdf/0801.4380.pdf
-                # Need to generate frequency correlated noise realizations
-                # Don't have to worry about anti-correlation between frequencies/switching signs as mentioned in the paper, because our cross spectra are positive above ell of 300
-                # Seed "A"
-                np.random.seed(4190002645+sim1)
-                nlmt1_090,nlme1_090,nlmb1_090 = hp.synalm([nltt_090_090,nlee_090_090,nlbb_090_090,nltt_090_090*0],new=True,lmax=lmax)
-
-                # Seed "A"
-                # Quick note, the hash part returns a different value for different python processes
-                np.random.seed(4190002645+sim1)
-                nltt_T2a = np.nan_to_num((nltt_090_150)**2 / nltt_090_090); nlee_T2a = np.nan_to_num((nlee_090_150)**2 / nlee_090_090); nlbb_T2a = np.nan_to_num((nlbb_090_150)**2 / nlbb_090_090)
-                nlmt1_T2a,nlme1_T2a,nlmb1_T2a = hp.synalm([nltt_T2a,nlee_T2a,nlbb_T2a,nltt_T2a*0],new=True,lmax=lmax)
-                # Seed "B"
-                np.random.seed(89052206+sim1)
-                nltt_T2b = nltt_150_150 - nltt_T2a; nlee_T2b = nlee_150_150 - nlee_T2a; nlbb_T2b = nlbb_150_150 - nlbb_T2a
-                nlmt1_T2b,nlme1_T2b,nlmb1_T2b = hp.synalm([nltt_T2b,nlee_T2b,nlbb_T2b,nltt_T2b*0],new=True,lmax=lmax)
-                nlmt1_150 = nlmt1_T2a + nlmt1_T2b; nlme1_150 = nlme1_T2a + nlme1_T2b; nlmb1_150 = nlmb1_T2a + nlmb1_T2b
-
-                # Seed "A"
-                np.random.seed(4190002645+sim1)
-                nltt_T3a = np.nan_to_num((nltt_090_220)**2 / nltt_090_090); nlee_T3a = np.nan_to_num((nlee_090_220)**2 / nlee_090_090); nlbb_T3a = np.nan_to_num((nlbb_090_220)**2 / nlbb_090_090)
-                nlmt1_T3a,nlme1_T3a,nlmb1_T3a = hp.synalm([nltt_T3a,nlee_T3a,nlbb_T3a,nltt_T3a*0],new=True,lmax=lmax)
-                # Seed "B"
-                np.random.seed(89052206+sim1)
-                nltt_T3b = np.nan_to_num((nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b)
-                nlee_T3b = np.nan_to_num((nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b)
-                nlbb_T3b = np.nan_to_num((nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b)
-                nlmt1_T3b,nlme1_T3b,nlmb1_T3b = hp.synalm([nltt_T3b,nlee_T3b,nlbb_T3b,nltt_T3b*0],new=True,lmax=lmax)
-                # Seed "C"
-                np.random.seed(978540195+sim1)
-                nltt_T3c = nltt_220_220 - nltt_T3a - nltt_T3b; nlee_T3c = nlee_220_220 - nlee_T3a - nlee_T3b; nlbb_T3c = nlbb_220_220 - nlbb_T3a - nlbb_T3b
-                nlmt1_T3c,nlme1_T3c,nlmb1_T3c = hp.synalm([nltt_T3c,nlee_T3c,nlbb_T3c,nltt_T3c*0],new=True,lmax=lmax)
-                nlmt1_220 = nlmt1_T3a + nlmt1_T3b + nlmt1_T3c; nlme1_220 = nlme1_T3a + nlme1_T3b + nlme1_T3c; nlmb1_220 = nlmb1_T3a + nlmb1_T3b + nlmb1_T3c
-
-                Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
-                hp.write_alm(nlm1_090_filename,[nlmt1_090,nlme1_090,nlmb1_090])
-                hp.write_alm(nlm1_150_filename,[nlmt1_150,nlme1_150,nlmb1_150])
-                hp.write_alm(nlm1_220_filename,[nlmt1_220,nlme1_220,nlmb1_220])
-            if os.path.isfile(nlm2_090_filename):
-                nlmt2_090,nlme2_090,nlmb2_090 = hp.read_alm(nlm2_090_filename,hdu=[1,2,3])
-                nlmt2_150,nlme2_150,nlmb2_150 = hp.read_alm(nlm2_150_filename,hdu=[1,2,3])
-                nlmt2_220,nlme2_220,nlmb2_220 = hp.read_alm(nlm2_220_filename,hdu=[1,2,3])
-            else:
-                # Seed "A"
-                np.random.seed(4190002645+sim2)
-                nlmt2_090,nlme2_090,nlmb2_090 = hp.synalm([nltt_090_090,nlee_090_090,nlbb_090_090,nltt_090_090*0],new=True,lmax=lmax)
-
-                # Seed "A"
-                np.random.seed(4190002645+sim2)
-                nltt_T2a = (nltt_090_150)**2 / nltt_090_090; nlee_T2a = (nlee_090_150)**2 / nlee_090_090; nlbb_T2a = (nlbb_090_150)**2 / nlbb_090_090
-                nlmt2_T2a,nlme2_T2a,nlmb2_T2a = hp.synalm([nltt_T2a,nlee_T2a,nlbb_T2a,nltt_T2a*0],new=True,lmax=lmax)
-                # Seed "B"
-                np.random.seed(89052206+sim2)
-                nltt_T2b = nltt_150_150 - nltt_T2a; nlee_T2b = nlee_150_150 - nlee_T2a; nlbb_T2b = nlbb_150_150 - nlbb_T2a
-                nlmt2_T2b,nlme2_T2b,nlmb2_T2b = hp.synalm([nltt_T2b,nlee_T2b,nlbb_T2b,nltt_T2b*0],new=True,lmax=lmax)
-                nlmt2_150 = nlmt2_T2a + nlmt2_T2b; nlme2_150 = nlme2_T2a + nlme2_T2b; nlmb2_150 = nlmb2_T2a + nlmb2_T2b
-
-                # Seed "A"
-                np.random.seed(4190002645+sim2)
-                nltt_T3a = (nltt_090_220)**2 / nltt_090_090; nlee_T3a = (nlee_090_220)**2 / nlee_090_090; nlbb_T3a = (nlbb_090_220)**2 / nlbb_090_090
-                nlmt2_T3a,nlme2_T3a,nlmb2_T3a = hp.synalm([nltt_T3a,nlee_T3a,nlbb_T3a,nltt_T3a*0],new=True,lmax=lmax)
-                # Seed "B"
-                np.random.seed(89052206+sim2)
-                nltt_T3b = (nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b
-                nlee_T3b = (nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b
-                nlbb_T3b = (nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b
-                nlmt2_T3b,nlme2_T3b,nlmb2_T3b = hp.synalm([nltt_T3b,nlee_T3b,nlbb_T3b,nltt_T3b*0],new=True,lmax=lmax)
-                # Seed "C"
-                np.random.seed(978540195+sim2)
-                nltt_T3c = nltt_220_220 - nltt_T3a - nltt_T3b; nlee_T3c = nlee_220_220 - nlee_T3a - nlee_T3b; nlbb_T3c = nlbb_220_220 - nlbb_T3a - nlbb_T3b
-                nlmt2_T3c,nlme2_T3c,nlmb2_T3c = hp.synalm([nltt_T3c,nlee_T3c,nlbb_T3c,nltt_T3c*0],new=True,lmax=lmax)
-                nlmt2_220 = nlmt2_T3a + nlmt2_T3b + nlmt2_T3c; nlme2_220 = nlme2_T3a + nlme2_T3b + nlme2_T3c; nlmb2_220 = nlmb2_T3a + nlmb2_T3b + nlmb2_T3c
-
-                Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
-                hp.write_alm(nlm2_090_filename,[nlmt2_090,nlme2_090,nlmb2_090])
-                hp.write_alm(nlm2_150_filename,[nlmt2_150,nlme2_150,nlmb2_150])
-                hp.write_alm(nlm2_220_filename,[nlmt2_220,nlme2_220,nlmb2_220])
-            tlm1_150 += nlmt1_150; tlm1_220 += nlmt1_220; tlm1_95 += nlmt1_090
-            elm1_150 += nlme1_150; elm1_220 += nlme1_220; elm1_95 += nlme1_090
-            blm1_150 += nlmb1_150; blm1_220 += nlmb1_220; blm1_95 += nlmb1_090
-            tlm2_150 += nlmt2_150; tlm2_220 += nlmt2_220; tlm2_95 += nlmt2_090
-            elm2_150 += nlme2_150; elm2_220 += nlme2_220; elm2_95 += nlme2_090
-            blm2_150 += nlmb2_150; blm2_220 += nlmb2_220; blm2_95 += nlmb2_090
+        nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
+        nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
+        nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
+        nltt_090_150 = fsky_corr * noise_curves_090_150[:,1]; nlee_090_150 = fsky_corr * noise_curves_090_150[:,2]; nlbb_090_150 = fsky_corr * noise_curves_090_150[:,3]
+        nltt_090_220 = fsky_corr * noise_curves_090_220[:,1]; nlee_090_220 = fsky_corr * noise_curves_090_220[:,2]; nlbb_090_220 = fsky_corr * noise_curves_090_220[:,3]
+        nltt_150_220 = fsky_corr * noise_curves_150_220[:,1]; nlee_150_220 = fsky_corr * noise_curves_150_220[:,2]; nlbb_150_220 = fsky_corr * noise_curves_150_220[:,3]
+        nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim1}.alm'
+        nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim1}.alm'
+        nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim1}.alm'
+        nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim2}.alm'
+        nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim2}.alm'
+        nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim2}.alm'
+        if os.path.isfile(nlm1_090_filename):
+            nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
+            nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
+            nlmt1_220,nlme1_220,nlmb1_220 = hp.read_alm(nlm1_220_filename,hdu=[1,2,3])
         else:
-            print("No noise files given!")
+            # See appendix of https://arxiv.org/pdf/0801.4380.pdf
+            # Need to generate frequency correlated noise realizations
+            # Don't have to worry about anti-correlation between frequencies/switching signs as mentioned in the paper, because our cross spectra are positive above ell of 300
+            # Seed "A"
+            np.random.seed(4190002645+sim1)
+            nlmt1_090,nlme1_090,nlmb1_090 = hp.synalm([nltt_090_090,nlee_090_090,nlbb_090_090,nltt_090_090*0],new=True,lmax=lmax)
+
+            # Seed "A"
+            # Quick note, the hash part returns a different value for different python processes
+            np.random.seed(4190002645+sim1)
+            nltt_T2a = np.nan_to_num((nltt_090_150)**2 / nltt_090_090); nlee_T2a = np.nan_to_num((nlee_090_150)**2 / nlee_090_090); nlbb_T2a = np.nan_to_num((nlbb_090_150)**2 / nlbb_090_090)
+            nlmt1_T2a,nlme1_T2a,nlmb1_T2a = hp.synalm([nltt_T2a,nlee_T2a,nlbb_T2a,nltt_T2a*0],new=True,lmax=lmax)
+            # Seed "B"
+            np.random.seed(89052206+sim1)
+            nltt_T2b = nltt_150_150 - nltt_T2a; nlee_T2b = nlee_150_150 - nlee_T2a; nlbb_T2b = nlbb_150_150 - nlbb_T2a
+            nlmt1_T2b,nlme1_T2b,nlmb1_T2b = hp.synalm([nltt_T2b,nlee_T2b,nlbb_T2b,nltt_T2b*0],new=True,lmax=lmax)
+            nlmt1_150 = nlmt1_T2a + nlmt1_T2b; nlme1_150 = nlme1_T2a + nlme1_T2b; nlmb1_150 = nlmb1_T2a + nlmb1_T2b
+
+            # Seed "A"
+            np.random.seed(4190002645+sim1)
+            nltt_T3a = np.nan_to_num((nltt_090_220)**2 / nltt_090_090); nlee_T3a = np.nan_to_num((nlee_090_220)**2 / nlee_090_090); nlbb_T3a = np.nan_to_num((nlbb_090_220)**2 / nlbb_090_090)
+            nlmt1_T3a,nlme1_T3a,nlmb1_T3a = hp.synalm([nltt_T3a,nlee_T3a,nlbb_T3a,nltt_T3a*0],new=True,lmax=lmax)
+            # Seed "B"
+            np.random.seed(89052206+sim1)
+            nltt_T3b = np.nan_to_num((nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b)
+            nlee_T3b = np.nan_to_num((nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b)
+            nlbb_T3b = np.nan_to_num((nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b)
+            nlmt1_T3b,nlme1_T3b,nlmb1_T3b = hp.synalm([nltt_T3b,nlee_T3b,nlbb_T3b,nltt_T3b*0],new=True,lmax=lmax)
+            # Seed "C"
+            np.random.seed(978540195+sim1)
+            nltt_T3c = nltt_220_220 - nltt_T3a - nltt_T3b; nlee_T3c = nlee_220_220 - nlee_T3a - nlee_T3b; nlbb_T3c = nlbb_220_220 - nlbb_T3a - nlbb_T3b
+            nlmt1_T3c,nlme1_T3c,nlmb1_T3c = hp.synalm([nltt_T3c,nlee_T3c,nlbb_T3c,nltt_T3c*0],new=True,lmax=lmax)
+            nlmt1_220 = nlmt1_T3a + nlmt1_T3b + nlmt1_T3c; nlme1_220 = nlme1_T3a + nlme1_T3b + nlme1_T3c; nlmb1_220 = nlmb1_T3a + nlmb1_T3b + nlmb1_T3c
+
+            Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(nlm1_090_filename,[nlmt1_090,nlme1_090,nlmb1_090])
+            hp.write_alm(nlm1_150_filename,[nlmt1_150,nlme1_150,nlmb1_150])
+            hp.write_alm(nlm1_220_filename,[nlmt1_220,nlme1_220,nlmb1_220])
+        if os.path.isfile(nlm2_090_filename):
+            nlmt2_090,nlme2_090,nlmb2_090 = hp.read_alm(nlm2_090_filename,hdu=[1,2,3])
+            nlmt2_150,nlme2_150,nlmb2_150 = hp.read_alm(nlm2_150_filename,hdu=[1,2,3])
+            nlmt2_220,nlme2_220,nlmb2_220 = hp.read_alm(nlm2_220_filename,hdu=[1,2,3])
+        else:
+            # Seed "A"
+            np.random.seed(4190002645+sim2)
+            nlmt2_090,nlme2_090,nlmb2_090 = hp.synalm([nltt_090_090,nlee_090_090,nlbb_090_090,nltt_090_090*0],new=True,lmax=lmax)
+
+            # Seed "A"
+            np.random.seed(4190002645+sim2)
+            nltt_T2a = (nltt_090_150)**2 / nltt_090_090; nlee_T2a = (nlee_090_150)**2 / nlee_090_090; nlbb_T2a = (nlbb_090_150)**2 / nlbb_090_090
+            nlmt2_T2a,nlme2_T2a,nlmb2_T2a = hp.synalm([nltt_T2a,nlee_T2a,nlbb_T2a,nltt_T2a*0],new=True,lmax=lmax)
+            # Seed "B"
+            np.random.seed(89052206+sim2)
+            nltt_T2b = nltt_150_150 - nltt_T2a; nlee_T2b = nlee_150_150 - nlee_T2a; nlbb_T2b = nlbb_150_150 - nlbb_T2a
+            nlmt2_T2b,nlme2_T2b,nlmb2_T2b = hp.synalm([nltt_T2b,nlee_T2b,nlbb_T2b,nltt_T2b*0],new=True,lmax=lmax)
+            nlmt2_150 = nlmt2_T2a + nlmt2_T2b; nlme2_150 = nlme2_T2a + nlme2_T2b; nlmb2_150 = nlmb2_T2a + nlmb2_T2b
+
+            # Seed "A"
+            np.random.seed(4190002645+sim2)
+            nltt_T3a = (nltt_090_220)**2 / nltt_090_090; nlee_T3a = (nlee_090_220)**2 / nlee_090_090; nlbb_T3a = (nlbb_090_220)**2 / nlbb_090_090
+            nlmt2_T3a,nlme2_T3a,nlmb2_T3a = hp.synalm([nltt_T3a,nlee_T3a,nlbb_T3a,nltt_T3a*0],new=True,lmax=lmax)
+            # Seed "B"
+            np.random.seed(89052206+sim2)
+            nltt_T3b = (nltt_150_220 - nltt_090_150*nltt_090_220/nltt_090_090)**2 / nltt_T2b
+            nlee_T3b = (nlee_150_220 - nlee_090_150*nlee_090_220/nlee_090_090)**2 / nlee_T2b
+            nlbb_T3b = (nlbb_150_220 - nlbb_090_150*nlbb_090_220/nlbb_090_090)**2 / nlbb_T2b
+            nlmt2_T3b,nlme2_T3b,nlmb2_T3b = hp.synalm([nltt_T3b,nlee_T3b,nlbb_T3b,nltt_T3b*0],new=True,lmax=lmax)
+            # Seed "C"
+            np.random.seed(978540195+sim2)
+            nltt_T3c = nltt_220_220 - nltt_T3a - nltt_T3b; nlee_T3c = nlee_220_220 - nlee_T3a - nlee_T3b; nlbb_T3c = nlbb_220_220 - nlbb_T3a - nlbb_T3b
+            nlmt2_T3c,nlme2_T3c,nlmb2_T3c = hp.synalm([nltt_T3c,nlee_T3c,nlbb_T3c,nltt_T3c*0],new=True,lmax=lmax)
+            nlmt2_220 = nlmt2_T3a + nlmt2_T3b + nlmt2_T3c; nlme2_220 = nlme2_T3a + nlme2_T3b + nlme2_T3c; nlmb2_220 = nlmb2_T3a + nlmb2_T3b + nlmb2_T3c
+
+            Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(nlm2_090_filename,[nlmt2_090,nlme2_090,nlmb2_090])
+            hp.write_alm(nlm2_150_filename,[nlmt2_150,nlme2_150,nlmb2_150])
+            hp.write_alm(nlm2_220_filename,[nlmt2_220,nlme2_220,nlmb2_220])
+        tlm1_150 += nlmt1_150; tlm1_220 += nlmt1_220; tlm1_95 += nlmt1_090
+        elm1_150 += nlme1_150; elm1_220 += nlme1_220; elm1_95 += nlme1_090
+        blm1_150 += nlmb1_150; blm1_220 += nlmb1_220; blm1_95 += nlmb1_090
+        tlm2_150 += nlmt2_150; tlm2_220 += nlmt2_220; tlm2_95 += nlmt2_090
+        elm2_150 += nlme2_150; elm2_220 += nlme2_220; elm2_95 += nlme2_090
+        blm2_150 += nlmb2_150; blm2_220 += nlmb2_220; blm2_95 += nlmb2_090
 
     if append == 'mh' or append == 'mh_unl':
-        # Load weights
-        w_tsz_null = np.loadtxt(weights_tsz_null_T)
-        w_Tmv = np.loadtxt(weights_mv_ilc_T)
-        w_Emv = np.loadtxt(weights_mv_ilc_E)
-        w_Bmv = np.loadtxt(weights_mv_ilc_B)
         # MV ILC for sim 1, tSZ nulled for sim 2
         tlm1 = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
         elm1 = hp.almxfl(elm1_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm1_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm1_220,w_Emv[2][:lmax+1])
@@ -273,8 +267,8 @@ else:
     # Get signal + noise residuals spectra for constructing fl filters
     print('Getting signal + noise residuals spectra for filtering')
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
-    #artificial_noise = np.zeros(lmax+1)
-    #artificial_noise[lmaxT+2:] = 1.e10
+    artificial_noise = np.zeros(lmax+1)
+    artificial_noise[lmaxT+2:] = 1.e10
     #if not (append == 'mh' or append == 'mh_unl'):
     #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
     #cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise
@@ -283,6 +277,7 @@ else:
     #clee = hp.alm2cl(elm1,elm2)
     #clbb = hp.alm2cl(blm1,blm2)
     #clte = hp.alm2cl(tlm1,elm2)
+    
     #totalcls = np.vstack((cltt,clee,clbb,clte)).T
     #totalcls_mv = np.vstack((cltt_mv,clee,clbb,clte)).T
     #totalcls_tszn = np.vstack((cltt_tszn,clee,clbb,clte)).T
@@ -291,7 +286,7 @@ else:
     #np.save(dir_out+f'totalcls/totalcls_tsznulledTT_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_tszn)
     totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
     cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
-    
+
     if not gmv:
         print('Creating filters...')
         # Create 1/cl filters

@@ -107,7 +107,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
             pass
 
         if not unl:
-            input_plm = hp.read_alm(f'/scratch/users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
+            input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
             # Cross correlate with input plm
             cross_gmv_all += hp.alm2cl(input_plm, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
             cross_original_all += hp.alm2cl(input_plm, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
@@ -184,13 +184,13 @@ def compare_resp(config_file='mh_yuka.yaml',
     resps_original_old = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_original_old = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
-        resps_original_old[:,i] = np.load(f'/scratch/users/yukanaka/gmv/resp/an_resp_sqe_est{est}_lmaxT3000_lmaxP4096_lmin300_cltypelcmb_added_noise_from_file.npy')
+        resps_original_old[:,i] = np.load(dir_out+f'/resp/an_resp_sqe_est{est}_lmaxT3000_lmaxP4096_lmin300_cltypelcmb_added_noise_from_file.npy')
         inv_resps_original_old[1:,i] = 1/(resps_original_old)[1:,i]
     resp_original_old = resps_original_old[:,0]+resps_original_old[:,1]+2*resps_original_old[:,2]+2*resps_original_old[:,3]+2*resps_original_old[:,4]
     inv_resp_original_old = np.zeros_like(l,dtype=np.complex_); inv_resp_original_old[1:] = 1/(resp_original_old)[1:]
 
     # GMV response from before (2019/2020 ILC noise curves that are NOT correlated between frequencies, no foregrounds)
-    resp_gmv_old = np.load(f'/scratch/users/yukanaka/gmv/resp/an_resp_gmv_estall_lmaxT3000_lmaxP4096_lmin300_cltypelcmb_added_noise_from_file.npy')
+    resp_gmv_old = np.load(dir_out+f'/resp/an_resp_gmv_estall_lmaxT3000_lmaxP4096_lmin300_cltypelcmb_added_noise_from_file.npy')
     resp_gmv_TTEETE_old = resp_gmv_old[:,1]
     resp_gmv_TBEB_old = resp_gmv_old[:,2]
     resp_gmv_old = resp_gmv_old[:,3] 
@@ -232,7 +232,7 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
     plt.title('$1/R$')
-    plt.legend(loc='upper left', fontsize='small', bbox_to_anchor=(1,0.5))
+    plt.legend(loc='center left', fontsize='small', bbox_to_anchor=(1,0.5))
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
@@ -271,7 +271,7 @@ def get_analytic_response(est, config, gmv,
         else:
             append += f'_sqe_est{est}'
         append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_mh'
-        filename = f'/scratch/users/yukanaka/gmv/resp/an_resp{append}.npy'
+        filename = dir_out+f'/resp/an_resp{append}.npy'
 
     if os.path.isfile(filename):
         print('Loading from existing file!')
@@ -324,6 +324,6 @@ def get_analytic_response(est, config, gmv,
 
 ####################
 
-#compare_resp()
-analyze()
+compare_resp()
+#analyze()
 
