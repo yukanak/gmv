@@ -40,6 +40,15 @@ fg_curves_220_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg220_allfg220.da
 fg_curves_090_150 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg90_allfg150.dat'))
 fg_curves_090_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg90_allfg220.dat'))
 fg_curves_150_220 = np.nan_to_num(np.loadtxt('fg_curves/cls_allfg150_allfg220.dat'))
+# Dimension (3, 6001) for 90, 150, 220 GHz respectively
+weights_tsz_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbynull.dat'
+weights_mv_ilc_T = 'ilc_weights/weights1d_TT_spt3g_cmbmv.dat'
+weights_mv_ilc_E = 'ilc_weights/weights1d_EE_spt3g_cmbmv.dat'
+weights_mv_ilc_B = 'ilc_weights/weights1d_BB_spt3g_cmbmv.dat'
+w_tsz_null = np.loadtxt(weights_tsz_null_T)
+w_Tmv = np.loadtxt(weights_mv_ilc_T)
+w_Emv = np.loadtxt(weights_mv_ilc_E)
+w_Bmv = np.loadtxt(weights_mv_ilc_B)
 
 ##########
 
@@ -85,15 +94,6 @@ plt.savefig(dir_out+f'/figs/totalcls_mh_vs_old.png',bbox_inches='tight')
 ##########
 
 # Combine cross frequency spectra with ILC weights
-# Dimension (3, 6001) for 90, 150, 220 GHz respectively
-weights_tsz_null_T = 'ilc_weights/weights1d_TT_spt3g_cmbynull.dat'
-weights_mv_ilc_T = 'ilc_weights/weights1d_TT_spt3g_cmbmv.dat'
-weights_mv_ilc_E = 'ilc_weights/weights1d_EE_spt3g_cmbmv.dat'
-weights_mv_ilc_B = 'ilc_weights/weights1d_BB_spt3g_cmbmv.dat'
-w_tsz_null = np.loadtxt(weights_tsz_null_T)
-w_Tmv = np.loadtxt(weights_mv_ilc_T)
-w_Emv = np.loadtxt(weights_mv_ilc_E)
-w_Bmv = np.loadtxt(weights_mv_ilc_B)
 # Second dimension order TT tSZ-nulled x MV, TT MV x MV, TT tSZ-nulled x tSZ-nulled, EE, BB
 ret = np.zeros((lmax+1,5))
 for a in range(5):
@@ -238,4 +238,50 @@ plt.title('sim 1')
 plt.ylabel("$N_\ell$")
 plt.xlabel('$\ell$')
 plt.savefig(dir_out+f'/figs/noise_cross_spectra_mh_sim1.png',bbox_inches='tight')
+
+##########
+
+# Second dimension order TT tSZ-nulled x MV, TT MV x MV, TT tSZ-nulled x tSZ-nulled, EE, BB
+ret = np.zeros((lmax+1,5))
+for a in range(5):
+    if a == 0: b='tt'; c=1; w1=w_Tmv; w2=w_tsz_null
+    if a == 1: b='tt'; c=1; w1=w_Tmv; w2=w_Tmv
+    if a == 2: b='tt'; c=1; w1=w_tsz_null; w2=w_tsz_null
+    if a == 3: b='ee'; c=2; w1=w_Emv; w2=w_Emv
+    if a == 4: b='bb'; c=3; w1=w_Bmv; w2=w_Bmv
+    for ll in l:
+        # At each ell, have 3x3 matrix with each block containing Cl for different frequency combinations
+        clmat = np.zeros((3,3))
+        clmat[0,0] = noise_curves_090_090[ll,c] + fg_curves_090_090[ll,c]
+        clmat[1,1] = noise_curves_150_150[ll,c] + fg_curves_150_150[ll,c]
+        clmat[2,2] = noise_curves_220_220[ll,c] + fg_curves_220_220[ll,c]
+        clmat[0,1] = clmat[1,0] = noise_curves_090_150[ll,c] + fg_curves_090_150[ll,c]
+        clmat[0,2] = clmat[2,0] = noise_curves_090_220[ll,c] + fg_curves_090_220[ll,c]
+        clmat[1,2] = clmat[2,1] = noise_curves_150_220[ll,c] + fg_curves_150_220[ll,c]
+        ret[ll,a]=np.dot(w1[:,ll], np.dot(clmat, w2[:,ll].T))
+# Apply inverse residuals weight
+# TODO: apply 1/(nl+fg) weights to it
+weight = 1/(ret[:,4])
+bb_residuals_weighted = ret[:,4] 
+
+plt.clf()
+plt.plot(ell, nlbb_090_090[:lmax+1]+fg_curves_090_090[:lmax+1,3], color='darkblue', linestyle='-', label='nlbb+flbb 90 x 90 from file')
+plt.plot(ell, nlbb_150_150[:lmax+1]+fg_curves_150_150[:lmax+1,3], color='rebeccapurple', linestyle='-', label='nlbb+flbb 150 x 150 from file')
+plt.plot(ell, nlbb_220_220[:lmax+1]+fg_curves_220_220[:lmax+1,3], color='steelblue', linestyle='-', label='nlbb+flbb 220 x 220 from file')
+plt.plot(ell, nlbb_090_150[:lmax+1]+fg_curves_090_150[:lmax+1,3], color='cornflowerblue', linestyle='-', label='nlbb+flbb 90 x 150 from file')
+plt.plot(ell, nlbb_090_220[:lmax+1]+fg_curves_090_220[:lmax+1,3], color='thistle', linestyle='-', label='nlbb+flbb 90 x 220 from file')
+plt.plot(ell, nlbb_150_220[:lmax+1]+fg_curves_150_220[:lmax+1,3], color='lightsteelblue', linestyle='-', label='nlbb+flbb 150 x 220 from file')
+plt.plot(ell, ret[:,4], color='red', linestyle='-', label='nlbb+flbb MV ILC')
+#plt.axhline(y=(np.pi/180./60.*8.2)**2, color='gray', linestyle='--', label='8.2 uK-arcmin')
+#plt.axhline(y=(np.pi/180./60.*6.5)**2, color='darkgray', linestyle='--', label='6.5 uK-arcmin')
+#plt.axhline(y=(np.pi/180./60.*25)**2, color='dimgray', linestyle='--', label='25 uK-arcmin')
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(200,lmax)
+plt.ylim(1e-7,1e-3)
+plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
+plt.title('BB fg+noise spectra')
+plt.ylabel("$C_\ell$")
+plt.xlabel('$\ell$')
+plt.savefig(dir_out+f'/figs/bb_residuals_spectra_mh.png',bbox_inches='tight')
 
