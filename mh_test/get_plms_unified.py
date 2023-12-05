@@ -77,7 +77,7 @@ time0 = time()
 
 if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
     gmv = True
-elif qe == 'TT' or qe == 'TE' or qe == 'EE' or qe == 'TB' or qe == 'EB' or qe == 'TTprf':
+elif qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf':
     gmv = False
 else:
     print('Invalid qe!')
@@ -267,8 +267,8 @@ else:
     # Get signal + noise residuals spectra for constructing fl filters
     print('Getting signal + noise residuals spectra for filtering')
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
-    artificial_noise = np.zeros(lmax+1)
-    artificial_noise[lmaxT+2:] = 1.e10
+    #artificial_noise = np.zeros(lmax+1)
+    #artificial_noise[lmaxT+2:] = 1.e10
     #if not (append == 'mh' or append == 'mh_unl'):
     #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
     #cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise

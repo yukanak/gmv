@@ -22,6 +22,8 @@ cltt = np.zeros(lmax+1)
 clee = np.zeros(lmax+1)
 clbb = np.zeros(lmax+1)
 clte = np.zeros(lmax+1)
+cltt_mv = np.zeros(lmax+1)
+cltt_tszn = np.zeros(lmax+1)
 for i in np.arange(n)+1:
     totalcls = np.load(dir_out+f'totalcls/totalcls_seed1_{i}_seed2_{i}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
     totalcls_mv = np.load(dir_out+f'totalcls/totalcls_mvTT_seed1_{i}_seed2_{i}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
@@ -30,14 +32,20 @@ for i in np.arange(n)+1:
     clee += totalcls[:,1]
     clbb += totalcls[:,2]
     clte += totalcls[:,3]
+    cltt_mv += totalcls_mv[:,0]
+    cltt_tszn += totalcls_tszn[:,0]
 cltt /= 40
 clee /= 40
 clbb /= 40
 clte /= 40
+cltt_mv /= 40
+cltt_tszn /= 40
 totalcls_avg = np.vstack((cltt,clee,clbb,clte)).T
+totalcls_avg_mv = np.vstack((cltt_mv,clee,clbb,clte)).T
+totalcls_avg_tszn = np.vstack((cltt_tszn,clee,clbb,clte)).T
 np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
-#np.save(dir_out+f'totalcls/totalcls_mvTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
-#np.save(dir_out+f'totalcls/totalcls_tsznulledTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
+np.save(dir_out+f'totalcls/totalcls_mvTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg_mv)
+np.save(dir_out+f'totalcls/totalcls_tsznulledTT_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg_tszn)
 
 plt.figure(0)
 plt.clf()

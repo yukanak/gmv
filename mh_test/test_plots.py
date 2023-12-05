@@ -128,7 +128,7 @@ plt.plot(ell, totalcls[:,2], color='thistle', linestyle='--', label='total BB fr
 plt.xscale('log')
 plt.yscale('log')
 plt.xlim(1000,lmax)
-plt.ylim(1e-5,1e-2)
+plt.ylim(1e-6,1e-2)
 plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
 plt.title('totalcls TT')
 plt.ylabel("$C_\ell$")
@@ -258,7 +258,7 @@ for ll in l:
 # Get MV ILC spectrum from Yuuki's weights and "MV ILC" spectrum using the 1/noise+fg weights
 ret = np.zeros((lmax+1,2))
 for a in range(2):
-    if a == 0: b='bb'; c=3; w1=w_Bmv; w2=w_B_mv
+    if a == 0: b='bb'; c=3; w1=w_Bmv; w2=w_Bmv
     if a == 1: b='bb'; c=3; w1=w_inv_residuals_BB; w2=w_inv_residuals_BB
     for ll in l:
         # At each ell, have 3x3 matrix with each block containing Cl for different frequency combinations
@@ -278,8 +278,8 @@ plt.plot(ell, nlbb_220_220[:lmax+1]+fg_curves_220_220[:lmax+1,3], color='steelbl
 plt.plot(ell, nlbb_090_150[:lmax+1]+fg_curves_090_150[:lmax+1,3], color='cornflowerblue', linestyle='-', label='nlbb+flbb 90 x 150 from file')
 plt.plot(ell, nlbb_090_220[:lmax+1]+fg_curves_090_220[:lmax+1,3], color='thistle', linestyle='-', label='nlbb+flbb 90 x 220 from file')
 plt.plot(ell, nlbb_150_220[:lmax+1]+fg_curves_150_220[:lmax+1,3], color='lightsteelblue', linestyle='-', label='nlbb+flbb 150 x 220 from file')
-plt.plot(ell, ret[:,0], color='red', linestyle='-', label='nlbb+flbb MV ILC')
-plt.plot(ell, ret[:,1], color='red', linestyle='--', label='nlbb+flbb 1/residuals weights')
+plt.plot(ell, ret[:,0], color='gray', linestyle='-', label='nlbb+flbb MV ILC')
+plt.plot(ell, ret[:,1], color='dimgray', linestyle='--', label='nlbb+flbb 1/residuals weights')
 #plt.axhline(y=(np.pi/180./60.*8.2)**2, color='gray', linestyle='--', label='8.2 uK-arcmin')
 #plt.axhline(y=(np.pi/180./60.*6.5)**2, color='darkgray', linestyle='--', label='6.5 uK-arcmin')
 #plt.axhline(y=(np.pi/180./60.*25)**2, color='dimgray', linestyle='--', label='25 uK-arcmin')
