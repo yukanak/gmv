@@ -102,7 +102,14 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         n1_original_BT = n1_original['BE'] * (l*(l+1))**2/4
 
     auto_gmv_all = 0
+    auto_gmv_all_TTEETE = 0
+    auto_gmv_all_TBEB = 0
     auto_original_all = 0
+    auto_original_all_TT = 0
+    auto_original_all_EE = 0
+    auto_original_all_TE = 0
+    auto_original_all_TB = 0
+    auto_original_all_EB = 0
     cross_gmv_all = 0
     cross_original_all = 0
     auto_gmv_debiased_all = 0
@@ -124,11 +131,25 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
 
         # Response correct
         plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
+        plm_gmv_resp_corr_TTEETE = hp.almxfl(plm_gmv_TTEETE,inv_resp_gmv_TTEETE)
+        plm_gmv_resp_corr_TBEB = hp.almxfl(plm_gmv_TBEB,inv_resp_gmv_TBEB)
         plm_original_resp_corr = hp.almxfl(plm_original,inv_resp_original)
+        plm_original_resp_corr_TT = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
+        plm_original_resp_corr_EE = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
+        plm_original_resp_corr_TE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
+        plm_original_resp_corr_TB = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
+        plm_original_resp_corr_EB = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
 
         # Get spectra
         auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+        auto_gmv_TTEETE = hp.alm2cl(plm_gmv_resp_corr_TTEETE, plm_gmv_resp_corr_TTEETE, lmax=lmax) * (l*(l+1))**2/4
+        auto_gmv_TBEB = hp.alm2cl(plm_gmv_resp_corr_TBEB, plm_gmv_resp_corr_TBEB, lmax=lmax) * (l*(l+1))**2/4
         auto_original = hp.alm2cl(plm_original_resp_corr, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_TT = hp.alm2cl(plm_original_resp_corr_TT, plm_original_resp_corr_TT, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_EE = hp.alm2cl(plm_original_resp_corr_EE, plm_original_resp_corr_EE, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_TE = hp.alm2cl(plm_original_resp_corr_TE, plm_original_resp_corr_TE, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_TB = hp.alm2cl(plm_original_resp_corr_TB, plm_original_resp_corr_TB, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_EB = hp.alm2cl(plm_original_resp_corr_EB, plm_original_resp_corr_EB, lmax=lmax) * (l*(l+1))**2/4
 
         # N0 and N1 subtract
         if n0 and n1:
@@ -140,7 +161,14 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
 
         # Sum the auto spectra
         auto_gmv_all += auto_gmv
+        auto_gmv_all_TTEETE += auto_gmv_TTEETE
+        auto_gmv_all_TBEB += auto_gmv_TBEB
         auto_original_all += auto_original
+        auto_original_all_TT += auto_original_TT
+        auto_original_all_EE += auto_original_EE
+        auto_original_all_TE += auto_original_TE
+        auto_original_all_TB += auto_original_TB
+        auto_original_all_EB += auto_original_EB
         if n0:
             auto_gmv_debiased_all += auto_gmv_debiased
             auto_original_debiased_all += auto_original_debiased
@@ -163,7 +191,14 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
 
     # Average
     auto_gmv_avg = auto_gmv_all / num
+    auto_gmv_avg_TTEETE = auto_gmv_all_TTEETE / num
+    auto_gmv_avg_TBEB = auto_gmv_all_TBEB / num
     auto_original_avg = auto_original_all / num
+    auto_original_avg_TT = auto_original_all_TT / num
+    auto_original_avg_EE = auto_original_all_EE / num
+    auto_original_avg_TE = auto_original_all_TE / num
+    auto_original_avg_TB = auto_original_all_TB / num
+    auto_original_avg_EB = auto_original_all_EB / num
     if n0:
         auto_gmv_debiased_avg = auto_gmv_debiased_all / num
         auto_original_debiased_avg = auto_original_debiased_all / num
@@ -192,10 +227,12 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
     plt.plot(l, auto_gmv_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
-    plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
+    plt.plot(l, auto_gmv_avg_TTEETE, color='forestgreen', linestyle='-', label="Auto Spectrum (GMV, TTEETE)")
+    plt.plot(l, auto_gmv_avg_TBEB, color='blueviolet', linestyle='-', label="Auto Spectrum (GMV, TBEB)")
 
     plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (Original)')
+    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE)')
+    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -206,10 +243,66 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.xlim(10,lmax)
     plt.ylim(1e-9,1e-6)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims.png',bbox_inches='tight')
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_gmv_only_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_gmv_only.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
+    plt.plot(l, auto_original_avg_TT, color='sienna', linestyle='-', label=f'Auto Spectrum (SQE, TT)')
+    plt.plot(l, auto_original_avg_EE, color='mediumorchid', linestyle='-', label=f'Auto Spectrum (SQE, EE)')
+    plt.plot(l, auto_original_avg_TE, color='forestgreen', linestyle='-', label=f'Auto Spectrum (SQE, TE)')
+    plt.plot(l, auto_original_avg_TB, color='gold', linestyle='-', label=f'Auto Spectrum (SQE, TB)')
+    plt.plot(l, auto_original_avg_EB, color='orange', linestyle='-', label=f'Auto Spectrum (SQE, EB)')
+
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
+    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT)')
+    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE)')
+    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB)')
+    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB)')
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Spectra Averaged over {num} Sims, MH')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(8e-9,1e-5)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_sqe_only_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_sqe_only.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(l, auto_gmv_avg, color='darkblue', linestyle='-', label="Auto Spectrum (GMV)")
+    plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
+
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Spectra Averaged over {num} Sims, MH')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(1e-9,1e-6)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}.png',bbox_inches='tight')
 
     if n0:
-        plt.figure(0)
         plt.clf()
         plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
@@ -229,9 +322,15 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plt.ylim(1e-9,1e-6)
         if save_fig:
             if n1:
-                plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted.png',bbox_inches='tight')
+                if resp_from_sims:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted.png',bbox_inches='tight')
+                else:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted.png',bbox_inches='tight')
             else:
-                plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted.png',bbox_inches='tight')
+                if resp_from_sims:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted.png',bbox_inches='tight')
+                else:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0subtracted.png',bbox_inches='tight')
 
         plt.figure(1)
         plt.clf()
@@ -247,9 +346,15 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plt.xlim(10,lmax)
         if save_fig:
             if n1:
-                plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio.png',bbox_inches='tight')
+                if resp_from_sims:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio.png',bbox_inches='tight')
+                else:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0n1subtracted_binnedratio.png',bbox_inches='tight')
             else:
-                plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio.png',bbox_inches='tight')
+                if resp_from_sims:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio.png',bbox_inches='tight')
+                else:
+                    plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0subtracted_binnedratio.png',bbox_inches='tight')
 
     plt.figure(2)
     plt.clf()
@@ -266,7 +371,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.xlim(10,lmax)
     plt.ylim(1e-9,1e-6)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_resp_from_sims.png')
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_resp_from_sims.png')
+        else:
+            plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}.png')
 
     plt.figure(3)
     plt.clf()
@@ -282,7 +390,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.xlim(10,lmax)
     plt.ylim(0.95,1.05)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_resp_from_sims_ratio.png')
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_resp_from_sims_ratio.png')
+        else:
+            plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_ratio.png')
 
     if n0:
         plt.figure(4)
@@ -295,7 +406,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plt.xlim(10,lmax)
         plt.ylim(-0.2,0.2)
         if save_fig:
-            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_{append}_resp_from_sims.png',bbox_inches='tight')
+            if resp_from_sims:
+                plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_{append}_resp_from_sims.png',bbox_inches='tight')
+            else:
+                plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_{append}.png',bbox_inches='tight')
 
 def compare_resp(config_file='mh_yuka.yaml',
                  save_fig=True):
@@ -342,6 +456,23 @@ def compare_resp(config_file='mh_yuka.yaml',
     inv_resp_gmv_TTEETE_old = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_old[1:] = 1./(resp_gmv_TTEETE_old)[1:]
     inv_resp_gmv_TBEB_old = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB_old[1:] = 1./(resp_gmv_TBEB_old)[1:]
 
+    # SQE sim response
+    resps_original_sim = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_original_sim = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_original_sim[:,i] = get_sim_response(est,config,gmv=False,sims=np.arange(40)+1)
+        inv_resps_original_sim[1:,i] = 1/(resps_original_sim)[1:,i]
+    resp_original_sim = np.sum(resps_original_sim, axis=1)
+    inv_resp_original_sim = np.zeros_like(l,dtype=np.complex_); inv_resp_original_sim[1:] = 1/(resp_original_sim)[1:]
+
+    # GMV sim response
+    resp_gmv_sim = get_sim_response('all',config,gmv=True,sims=np.arange(40)+1)
+    resp_gmv_TTEETE_sim = get_sim_response('TTEETE',config,gmv=True,sims=np.arange(40)+1)
+    resp_gmv_TBEB_sim = get_sim_response('TBEB',config,gmv=True,sims=np.arange(40)+1)
+    inv_resp_gmv_sim = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_sim[1:] = 1./(resp_gmv_sim)[1:]
+    inv_resp_gmv_TTEETE_sim = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_sim[1:] = 1./(resp_gmv_TTEETE_sim)[1:]
+    inv_resp_gmv_TBEB_sim = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB_sim[1:] = 1./(resp_gmv_TBEB_sim)[1:]
+
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
     ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
@@ -351,27 +482,38 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
-    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/R$ (SQE, TT)')
-    #plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
-    #plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
-    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
-    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
-
-    plt.plot(l, inv_resp_original_old * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, old)')
+    #plt.plot(l, inv_resp_original_old * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, old)')
     #plt.plot(l, inv_resps_original_old[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT old)')
     #plt.plot(l, inv_resps_original_old[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE old)')
     #plt.plot(l, 0.5*inv_resps_original_old[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE old)')
     #plt.plot(l, 0.5*inv_resps_original_old[:,3] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB old)')
     #plt.plot(l, 0.5*inv_resps_original_old[:,4] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB old)')
 
-    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
-    #plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
-    #plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
+    #plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
+    #plt.plot(l, inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT from sims)')
+    #plt.plot(l, inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
 
-    plt.plot(l, inv_resp_gmv_old * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, old)')
+    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
+    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/R$ (SQE, TT)')
+    #plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
+
+    #plt.plot(l, inv_resp_gmv_old * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, old)')
     #plt.plot(l, inv_resp_gmv_TTEETE_old * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE old)')
     #plt.plot(l, inv_resp_gmv_TBEB_old * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB old)')
+
+    plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
+    plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
+    plt.plot(l, inv_resp_gmv_TBEB_sim * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB from sims)')
+
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
+    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
+    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -383,9 +525,9 @@ def compare_resp(config_file='mh_yuka.yaml',
     #plt.ylim(8e-9,1e-5)
     plt.ylim(8e-9,1e-6)
     if save_fig:
-        plt.savefig(dir_out+f'/figs/mh_response_comparison.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/mh_response_comparison.png',bbox_inches='tight')
         #plt.savefig(dir_out+f'/figs/mh_response_comparison_sqe_only.png',bbox_inches='tight')
-        #plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
 
 def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
     '''
@@ -829,7 +971,7 @@ def get_sim_response(est, config, gmv, sims=np.arange(40)+1,
     if filename is None:
         append = ''
         if gmv:
-            append += '_gmv_est{est}'
+            append += f'_gmv_est{est}'
         else:
             append += f'_sqe_est{est}'
         append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_mh'
