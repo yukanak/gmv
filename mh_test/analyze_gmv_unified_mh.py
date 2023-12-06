@@ -17,7 +17,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
             config_file='mh_yuka.yaml',
             save_fig=True,
             unl=False,
-            n0=True,n1=False,resp_from_sims=True,
+            n0=True,n1=True,resp_from_sims=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
     Compare with N0/N1 subtraction.
@@ -241,7 +241,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    plt.ylim(1e-9,1e-6)
+    plt.ylim(1e-8,1e-5)
     if save_fig:
         if resp_from_sims:
             plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_gmv_only_resp_from_sims.png',bbox_inches='tight')
@@ -342,7 +342,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plt.title(f'Spectra Averaged over {num} Sims')
         plt.legend(loc='lower left', fontsize='x-small')
         plt.xscale('log')
-        plt.ylim(0.99,1.01)
+        #plt.ylim(0.99,1.01)
         plt.xlim(10,lmax)
         if save_fig:
             if n1:
@@ -395,21 +395,218 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         else:
             plt.savefig(dir_out+f'/figs/{num}_sims_cross_with_input_comparison_{append}_ratio.png')
 
-    if n0:
-        plt.figure(4)
-        plt.clf()
-        # Getting GMV improvement
-        plt.plot(l, (n0_gmv_total/n0_original_total)-1, color='maroon', linestyle='-')
-        plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
-        plt.xlabel('$\ell$')
-        plt.title('$N_0$ Comparison, Total')
-        plt.xlim(10,lmax)
-        plt.ylim(-0.2,0.2)
-        if save_fig:
-            if resp_from_sims:
-                plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_{append}_resp_from_sims.png',bbox_inches='tight')
-            else:
-                plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_{append}.png',bbox_inches='tight')
+def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
+               resp_from_sims=True,save_fig=True):
+
+    config = utils.parse_yaml(config_file)
+    lmax = config['Lmax']
+    lmin = config['lminT']
+    lmaxT = config['lmaxT']
+    lmaxP = config['lmaxP']
+    nside = config['nside']
+    dir_out = config['dir_out']
+    l = np.arange(0,lmax+1)
+    num = len(n0_n1_sims)
+
+    # Get SQE response
+    ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        if resp_from_sims:
+            resps_original[:,i] = get_sim_response(est,config,gmv=False,sims=sims)
+        else:
+            resps_original[:,i] = get_analytic_response(est,config,gmv=False)
+        inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+    resp_original = np.sum(resps_original, axis=1)
+    inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+
+    # GMV response
+    if resp_from_sims:
+        resp_gmv = get_sim_response('all',config,gmv=True,sims=sims)
+        resp_gmv_TTEETE = get_sim_response('TTEETE',config,gmv=True,sims=sims)
+        resp_gmv_TBEB = get_sim_response('TBEB',config,gmv=True,sims=sims)
+    else:
+        resp_gmv = get_analytic_response('all',config,gmv=True)
+        resp_gmv_TTEETE = get_analytic_response('TTEETE',config,gmv=True)
+        resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True)
+    inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+    inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
+    inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
+
+    # Get N0 correction (remember these still need (l*(l+1))**2/4 factor to convert to kappa)
+    n0_gmv = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,
+                    resp_from_sims=resp_from_sims)
+    n0_gmv_total = n0_gmv['total'] * (l*(l+1))**2/4
+    n0_gmv_TTEETE = n0_gmv['TTEETE'] * (l*(l+1))**2/4
+    n0_gmv_TBEB = n0_gmv['TBEB'] * (l*(l+1))**2/4
+    n0_original = get_n0(sims=n0_n1_sims,qetype='sqe',config=config,
+                         resp_from_sims=resp_from_sims)
+    n0_original_total = n0_original['total'] * (l*(l+1))**2/4
+    n0_original_TT = n0_original['TT'] * (l*(l+1))**2/4
+    n0_original_EE = n0_original['EE'] * (l*(l+1))**2/4
+    n0_original_TE = n0_original['TE'] * (l*(l+1))**2/4
+    n0_original_ET = n0_original['ET'] * (l*(l+1))**2/4
+    n0_original_TB = n0_original['TB'] * (l*(l+1))**2/4
+    n0_original_BT = n0_original['BT'] * (l*(l+1))**2/4
+    n0_original_EB = n0_original['EB'] * (l*(l+1))**2/4
+    n0_original_BE = n0_original['BE'] * (l*(l+1))**2/4
+    n0_original_TTEETE = n0_original['TTEETE'] * (l*(l+1))**2/4
+    n0_original_TBEB = n0_original['TBEB'] * (l*(l+1))**2/4
+
+    # Get N0 from unlensed sims
+    n0_unl_gmv = get_n0_unl(sims=n0_n1_sims,qetype='gmv',config=config,
+                            resp_from_sims=resp_from_sims)
+    n0_unl_gmv_total = n0_unl_gmv['total'] * (l*(l+1))**2/4
+    n0_unl_gmv_TTEETE = n0_unl_gmv['TTEETE'] * (l*(l+1))**2/4
+    n0_unl_gmv_TBEB = n0_unl_gmv['TBEB'] * (l*(l+1))**2/4
+    n0_unl_original = get_n0_unl(sims=n0_n1_sims,qetype='sqe',config=config,
+                                 resp_from_sims=resp_from_sims)
+    n0_unl_original_total = n0_unl_original['total'] * (l*(l+1))**2/4
+    n0_unl_original_TT = n0_unl_original['TT'] * (l*(l+1))**2/4
+    n0_unl_original_EE = n0_unl_original['EE'] * (l*(l+1))**2/4
+    n0_unl_original_TE = n0_unl_original['TE'] * (l*(l+1))**2/4
+    n0_unl_original_ET = n0_unl_original['ET'] * (l*(l+1))**2/4
+    n0_unl_original_TB = n0_unl_original['TB'] * (l*(l+1))**2/4
+    n0_unl_original_BT = n0_unl_original['BT'] * (l*(l+1))**2/4
+    n0_unl_original_EB = n0_unl_original['EB'] * (l*(l+1))**2/4
+    n0_unl_original_BE = n0_unl_original['BE'] * (l*(l+1))**2/4
+
+    ratio_original = n0_original_total/(inv_resp_original * (l*(l+1))**2/4)
+    ratio_original_unl = n0_unl_original_total/(inv_resp_original * (l*(l+1))**2/4)
+    ratio_original_avg = float(np.nanmean(ratio_original))
+    ratio_original_unl_avg = float(np.nanmean(ratio_original_unl))
+    ratio_gmv = n0_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
+    ratio_gmv_unl = n0_unl_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
+    ratio_gmv_avg = float(np.nanmean(ratio_gmv))
+    ratio_gmv_unl_avg = float(np.nanmean(ratio_gmv_unl))
+
+    plt.figure(0)
+    plt.clf()
+    # Getting GMV improvement
+    plt.plot(l, (n0_gmv_total/n0_original_total)-1, color='maroon', linestyle='-')
+    plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    plt.xlabel('$\ell$')
+    plt.title('$N_0$ Comparison, Total')
+    plt.xlim(10,lmax)
+    plt.ylim(-0.2,0.2)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_total_mh.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, (n0_gmv_TTEETE/n0_original_TTEETE)-1, color='maroon', linestyle='-')
+    plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    plt.xlabel('$\ell$')
+    plt.title('$N_0$ Comparison, TTEETE')
+    plt.xlim(10,lmax)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TTEETE_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TTEETE_mh.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, (n0_gmv_TBEB/n0_original_TBEB)-1, color='maroon', linestyle='-')
+    plt.ylabel("$(N_0^{GMV}/N_0^{healqest})-1$")
+    plt.xlabel('$\ell$')
+    plt.title('$N_0$ Comparison, TBEB')
+    plt.xlim(10,lmax)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TBEB_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TBEB_mh.png',bbox_inches='tight')
+
+    plt.figure(1)
+    plt.clf()
+    # Compare N0 from unlensed reconstruction with 1/R
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(l, n0_original_total, color='firebrick', linestyle='-',label='N0 (SQE)')
+    plt.plot(l, n0_original_TT, color='sienna', linestyle='-',label='N0 (SQE, TT)')
+    plt.plot(l, n0_original_EE, color='mediumorchid', linestyle='-',label='N0 (SQE, EE)')
+    plt.plot(l, n0_original_TE, color='forestgreen', linestyle='-',label='N0 (SQE, TE)')
+    plt.plot(l, n0_original_TB, color='gold', linestyle='-',label='N0 (SQE, TB)')
+    plt.plot(l, n0_original_EB, color='orange', linestyle='-',label='N0 (SQE, EB)')
+
+    plt.plot(l, n0_unl_original_total, color='pink', linestyle='-',label='N0 from Unlensed Sims (SQE)')
+    plt.plot(l, n0_unl_original_TT, color='chocolate', linestyle='-',label='N0 from Unlensed Sims (SQE, TT)')
+    plt.plot(l, n0_unl_original_EE, color='violet', linestyle='-',label='N0 from Unlensed Sims (SQE, EE)')
+    plt.plot(l, n0_unl_original_TE, color='darkseagreen', linestyle='-',label='N0 from Unlensed Sims (SQE, TE)')
+    plt.plot(l, n0_unl_original_TB, color='goldenrod', linestyle='-',label='N0 from Unlensed Sims (SQE, TB)')
+    plt.plot(l, n0_unl_original_EB, color='burlywood', linestyle='-',label='N0 from Unlensed Sims (SQE, EB)')
+
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
+    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R^{KK}$ (SQE, TT)')
+    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{KK}$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R^{KK})$ (SQE, TE)')
+    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R^{KK})$ (SQE, TB)')
+    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R^{KK}$) (SQE, EB)')
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'N0 from {num} Sims')
+    plt.legend(loc='center left', bbox_to_anchor=(1,0.5), fontsize='x-small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(1e-8,1e-5)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_sqe_{num}_sims_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_sqe_{num}_sims_mh.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(l, n0_gmv_total, color='darkblue', linestyle='-',label='N0 (GMV)')
+    plt.plot(l, n0_gmv_TTEETE, color='forestgreen', linestyle='-',label='N0 (GMV, TTEETE)')
+    plt.plot(l, n0_gmv_TBEB, color='blueviolet', linestyle='-',label='N0 (GMV, TBEB)')
+
+    plt.plot(l, n0_unl_gmv_total, color='powderblue', linestyle='-',label='N0 from Unlensed Sims (GMV)')
+    plt.plot(l, n0_unl_gmv_TTEETE, color='olive', linestyle='-',label='N0 from Unlensed Sims (GMV, TTEETE)')
+    plt.plot(l, n0_unl_gmv_TBEB, color='rebeccapurple', linestyle='-',label='N0 from Unlensed Sims (GMV, TBEB)')
+
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
+    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE)')
+    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB)')
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'N0 from {num} Sims')
+    plt.legend(loc='center left', bbox_to_anchor=(1,0.5), fontsize='x-small')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(1e-8,1e-5)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_gmv_{num}_sims_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_gmv_{num}_sims_mh.png',bbox_inches='tight')
+
+    plt.figure(2)
+    plt.clf()
+
+    plt.plot(l, ratio_original_unl, color='firebrick', linestyle='-', label='N0 from unlensed sims/(1/sim resp) (SQE)')
+    plt.axhline(y=ratio_original_unl_avg, color='pink', linestyle='--', label=f'average: {ratio_original_unl_avg:.3f}')
+    plt.plot(l, ratio_gmv_unl, color='darkblue', linestyle='-', label="N0 from unlensed sims/(1/sim resp) (GMV)")
+    plt.axhline(y=ratio_gmv_unl_avg, color='cornflowerblue', linestyle='--', label=f'average: {ratio_gmv_unl_avg:.3f}')
+
+    plt.xlabel('$\ell$')
+    plt.title(f'Unlensed N0 from {num} Sims Comparison')
+    plt.legend(loc='lower left', fontsize='x-small')
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    if save_fig:
+        if resp_from_sims:
+            plt.savefig(dir_out+f'/figs/n0_comparison_{num}_sims_ratio_n0_vs_inv_resp_mh_resp_from_sims.png',bbox_inches='tight')
+        else:
+            plt.savefig(dir_out+f'/figs/n0_comparison_{num}_sims_ratio_n0_vs_inv_resp_mh.png',bbox_inches='tight')
 
 def compare_resp(config_file='mh_yuka.yaml',
                  save_fig=True):
@@ -625,7 +822,11 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
         resp_original = np.sum(resps_original, axis=1)
+        resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]
+        resp_original_TBEB = resps_original[:,4]+resps_original[:,5]+resps_original[:,6]+resps_original[:,7]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+        inv_resp_original_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TTEETE[1:] = 1/(resp_original_TTEETE)[1:]
+        inv_resp_original_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TBEB[1:] = 1/(resp_original_TBEB)[1:]
 
         n0 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim1 in enumerate(sims):
@@ -952,6 +1153,150 @@ def get_n1(sims, qetype, config, resp_from_sims):
 
     return n1
 
+def get_n0_unl(sims, qetype, config, resp_from_sims):
+    '''
+    Get N0 bias from unlensed sims. qetype should be 'gmv' or 'sqe'.
+    Returns dictionary containing keys 'total', 'TTEETE', and 'TBEB' for GMV.
+    Similarly for SQE.
+    '''
+    lmax = config['Lmax']
+    lmaxT = config['lmaxT']
+    lmaxP = config['lmaxP']
+    nside = config['nside']
+    cltype = config['cltype']
+    sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
+    dir_out = config['dir_out']
+    l = np.arange(0,lmax+1)
+    num = len(sims)
+    append = 'mh_unl'
+    if resp_from_sims:
+        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims.pkl'
+    else:
+        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.pkl'
+
+    if os.path.isfile(filename):
+        n0 = pickle.load(open(filename,'rb'))
+
+    elif qetype == 'gmv':
+        # GMV response
+        if resp_from_sims:
+            resp_gmv = get_sim_response('all',config,gmv=True,sims=np.append(sims,num+1))
+            resp_gmv_TTEETE = get_sim_response('TTEETE',config,gmv=True,sims=np.append(sims,num+1))
+            resp_gmv_TBEB = get_sim_response('TBEB',config,gmv=True,sims=np.append(sims,num+1))
+        else:
+            resp_gmv = get_analytic_response('all',config,gmv=True)
+            resp_gmv_TTEETE = get_analytic_response('TTEETE',config,gmv=True)
+            resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True)
+        inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
+        inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
+        inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
+
+        n0 = {'total':0, 'TTEETE':0, 'TBEB':0}
+        for i, sim in enumerate(sims):
+            # Get the unlensed sims
+            plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_gmv_TTEETE = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_gmv_TBEB = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+
+            # Response correct
+            plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
+            plm_gmv_resp_corr_TTEETE = hp.almxfl(plm_gmv_TTEETE,inv_resp_gmv_TTEETE)
+            plm_gmv_resp_corr_TBEB = hp.almxfl(plm_gmv_TBEB,inv_resp_gmv_TBEB)
+
+            # Get auto spectra
+            auto = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax)
+            auto_A = hp.alm2cl(plm_gmv_resp_corr_TTEETE, plm_gmv_resp_corr_TTEETE, lmax=lmax)
+            auto_B = hp.alm2cl(plm_gmv_resp_corr_TBEB, plm_gmv_resp_corr_TBEB, lmax=lmax)
+
+            n0['total'] += auto
+            n0['TTEETE'] += auto_A
+            n0['TBEB'] += auto_B
+
+        n0['total'] *= 1/num
+        n0['TTEETE'] *= 1/num
+        n0['TBEB'] *= 1/num
+
+        with open(filename, 'wb') as f:
+            pickle.dump(n0, f)
+
+    elif qetype == 'sqe':
+        # SQE response
+        ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
+        inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+        for i, est in enumerate(ests):
+            if resp_from_sims:
+                resps_original[:,i] = get_sim_response(est,config,gmv=False,sims=np.append(sims,num+1))
+            else:
+                resps_original[:,i] = get_analytic_response(est,config,gmv=False)
+            inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+        resp_original = np.sum(resps_original, axis=1)
+        inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+
+        n0 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
+        for i, sim in enumerate(sims):
+            # Get the unlensed sims
+            plm_TT = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_EE = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_TE = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_ET = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_TB = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_BT = np.load(dir_out+f'/plm_BT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_EB = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_BE = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+
+            # Eight estimators!!!
+            plm_total = plm_TT + plm_EE + plm_TE + plm_ET + plm_TB + plm_BT + plm_EB + plm_BE
+
+            # Response correct healqest
+            plm_total = hp.almxfl(plm_total,inv_resp_original)
+            plm_TT = hp.almxfl(plm_TT,inv_resps_original[:,0])
+            plm_EE = hp.almxfl(plm_EE,inv_resps_original[:,1])
+            plm_TE = hp.almxfl(plm_TE,inv_resps_original[:,2])
+            plm_ET = hp.almxfl(plm_ET,inv_resps_original[:,3])
+            plm_TB = hp.almxfl(plm_TB,inv_resps_original[:,4])
+            plm_BT = hp.almxfl(plm_BT,inv_resps_original[:,5])
+            plm_EB = hp.almxfl(plm_EB,inv_resps_original[:,6])
+            plm_BE = hp.almxfl(plm_BE,inv_resps_original[:,7])
+
+            # Get auto spectra
+            auto = hp.alm2cl(plm_total, plm_total, lmax=lmax)
+            auto_TT = hp.alm2cl(plm_TT, plm_TT, lmax=lmax)
+            auto_EE = hp.alm2cl(plm_EE, plm_EE, lmax=lmax)
+            auto_TE = hp.alm2cl(plm_TE, plm_TE, lmax=lmax)
+            auto_ET = hp.alm2cl(plm_ET, plm_ET, lmax=lmax)
+            auto_TB = hp.alm2cl(plm_TB, plm_TB, lmax=lmax)
+            auto_BT = hp.alm2cl(plm_BT, plm_BT, lmax=lmax)
+            auto_EB = hp.alm2cl(plm_EB, plm_EB, lmax=lmax)
+            auto_BE = hp.alm2cl(plm_BE, plm_BE, lmax=lmax)
+
+            n0['total'] += auto
+            n0['TT'] += auto_TT
+            n0['EE'] += auto_EE
+            n0['TE'] += auto_TE
+            n0['ET'] += auto_ET
+            n0['TB'] += auto_TB
+            n0['BT'] += auto_BT
+            n0['EB'] += auto_EB
+            n0['BE'] += auto_BE
+
+        n0['total'] *= 1/num
+        n0['TT'] *= 1/num
+        n0['EE'] *= 1/num
+        n0['TE'] *= 1/num
+        n0['ET'] *= 1/num
+        n0['TB'] *= 1/num
+        n0['BT'] *= 1/num
+        n0['EB'] *= 1/num
+        n0['BE'] *= 1/num
+
+        with open(filename, 'wb') as f:
+            pickle.dump(n0, f)
+    else:
+        print('Invalid argument qetype.')
+
+    return n0
+
 def get_sim_response(est, config, gmv, sims=np.arange(40)+1,
                      filename=None):
     '''
@@ -1050,6 +1395,7 @@ def get_analytic_response(est, config, gmv,
             fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
+            # TODO: for MH, should this part have flt1 and flt2 for 1/clt1t1 and 1/clt2t2?
             if est[0] == 'T': flX = flt
             if est[0] == 'E': flX = fle
             if est[0] == 'B': flX = flb
