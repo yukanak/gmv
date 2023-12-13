@@ -6,7 +6,7 @@ import healpy as hp
 from pathlib import Path
 from time import time
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
-import utils
+import healqest_utils as utils
 import qest
 
 qe = str(sys.argv[1])
@@ -16,8 +16,8 @@ sim2 = int(sys.argv[3])
 # EDIT THIS PART!
 config_file = 'mh_yuka.yaml'
 config = utils.parse_yaml(config_file)
-lmax = config['lmax']
-nside = config['nside']
+lmax = config['lensrec']['lmax']
+nside = config['lensrec']['nside']
 # Even if your sims here don't have added noise, you can keep the noise files defined to include the nl in the filtering
 # (e.g. when you are computing noiseless sims for the N1 calculation but you want the filter to still include nl to suppress modes exactly as in the signal map)
 fsky_corr=1
@@ -41,21 +41,21 @@ append = f'mh'
 #append = 'mh_unl'
 
 # Full sky single frequency foreground sims
-flm_150ghz_sim1 = f'/scratch/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
-flm_150ghz_sim2 = f'/scratch/users/yukanaka/fg/totfg_150ghz_seed{sim2}_alm_lmax{lmax}.fits'
-flm_220ghz_sim1 = f'/scratch/users/yukanaka/fg/totfg_220ghz_seed{sim1}_alm_lmax{lmax}.fits'
-flm_220ghz_sim2 = f'/scratch/users/yukanaka/fg/totfg_220ghz_seed{sim2}_alm_lmax{lmax}.fits'
-flm_95ghz_sim1 = f'/scratch/users/yukanaka/fg/totfg_95ghz_seed{sim1}_alm_lmax{lmax}.fits'
-flm_95ghz_sim2 = f'/scratch/users/yukanaka/fg/totfg_95ghz_seed{sim2}_alm_lmax{lmax}.fits'
+flm_150ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_150ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim2}_alm_lmax{lmax}.fits'
+flm_220ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_220ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim2}_alm_lmax{lmax}.fits'
+flm_95ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_95ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim2}_alm_lmax{lmax}.fits'
 
 # CMB is same at all frequencies; also full sky here
 # From amscott:/sptlocal/analysis/eete+lensing_19-20/resources/sims/planck2018/inputcmb/
-alm_cmb_sim1 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
-alm_cmb_sim2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim2}_alm_lmax{lmax}.fits'
-alm_cmb_sim1_tqu2 = f'/scratch/users/yukanaka/lensing19-20/inputcmb/tqu2/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim1}_alm_lmax{lmax}.fits'
+alm_cmb_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
+alm_cmb_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim2}_alm_lmax{lmax}.fits'
+alm_cmb_sim1_tqu2 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu2/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb2_seed{sim1}_alm_lmax{lmax}.fits'
 # Unlensed alms sampled from lensed theory spectra
-unl_map_sim1 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim1}_lmax{lmax}_nside{nside}_20230905.fits'
-unl_map_sim2 = f'/scratch/users/yukanaka/full_res_maps/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230905.fits'
+unl_map_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim1}_lmax{lmax}_nside{nside}_20230905.fits'
+unl_map_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/unl_from_lensed_cls/unl_from_lensed_cls_seed{sim2}_lmax{lmax}_nside{nside}_20230905.fits'
 
 # ILC weights
 # Dimension (3, 6001) for 90, 150, 220 GHz respectively
@@ -82,13 +82,11 @@ elif qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe 
 else:
     print('Invalid qe!')
 
-cambini = config['cambini']
 dir_out = config['dir_out']
-lmax = config['lmax']
-lmaxT = config['lmaxT']
-lmaxP = config['lmaxP']
-lmin = config['lminT']
-cltype = config['cltype']
+lmaxT = config['lensrec']['lmaxT']
+lmaxP = config['lensrec']['lmaxP']
+lmin = config['lensrec']['lminT']
+cltype = config['lensrec']['cltype']
 cls = config['cls']
 sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
 filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
@@ -151,7 +149,7 @@ else:
         tlm2_150 += tflm2_150; tlm2_220 += tflm2_220; tlm2_95 += tflm2_95
         elm2_150 += eflm2_150; elm2_220 += eflm2_220; elm2_95 += eflm2_95
         blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
-   
+
     # Adding noise!
     if append == 'mh' or append == 'mh_unl':
         nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
@@ -271,61 +269,72 @@ else:
     #artificial_noise[lmaxT+2:] = 1.e10
     #if not (append == 'mh' or append == 'mh_unl'):
     #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
-    #cltt = hp.alm2cl(tlm1,tlm2) + artificial_noise
     #cltt_mv = hp.alm2cl(tlm1,tlm1) + artificial_noise
     #cltt_tszn = hp.alm2cl(tlm2,tlm2) + artificial_noise
     #clee = hp.alm2cl(elm1,elm2)
     #clbb = hp.alm2cl(blm1,blm2)
     #clte = hp.alm2cl(tlm1,elm2)
-    
-    #totalcls = np.vstack((cltt,clee,clbb,clte)).T
-    #totalcls_mv = np.vstack((cltt_mv,clee,clbb,clte)).T
-    #totalcls_tszn = np.vstack((cltt_tszn,clee,clbb,clte)).T
+
+    #totalcls = np.vstack((cltt_mv,cltt_tszn,clee,clbb,clte)).T
     #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
-    #np.save(dir_out+f'totalcls/totalcls_mvTT_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_mv)
-    #np.save(dir_out+f'totalcls/totalcls_tsznulledTT_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_tszn)
     totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-    cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+    cltt1 = totalcls[:,0]; cltt2 = totalcls[:,1]; clee = totalcls[:,2]; clbb = totalcls[:,3]; clte = totalcls[:,4]
 
     if not gmv:
         print('Creating filters...')
         # Create 1/cl filters
-        flt = np.zeros(lmax+1); flt[lmin:] = 1./cltt[lmin:]
+        flt1 = np.zeros(lmax+1); flt1[lmin:] = 1./cltt1[lmin:]
+        flt2 = np.zeros(lmax+1); flt2[lmin:] = 1./cltt2[lmin:]
         fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
-        
-        if qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt); flm1 = flt
+
+        if qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
         if qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
         if qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
-        
-        if qe[1] == 'T': almbar2 = hp.almxfl(tlm2,flt); flm2 = flt
+
+        if qe[1] == 'T':
+            if qe[0] == 'T':
+                almbar2 = hp.almxfl(tlm2,flt2); flm2 = flt2
+            else:
+                almbar2 = hp.almxfl(tlm1,flt1); flm2 = flt1
         if qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
         if qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
     else:
         print('Doing the 1/Dl for GMV...')
-        invDl = np.zeros(lmax+1, dtype=np.complex_)
-        invDl[lmin:] = 1./(cltt[lmin:]*clee[lmin:] - clte[lmin:]**2)
+        invDl1 = np.zeros(lmax+1, dtype=np.complex_)
+        invDl2 = np.zeros(lmax+1, dtype=np.complex_)
+        invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
+        invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
-    
-        # Order is TT, EE, TE, TB, EB
-        alm1all = np.zeros((len(tlm1),5), dtype=np.complex_) 
-        alm2all = np.zeros((len(tlm2),5), dtype=np.complex_)
+
+        # Order is TT, EE, TE, ET, TB, BT, EB, BE
+        alm1all = np.zeros((len(tlm1),8), dtype=np.complex_)
+        alm2all = np.zeros((len(tlm2),8), dtype=np.complex_)
         # TT
-        alm1all[:,0] = hp.almxfl(tlm1,invDl)
-        alm2all[:,0] = hp.almxfl(tlm2,invDl)
+        alm1all[:,0] = hp.almxfl(tlm1,invDl1)
+        alm2all[:,0] = hp.almxfl(tlm2,invDl2)
         # EE
-        alm1all[:,1] = hp.almxfl(elm1,invDl)
-        alm2all[:,1] = hp.almxfl(elm2,invDl)
+        alm1all[:,1] = hp.almxfl(elm1,invDl1)
+        alm2all[:,1] = hp.almxfl(elm2,invDl2)
         # TE
-        alm1all[:,2] = hp.almxfl(tlm1,invDl)
-        alm2all[:,2] = hp.almxfl(elm2,invDl)
+        alm1all[:,2] = hp.almxfl(tlm1,invDl1)
+        alm2all[:,2] = hp.almxfl(elm2,invDl2)
+        # ET
+        alm1all[:,3] = hp.almxfl(elm1,invDl1)
+        alm2all[:,3] = hp.almxfl(tlm1,invDl2)
         # TB
-        alm1all[:,3] = hp.almxfl(tlm1,invDl)
-        alm2all[:,3] = hp.almxfl(blm2,flb)
-        # EB
-        alm1all[:,4] = hp.almxfl(elm1,invDl)
+        alm1all[:,4] = hp.almxfl(tlm1,invDl1)
         alm2all[:,4] = hp.almxfl(blm2,flb)
-    
+        # BT
+        alm1all[:,5] = hp.almxfl(blm1,flb)
+        alm2all[:,5] = hp.almxfl(tlm1,invDl2)
+        # EB
+        alm1all[:,6] = hp.almxfl(elm1,invDl1)
+        alm2all[:,6] = hp.almxfl(blm2,flb)
+        # BE
+        alm1all[:,7] = hp.almxfl(blm1,flb)
+        alm2all[:,7] = hp.almxfl(elm2,invDl2)
+
     # Run healqest
     print('Running healqest...')
     if not gmv:
@@ -336,7 +345,7 @@ else:
         np.save(filename_sqe,glm)
     else:
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls)
+        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)

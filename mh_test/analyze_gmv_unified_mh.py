@@ -6,7 +6,7 @@ import camb
 import os, sys
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 import gmv_resp
-import utils
+import healqest_utils as utils
 import matplotlib.pyplot as plt
 import weights
 import qest
@@ -17,17 +17,17 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
             config_file='mh_yuka.yaml',
             save_fig=True,
             unl=False,
-            n0=True,n1=True,resp_from_sims=True,
+            n0=False,n1=False,resp_from_sims=False,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
     Compare with N0/N1 subtraction.
     '''
     config = utils.parse_yaml(config_file)
-    lmax = config['Lmax']
-    lmin = config['lminT']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    nside = config['nside']
+    lmax = config['lensrec']['Lmax']
+    lmin = config['lensrec']['lminT']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    nside = config['lensrec']['nside']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
     num = len(sims)
@@ -304,10 +304,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
 
     if n0:
         plt.clf()
-        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-
         plt.plot(l, auto_gmv_debiased_avg, color='cornflowerblue', linestyle='-', label="Auto Spectrum (GMV)")
         plt.plot(l, auto_original_debiased_avg, color='lightcoral', linestyle='-', label=f'Auto Spectrum (SQE)')
+
+        plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
         plt.plot(bin_centers, binned_auto_gmv_debiased_avg, color='darkblue', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV)")
         plt.plot(bin_centers, binned_auto_original_debiased_avg, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (SQE)")
@@ -399,11 +399,11 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
                resp_from_sims=True,save_fig=True):
 
     config = utils.parse_yaml(config_file)
-    lmax = config['Lmax']
-    lmin = config['lminT']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    nside = config['nside']
+    lmax = config['lensrec']['Lmax']
+    lmin = config['lensrec']['lminT']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    nside = config['lensrec']['nside']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
     num = len(n0_n1_sims)
@@ -480,6 +480,11 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     ratio_gmv_unl = n0_unl_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
     ratio_gmv_avg = float(np.nanmean(ratio_gmv))
     ratio_gmv_unl_avg = float(np.nanmean(ratio_gmv_unl))
+
+    # Theory spectrum
+    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+    clkk = slpp * (l*(l+1))**2/4
 
     plt.figure(0)
     plt.clf()
@@ -593,13 +598,13 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     plt.clf()
 
     plt.plot(l, ratio_original_unl, color='firebrick', linestyle='-', label='N0 from unlensed sims/(1/sim resp) (SQE)')
-    plt.axhline(y=ratio_original_unl_avg, color='pink', linestyle='--', label=f'average: {ratio_original_unl_avg:.3f}')
+    #plt.axhline(y=ratio_original_unl_avg, color='pink', linestyle='--', label=f'average: {ratio_original_unl_avg:.3f}')
     plt.plot(l, ratio_gmv_unl, color='darkblue', linestyle='-', label="N0 from unlensed sims/(1/sim resp) (GMV)")
-    plt.axhline(y=ratio_gmv_unl_avg, color='cornflowerblue', linestyle='--', label=f'average: {ratio_gmv_unl_avg:.3f}')
+    #plt.axhline(y=ratio_gmv_unl_avg, color='cornflowerblue', linestyle='--', label=f'average: {ratio_gmv_unl_avg:.3f}')
 
     plt.xlabel('$\ell$')
     plt.title(f'Unlensed N0 from {num} Sims Comparison')
-    plt.legend(loc='lower left', fontsize='x-small')
+    plt.legend(loc='upper left', fontsize='x-small')
     plt.xscale('log')
     plt.xlim(10,lmax)
     if save_fig:
@@ -611,8 +616,8 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
 def compare_resp(config_file='mh_yuka.yaml',
                  save_fig=True):
     config = utils.parse_yaml(config_file)
-    lmax = config['Lmax']
-    lmin = config['lminT']
+    lmax = config['lensrec']['Lmax']
+    lmin = config['lensrec']['lminT']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
 
@@ -679,38 +684,27 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    #plt.plot(l, inv_resp_original_old * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, old)')
-    #plt.plot(l, inv_resps_original_old[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT old)')
-    #plt.plot(l, inv_resps_original_old[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE old)')
-    #plt.plot(l, 0.5*inv_resps_original_old[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE old)')
-    #plt.plot(l, 0.5*inv_resps_original_old[:,3] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB old)')
-    #plt.plot(l, 0.5*inv_resps_original_old[:,4] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB old)')
+    plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
+    plt.plot(l, inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT from sims)')
+    plt.plot(l, inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
 
-    #plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
-    #plt.plot(l, inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT from sims)')
-    #plt.plot(l, inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
-    #plt.plot(l, 0.5*inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
-    #plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
-    #plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
+    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/R$ (SQE, TT)')
+    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
+    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
+    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
 
-    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
-    #plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/R$ (SQE, TT)')
-    #plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
-    #plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
-    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
-    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
+    #plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
+    #plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
+    #plt.plot(l, inv_resp_gmv_TBEB_sim * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB from sims)')
 
-    #plt.plot(l, inv_resp_gmv_old * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, old)')
-    #plt.plot(l, inv_resp_gmv_TTEETE_old * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE old)')
-    #plt.plot(l, inv_resp_gmv_TBEB_old * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB old)')
-
-    plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
-    plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
-    plt.plot(l, inv_resp_gmv_TBEB_sim * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB from sims)')
-
-    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
-    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
-    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
+    #plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
+    #plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -719,12 +713,12 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    #plt.ylim(8e-9,1e-5)
-    plt.ylim(8e-9,1e-6)
+    plt.ylim(8e-9,1e-5)
+    #plt.ylim(8e-9,1e-6)
     if save_fig:
         #plt.savefig(dir_out+f'/figs/mh_response_comparison.png',bbox_inches='tight')
-        #plt.savefig(dir_out+f'/figs/mh_response_comparison_sqe_only.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/mh_response_comparison_sqe_only.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
 
 def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
     '''
@@ -732,11 +726,11 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
     Returns dictionary containing keys 'total', 'TTEETE', and 'TBEB' for GMV.
     Similarly for SQE.
     '''
-    lmax = config['Lmax']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    nside = config['nside']
-    cltype = config['cltype']
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
@@ -948,11 +942,11 @@ def get_n1(sims, qetype, config, resp_from_sims):
     Returns dictionary containing keys 'total', 'TTEETE', and 'TBEB' for GMV.
     Similarly for SQE.
     '''
-    lmax = config['Lmax']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    nside = config['nside']
-    cltype = config['cltype']
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
@@ -1159,11 +1153,11 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
     Returns dictionary containing keys 'total', 'TTEETE', and 'TBEB' for GMV.
     Similarly for SQE.
     '''
-    lmax = config['Lmax']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    nside = config['nside']
-    cltype = config['cltype']
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
@@ -1304,12 +1298,12 @@ def get_sim_response(est, config, gmv, sims=np.arange(40)+1,
     If not gmv, assume sqe and est should be 'TT'/'EE'/'TE'/'TB'/'EB'.
     Make sure the sims are lensed, not unlensed!
     '''
-    lmax = config['Lmax']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    lmin = config['lminT']
-    nside = config['nside']
-    cltype = config['cltype']
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    lmin = config['lensrec']['lminT']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
     num = len(sims)
@@ -1358,12 +1352,12 @@ def get_analytic_response(est, config, gmv,
     Note we are also assuming noise files used in the MH test, and just loading the saved totalcl file.
     '''
     print(f'Computing analytic response for est {est}')
-    lmax = config['Lmax']
-    lmaxT = config['lmaxT']
-    lmaxP = config['lmaxP']
-    lmin = config['lminT']
-    nside = config['nside']
-    cltype = config['cltype']
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    lmin = config['lensrec']['lminT']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
     cls = config['cls']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     ell = np.arange(lmax+1,dtype=np.float_)
@@ -1387,20 +1381,24 @@ def get_analytic_response(est, config, gmv,
         # File doesn't exist!
         # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
         totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-        cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        cltt1 = totalcls[:,0]; cltt2 = totalcls[:,1]; clee = totalcls[:,2]; clbb = totalcls[:,3]; clte = totalcls[:,4]
 
         if not gmv:
             # Create 1/Nl filters
-            flt = np.zeros(lmax+1); flt[lmin:] = 1./cltt[lmin:]
+            flt1 = np.zeros(lmax+1); flt1[lmin:] = 1./cltt1[lmin:]
+            flt2 = np.zeros(lmax+1); flt2[lmin:] = 1./cltt2[lmin:]
             fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
-            # TODO: for MH, should this part have flt1 and flt2 for 1/clt1t1 and 1/clt2t2?
-            if est[0] == 'T': flX = flt
+            if est[0] == 'T': flX = flt1
             if est[0] == 'E': flX = fle
             if est[0] == 'B': flX = flb
 
-            if est[1] == 'T': flY = flt
+            if est[1] == 'T':
+                if est[0] == 'T':
+                    flY = flt2
+                else:
+                    flY = flt1
             if est[1] == 'E': flY = fle
             if est[1] == 'B': flY = flb
 
@@ -1410,7 +1408,7 @@ def get_analytic_response(est, config, gmv,
             np.save(filename, R)
         else:
             # GMV response
-            gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=None,save_path=filename)
+            gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=None,crossilc=True,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
                 gmv_r.calc_tvar()
             elif est == 'TTEETEprf':
@@ -1433,5 +1431,5 @@ def get_analytic_response(est, config, gmv,
 ####################
 
 #compare_resp()
+#compare_n0()
 analyze()
-
