@@ -17,7 +17,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
             config_file='mh_yuka.yaml',
             save_fig=True,
             unl=False,
-            n0=False,n1=False,resp_from_sims=False,
+            n0=True,n1=True,resp_from_sims=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
     Compare with N0/N1 subtraction.
@@ -39,7 +39,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         append = 'mh_unl'
 
     # Get SQE response
-    ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
     resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
@@ -48,7 +48,9 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         else:
             resps_original[:,i] = get_analytic_response(est,config,gmv=False)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-    resp_original = np.sum(resps_original, axis=1)
+    #TODO
+    #resp_original = np.sum(resps_original, axis=1)
+    resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
@@ -74,7 +76,8 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         n0_original = get_n0(sims=n0_n1_sims,qetype='sqe',config=config,
                              resp_from_sims=resp_from_sims)
         n0_original_total = n0_original['total'] * (l*(l+1))**2/4
-        n0_original_TT = n0_original['TT'] * (l*(l+1))**2/4
+        n0_original_T1T2 = n0_original['T1T2'] * (l*(l+1))**2/4
+        n0_original_T2T1 = n0_original['T2T1'] * (l*(l+1))**2/4
         n0_original_EE = n0_original['EE'] * (l*(l+1))**2/4
         n0_original_TE = n0_original['TE'] * (l*(l+1))**2/4
         n0_original_ET = n0_original['ET'] * (l*(l+1))**2/4
@@ -92,7 +95,8 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         n1_original = get_n1(sims=n0_n1_sims,qetype='sqe',config=config,
                              resp_from_sims=resp_from_sims)
         n1_original_total = n1_original['total'] * (l*(l+1))**2/4
-        n1_original_TT = n1_original['TT'] * (l*(l+1))**2/4
+        n1_original_T1T2 = n1_original['T1T2'] * (l*(l+1))**2/4
+        n1_original_T2T1 = n1_original['T2T1'] * (l*(l+1))**2/4
         n1_original_EE = n1_original['EE'] * (l*(l+1))**2/4
         n1_original_TE = n1_original['TE'] * (l*(l+1))**2/4
         n1_original_ET = n1_original['ET'] * (l*(l+1))**2/4
@@ -105,11 +109,15 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     auto_gmv_all_TTEETE = 0
     auto_gmv_all_TBEB = 0
     auto_original_all = 0
-    auto_original_all_TT = 0
+    auto_original_all_T1T2 = 0
+    auto_original_all_T2T1 = 0
     auto_original_all_EE = 0
     auto_original_all_TE = 0
+    auto_original_all_ET = 0
     auto_original_all_TB = 0
+    auto_original_all_BT = 0
     auto_original_all_EB = 0
+    auto_original_all_BE = 0
     cross_gmv_all = 0
     cross_original_all = 0
     auto_gmv_debiased_all = 0
@@ -124,32 +132,42 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plm_gmv_TBEB = np.load(dir_out+f'/plm_TBEB_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
 
         # Load SQE plms
-        plms_original = np.zeros((len(np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+        plms_original = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
         for i, est in enumerate(ests):
             plms_original[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-        plm_original = np.sum(plms_original, axis=1)
+        #TODO
+        #plm_original = np.sum(plms_original, axis=1)
+        plm_original = 0.5*plms_original[:,0]+0.5*plms_original[:,1]+np.sum(plms_original[:,2:], axis=1)
 
         # Response correct
         plm_gmv_resp_corr = hp.almxfl(plm_gmv,inv_resp_gmv)
         plm_gmv_resp_corr_TTEETE = hp.almxfl(plm_gmv_TTEETE,inv_resp_gmv_TTEETE)
         plm_gmv_resp_corr_TBEB = hp.almxfl(plm_gmv_TBEB,inv_resp_gmv_TBEB)
         plm_original_resp_corr = hp.almxfl(plm_original,inv_resp_original)
-        plm_original_resp_corr_TT = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
-        plm_original_resp_corr_EE = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
-        plm_original_resp_corr_TE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
-        plm_original_resp_corr_TB = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
-        plm_original_resp_corr_EB = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
+        plm_original_resp_corr_T1T2 = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
+        plm_original_resp_corr_T2T1 = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
+        plm_original_resp_corr_EE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
+        plm_original_resp_corr_TE = hp.almxfl(plms_original[:,3],inv_resps_original[:,3])
+        plm_original_resp_corr_ET = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
+        plm_original_resp_corr_TB = hp.almxfl(plms_original[:,5],inv_resps_original[:,5])
+        plm_original_resp_corr_BT = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
+        plm_original_resp_corr_EB = hp.almxfl(plms_original[:,7],inv_resps_original[:,7])
+        plm_original_resp_corr_BE = hp.almxfl(plms_original[:,8],inv_resps_original[:,8])
 
         # Get spectra
         auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
         auto_gmv_TTEETE = hp.alm2cl(plm_gmv_resp_corr_TTEETE, plm_gmv_resp_corr_TTEETE, lmax=lmax) * (l*(l+1))**2/4
         auto_gmv_TBEB = hp.alm2cl(plm_gmv_resp_corr_TBEB, plm_gmv_resp_corr_TBEB, lmax=lmax) * (l*(l+1))**2/4
         auto_original = hp.alm2cl(plm_original_resp_corr, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
-        auto_original_TT = hp.alm2cl(plm_original_resp_corr_TT, plm_original_resp_corr_TT, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_T1T2 = hp.alm2cl(plm_original_resp_corr_T1T2, plm_original_resp_corr_T1T2, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_T2T1 = hp.alm2cl(plm_original_resp_corr_T2T1, plm_original_resp_corr_T2T1, lmax=lmax) * (l*(l+1))**2/4
         auto_original_EE = hp.alm2cl(plm_original_resp_corr_EE, plm_original_resp_corr_EE, lmax=lmax) * (l*(l+1))**2/4
         auto_original_TE = hp.alm2cl(plm_original_resp_corr_TE, plm_original_resp_corr_TE, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_ET = hp.alm2cl(plm_original_resp_corr_ET, plm_original_resp_corr_ET, lmax=lmax) * (l*(l+1))**2/4
         auto_original_TB = hp.alm2cl(plm_original_resp_corr_TB, plm_original_resp_corr_TB, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_BT = hp.alm2cl(plm_original_resp_corr_BT, plm_original_resp_corr_BT, lmax=lmax) * (l*(l+1))**2/4
         auto_original_EB = hp.alm2cl(plm_original_resp_corr_EB, plm_original_resp_corr_EB, lmax=lmax) * (l*(l+1))**2/4
+        auto_original_BE = hp.alm2cl(plm_original_resp_corr_BE, plm_original_resp_corr_BE, lmax=lmax) * (l*(l+1))**2/4
 
         # N0 and N1 subtract
         if n0 and n1:
@@ -164,11 +182,15 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         auto_gmv_all_TTEETE += auto_gmv_TTEETE
         auto_gmv_all_TBEB += auto_gmv_TBEB
         auto_original_all += auto_original
-        auto_original_all_TT += auto_original_TT
+        auto_original_all_T1T2 += auto_original_T1T2
+        auto_original_all_T2T1 += auto_original_T2T1
         auto_original_all_EE += auto_original_EE
         auto_original_all_TE += auto_original_TE
+        auto_original_all_ET += auto_original_ET
         auto_original_all_TB += auto_original_TB
+        auto_original_all_BT += auto_original_BT
         auto_original_all_EB += auto_original_EB
+        auto_original_all_BE += auto_original_BE
         if n0:
             auto_gmv_debiased_all += auto_gmv_debiased
             auto_original_debiased_all += auto_original_debiased
@@ -194,11 +216,15 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     auto_gmv_avg_TTEETE = auto_gmv_all_TTEETE / num
     auto_gmv_avg_TBEB = auto_gmv_all_TBEB / num
     auto_original_avg = auto_original_all / num
-    auto_original_avg_TT = auto_original_all_TT / num
+    auto_original_avg_T1T2 = auto_original_all_T1T2 / num
+    auto_original_avg_T2T1 = auto_original_all_T2T1 / num
     auto_original_avg_EE = auto_original_all_EE / num
     auto_original_avg_TE = auto_original_all_TE / num
+    auto_original_avg_ET = auto_original_all_ET / num
     auto_original_avg_TB = auto_original_all_TB / num
+    auto_original_avg_BT = auto_original_all_BT / num
     auto_original_avg_EB = auto_original_all_EB / num
+    auto_original_avg_BE = auto_original_all_BE / num
     if n0:
         auto_gmv_debiased_avg = auto_gmv_debiased_all / num
         auto_original_debiased_avg = auto_original_debiased_all / num
@@ -252,18 +278,26 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
     plt.plot(l, auto_original_avg, color='firebrick', linestyle='-', label=f'Auto Spectrum (SQE)')
-    plt.plot(l, auto_original_avg_TT, color='sienna', linestyle='-', label=f'Auto Spectrum (SQE, TT)')
+    plt.plot(l, 0.5*auto_original_avg_T1T2, color='sienna', linestyle='-', label=f'1/2 x Auto Spectrum (SQE, T1T2)')
+    plt.plot(l, 0.5*auto_original_avg_T2T1, color='steelblue', linestyle='-', label=f'1/2 x Auto Spectrum (SQE, T2T1)')
     plt.plot(l, auto_original_avg_EE, color='mediumorchid', linestyle='-', label=f'Auto Spectrum (SQE, EE)')
     plt.plot(l, auto_original_avg_TE, color='forestgreen', linestyle='-', label=f'Auto Spectrum (SQE, TE)')
+    #plt.plot(l, auto_original_avg_ET, color='darkgray', linestyle='-', label=f'Auto Spectrum (SQE, ET)')
     plt.plot(l, auto_original_avg_TB, color='gold', linestyle='-', label=f'Auto Spectrum (SQE, TB)')
+    #plt.plot(l, auto_original_avg_BT, color='mediumslateblue', linestyle='-', label=f'Auto Spectrum (SQE, BT)')
     plt.plot(l, auto_original_avg_EB, color='orange', linestyle='-', label=f'Auto Spectrum (SQE, EB)')
+    #plt.plot(l, auto_original_avg_BE, color='aqua', linestyle='-', label=f'Auto Spectrum (SQE, BE)')
 
     plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
-    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT)')
-    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE)')
-    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE)')
-    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB)')
-    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB)')
+    plt.plot(l, 0.5*inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/(2R)$ (SQE, T1T2)')
+    plt.plot(l, 0.5*inv_resps_original[:,1] * (l*(l+1))**2/4, color='lightsteelblue', linestyle='--', label='$1/(2R)$ (SQE, T2T1)')
+    plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,3] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='silver', linestyle='--', label='$1/(2R)$ (SQE, ET)')
+    plt.plot(l, 0.5*inv_resps_original[:,5] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='slateblue', linestyle='--', label='$1/(2R)$ (SQE, BT)')
+    plt.plot(l, 0.5*inv_resps_original[:,7] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,8] * (l*(l+1))**2/4, color='paleturquoise', linestyle='--', label='$1/(2R$) (SQE, BE)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -342,7 +376,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plt.title(f'Spectra Averaged over {num} Sims')
         plt.legend(loc='lower left', fontsize='x-small')
         plt.xscale('log')
-        #plt.ylim(0.99,1.01)
+        plt.ylim(0.98,1.02)
         plt.xlim(10,lmax)
         if save_fig:
             if n1:
@@ -409,7 +443,7 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     num = len(n0_n1_sims)
 
     # Get SQE response
-    ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
     resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
@@ -418,7 +452,9 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
         else:
             resps_original[:,i] = get_analytic_response(est,config,gmv=False)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-    resp_original = np.sum(resps_original, axis=1)
+    #TODO
+    #resp_original = np.sum(resps_original, axis=1)
+    resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
@@ -443,7 +479,8 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     n0_original = get_n0(sims=n0_n1_sims,qetype='sqe',config=config,
                          resp_from_sims=resp_from_sims)
     n0_original_total = n0_original['total'] * (l*(l+1))**2/4
-    n0_original_TT = n0_original['TT'] * (l*(l+1))**2/4
+    n0_original_T1T2 = n0_original['T1T2'] * (l*(l+1))**2/4
+    n0_original_T2T1 = n0_original['T2T1'] * (l*(l+1))**2/4
     n0_original_EE = n0_original['EE'] * (l*(l+1))**2/4
     n0_original_TE = n0_original['TE'] * (l*(l+1))**2/4
     n0_original_ET = n0_original['ET'] * (l*(l+1))**2/4
@@ -463,7 +500,8 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     n0_unl_original = get_n0_unl(sims=n0_n1_sims,qetype='sqe',config=config,
                                  resp_from_sims=resp_from_sims)
     n0_unl_original_total = n0_unl_original['total'] * (l*(l+1))**2/4
-    n0_unl_original_TT = n0_unl_original['TT'] * (l*(l+1))**2/4
+    n0_unl_original_T1T2 = n0_unl_original['T1T2'] * (l*(l+1))**2/4
+    n0_unl_original_T2T1 = n0_unl_original['T2T1'] * (l*(l+1))**2/4
     n0_unl_original_EE = n0_unl_original['EE'] * (l*(l+1))**2/4
     n0_unl_original_TE = n0_unl_original['TE'] * (l*(l+1))**2/4
     n0_unl_original_ET = n0_unl_original['ET'] * (l*(l+1))**2/4
@@ -486,6 +524,7 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
     clkk = slpp * (l*(l+1))**2/4
 
+    '''
     plt.figure(0)
     plt.clf()
     # Getting GMV improvement
@@ -525,31 +564,41 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
         else:
             plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TBEB_mh.png',bbox_inches='tight')
 
+    '''
     plt.figure(1)
     plt.clf()
     # Compare N0 from unlensed reconstruction with 1/R
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
     plt.plot(l, n0_original_total, color='firebrick', linestyle='-',label='N0 (SQE)')
-    plt.plot(l, n0_original_TT, color='sienna', linestyle='-',label='N0 (SQE, TT)')
+    plt.plot(l, 0.5*n0_original_T1T2, color='sienna', linestyle='-',label='N0/2 (SQE, T1T2)')
+    plt.plot(l, 0.5*n0_original_T2T1, color='lightsteelblue', linestyle='-',label='N0/2 (SQE, T2T1)')
     plt.plot(l, n0_original_EE, color='mediumorchid', linestyle='-',label='N0 (SQE, EE)')
     plt.plot(l, n0_original_TE, color='forestgreen', linestyle='-',label='N0 (SQE, TE)')
+    #plt.plot(l, n0_original_ET, color='darkgray', linestyle='-',label='N0 (SQE, ET)')
     plt.plot(l, n0_original_TB, color='gold', linestyle='-',label='N0 (SQE, TB)')
+    #plt.plot(l, n0_original_BT, color='mediumslateblue', linestyle='-',label='N0 (SQE, BT)')
     plt.plot(l, n0_original_EB, color='orange', linestyle='-',label='N0 (SQE, EB)')
+    #plt.plot(l, n0_original_BE, color='aqua', linestyle='-',label='N0 (SQE, BE)')
 
     plt.plot(l, n0_unl_original_total, color='pink', linestyle='-',label='N0 from Unlensed Sims (SQE)')
-    plt.plot(l, n0_unl_original_TT, color='chocolate', linestyle='-',label='N0 from Unlensed Sims (SQE, TT)')
+    plt.plot(l, 0.5*n0_unl_original_T1T2, color='chocolate', linestyle='-',label='N0/2 from Unlensed Sims (SQE, T1T2)')
+    plt.plot(l, 0.5*n0_unl_original_T2T1, color='cornflowerblue', linestyle='-',label='N0/2 from Unlensed Sims (SQE, T2T1)')
     plt.plot(l, n0_unl_original_EE, color='violet', linestyle='-',label='N0 from Unlensed Sims (SQE, EE)')
     plt.plot(l, n0_unl_original_TE, color='darkseagreen', linestyle='-',label='N0 from Unlensed Sims (SQE, TE)')
     plt.plot(l, n0_unl_original_TB, color='goldenrod', linestyle='-',label='N0 from Unlensed Sims (SQE, TB)')
     plt.plot(l, n0_unl_original_EB, color='burlywood', linestyle='-',label='N0 from Unlensed Sims (SQE, EB)')
 
     plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='1/R (SQE)')
-    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R^{KK}$ (SQE, TT)')
-    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{KK}$ (SQE, EE)')
-    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R^{KK})$ (SQE, TE)')
-    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R^{KK})$ (SQE, TB)')
-    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R^{KK}$) (SQE, EB)')
+    plt.plot(l, 0.5*inv_resps_original[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/(2R^{KK})$ (SQE, T1T2)')
+    plt.plot(l, 0.5*inv_resps_original[:,1] * (l*(l+1))**2/4, color='lightsteelblue', linestyle='--', label='$1/(2R^{KK})$ (SQE, T2T1)')
+    plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R^{KK}$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,3] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R^{KK})$ (SQE, TE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='silver', linestyle='--', label='$1/(2R)$ (SQE, ET)')
+    plt.plot(l, 0.5*inv_resps_original[:,5] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R^{KK})$ (SQE, TB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='slateblue', linestyle='--', label='$1/(2R)$ (SQE, BT)')
+    plt.plot(l, 0.5*inv_resps_original[:,7] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R^{KK}$) (SQE, EB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,8] * (l*(l+1))**2/4, color='paleturquoise', linestyle='--', label='$1/(2R$) (SQE, BE)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -622,13 +671,15 @@ def compare_resp(config_file='mh_yuka.yaml',
     l = np.arange(0,lmax+1)
 
     # SQE response
-    ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
     resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
         resps_original[:,i] = get_analytic_response(est,config,gmv=False)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-    resp_original = np.sum(resps_original, axis=1)
+    #TODO
+    #resp_original = np.sum(resps_original, axis=1)
+    resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
@@ -664,7 +715,9 @@ def compare_resp(config_file='mh_yuka.yaml',
     for i, est in enumerate(ests):
         resps_original_sim[:,i] = get_sim_response(est,config,gmv=False,sims=np.arange(40)+1)
         inv_resps_original_sim[1:,i] = 1/(resps_original_sim)[1:,i]
-    resp_original_sim = np.sum(resps_original_sim, axis=1)
+    #TODO
+    #resp_original_sim = np.sum(resps_original_sim, axis=1)
+    resp_original_sim = 0.5*resps_original_sim[:,0]+0.5*resps_original_sim[:,1]+np.sum(resps_original_sim[:,2:], axis=1)
     inv_resp_original_sim = np.zeros_like(l,dtype=np.complex_); inv_resp_original_sim[1:] = 1/(resp_original_sim)[1:]
 
     # GMV sim response
@@ -685,18 +738,26 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
     plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
-    plt.plot(l, inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/R$ (SQE, TT from sims)')
-    plt.plot(l, inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/(2R)$ (SQE, T1T2 from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='lightsteelblue', linestyle='--', label='$1/(2R)$ (SQE, T2T1 from sims)')
+    plt.plot(l, inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,3] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='silver', linestyle='--', label='$1/(2R)$ (SQE, ET from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,5] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='slateblue', linestyle='--', label='$1/(2R)$ (SQE, BT from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,7] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
+    plt.plot(l, 0.5*inv_resps_original_sim[:,8] * (l*(l+1))**2/4, color='paleturquoise', linestyle='--', label='$1/(2R$) (SQE, BE from sims)')
 
     plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
-    plt.plot(l, inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/R$ (SQE, TT)')
-    plt.plot(l, inv_resps_original[:,1] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
-    plt.plot(l, 0.5*inv_resps_original[:,2] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
-    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
-    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
+    plt.plot(l, 0.5*inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/(2R)$ (SQE, T1T2)')
+    plt.plot(l, 0.5*inv_resps_original[:,1] * (l*(l+1))**2/4, color='steelblue', linestyle='-', label='$1/(2R)$ (SQE, T2T1)')
+    plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
+    plt.plot(l, 0.5*inv_resps_original[:,3] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
+    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='darkgray', linestyle='-', label='$1/(2R)$ (SQE, ET)')
+    plt.plot(l, 0.5*inv_resps_original[:,5] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
+    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='mediumslateblue', linestyle='-', label='$1/(2R)$ (SQE, BT)')
+    plt.plot(l, 0.5*inv_resps_original[:,7] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
+    plt.plot(l, 0.5*inv_resps_original[:,8] * (l*(l+1))**2/4, color='aqua', linestyle='-', label='$1/(2R$) (SQE, BE)')
 
     #plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
     #plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
@@ -806,7 +867,7 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
@@ -815,75 +876,76 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
             else:
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
-        resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]
-        resp_original_TBEB = resps_original[:,4]+resps_original[:,5]+resps_original[:,6]+resps_original[:,7]
+        #TODO
+        #resp_original = np.sum(resps_original, axis=1)
+        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
+        #resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]+resps_original[:,4]
+        resp_original_TTEETE = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+resps_original[:,2]+resps_original[:,3]+resps_original[:,4]
+        resp_original_TBEB = resps_original[:,5]+resps_original[:,6]+resps_original[:,7]+resps_original[:,8]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
         inv_resp_original_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TTEETE[1:] = 1/(resp_original_TTEETE)[1:]
         inv_resp_original_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TBEB[1:] = 1/(resp_original_TBEB)[1:]
 
-        n0 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
+        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim1 in enumerate(sims):
             sim2 = sim1 + 1
 
             # Get the lensed ij sims
-            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_ET_ij = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_TB_ij = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_BT_ij = np.load(dir_out+f'/plm_BT_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_EB_ij = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_BE_ij = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plms_ij = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+            for i, est in enumerate(ests):
+                plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            #TODO
+            #plm_total_ij = np.sum(plms_ij, axis=1)
+            plm_total_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+np.sum(plms_ij[:,2:], axis=1)
 
             # Now get the ji sims
-            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_ET_ji = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_TB_ji = np.load(dir_out+f'/plm_TB_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_BT_ji = np.load(dir_out+f'/plm_BT_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_BE_ji = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plms_ji = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+            for i, est in enumerate(ests):
+                plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            #TODO
+            #plm_total_ji = np.sum(plms_ji, axis=1)
+            plm_total_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+np.sum(plms_ji[:,2:], axis=1)
 
-            # Eight estimators!!!
-            plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
-            plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ij
-            plm_TTEETE_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij
-            plm_TTEETE_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji
-            plm_TBEB_ij = plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
-            plm_TBEB_ji = plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ij
+            # NINE estimators!!!
+            #TODO
+            plm_TTEETE_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+plms_ij[:,2]+plms_ij[:,3]+plms_ij[:,4]
+            plm_TTEETE_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+plms_ji[:,2]+plms_ji[:,3]+plms_ji[:,4]
+            plm_TBEB_ij = plms_ij[:,5]+plms_ij[:,6]+plms_ij[:,7]+plms_ij[:,8]
+            plm_TBEB_ji = plms_ji[:,5]+plms_ji[:,6]+plms_ji[:,7]+plms_ji[:,8]
 
             # Response correct healqest
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
             plm_TTEETE_ij = hp.almxfl(plm_TTEETE_ij,inv_resp_original_TTEETE)
             plm_TBEB_ij = hp.almxfl(plm_TBEB_ij,inv_resp_original_TBEB)
-            plm_TT_ij = hp.almxfl(plm_TT_ij,inv_resps_original[:,0])
-            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
-            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
-            plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,3])
-            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,4])
-            plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,5])
-            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,6])
-            plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,7])
+            plm_T1T2_ij = hp.almxfl(plms_ij[:,0],inv_resps_original[:,0])
+            plm_T2T1_ij = hp.almxfl(plms_ij[:,1],inv_resps_original[:,1])
+            plm_EE_ij = hp.almxfl(plms_ij[:,2],inv_resps_original[:,2])
+            plm_TE_ij = hp.almxfl(plms_ij[:,3],inv_resps_original[:,3])
+            plm_ET_ij = hp.almxfl(plms_ij[:,4],inv_resps_original[:,4])
+            plm_TB_ij = hp.almxfl(plms_ij[:,5],inv_resps_original[:,5])
+            plm_BT_ij = hp.almxfl(plms_ij[:,6],inv_resps_original[:,6])
+            plm_EB_ij = hp.almxfl(plms_ij[:,7],inv_resps_original[:,7])
+            plm_BE_ij = hp.almxfl(plms_ij[:,8],inv_resps_original[:,8])
 
             plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
             plm_TTEETE_ji = hp.almxfl(plm_TTEETE_ji,inv_resp_original_TTEETE)
             plm_TBEB_ji = hp.almxfl(plm_TBEB_ji,inv_resp_original_TBEB)
-            plm_TT_ji = hp.almxfl(plm_TT_ji,inv_resps_original[:,0])
-            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
-            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
-            plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,3])
-            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,4])
-            plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,5])
-            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,6])
-            plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,7])
+            plm_T1T2_ji = hp.almxfl(plms_ji[:,0],inv_resps_original[:,0])
+            plm_T2T1_ji = hp.almxfl(plms_ji[:,1],inv_resps_original[:,1])
+            plm_EE_ji = hp.almxfl(plms_ji[:,2],inv_resps_original[:,2])
+            plm_TE_ji = hp.almxfl(plms_ji[:,3],inv_resps_original[:,3])
+            plm_ET_ji = hp.almxfl(plms_ji[:,4],inv_resps_original[:,4])
+            plm_TB_ji = hp.almxfl(plms_ji[:,5],inv_resps_original[:,5])
+            plm_BT_ji = hp.almxfl(plms_ji[:,6],inv_resps_original[:,6])
+            plm_EB_ji = hp.almxfl(plms_ji[:,7],inv_resps_original[:,7])
+            plm_BE_ji = hp.almxfl(plms_ji[:,8],inv_resps_original[:,8])
 
             # Get ij auto spectra <ijij>
             auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
             auto_TTEETE = hp.alm2cl(plm_TTEETE_ij, plm_TTEETE_ij, lmax=lmax)
             auto_TBEB = hp.alm2cl(plm_TBEB_ij, plm_TBEB_ij, lmax=lmax)
-            auto_TT = hp.alm2cl(plm_TT_ij, plm_TT_ij, lmax=lmax)
+            auto_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ij, lmax=lmax)
+            auto_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ij, lmax=lmax)
             auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
             auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
             auto_ET = hp.alm2cl(plm_ET_ij, plm_ET_ij, lmax=lmax)
@@ -896,7 +958,8 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
             cross_TTEETE = hp.alm2cl(plm_TTEETE_ij, plm_TTEETE_ji, lmax=lmax)
             cross_TBEB = hp.alm2cl(plm_TBEB_ij, plm_TBEB_ji, lmax=lmax)
-            cross_TT = hp.alm2cl(plm_TT_ij, plm_TT_ji, lmax=lmax)
+            cross_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ji, lmax=lmax)
+            cross_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ji, lmax=lmax)
             cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
             cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
             cross_ET = hp.alm2cl(plm_ET_ij, plm_ET_ji, lmax=lmax)
@@ -908,7 +971,8 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
             n0['total'] += auto + cross
             n0['TTEETE'] += auto_TTEETE + cross_TTEETE
             n0['TBEB'] += auto_TBEB + cross_TBEB
-            n0['TT'] += auto_TT + cross_TT
+            n0['T1T2'] += auto_T1T2 + cross_T1T2
+            n0['T2T1'] += auto_T2T1 + cross_T2T1
             n0['EE'] += auto_EE + cross_EE
             n0['TE'] += auto_TE + cross_TE
             n0['ET'] += auto_ET + cross_ET
@@ -920,7 +984,8 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
         n0['total'] *= 1/num
         n0['TTEETE'] *= 1/num
         n0['TBEB'] *= 1/num
-        n0['TT'] *= 1/num
+        n0['T1T2'] *= 1/num
+        n0['T2T1'] *= 1/num
         n0['EE'] *= 1/num
         n0['TE'] *= 1/num
         n0['ET'] *= 1/num
@@ -1026,7 +1091,7 @@ def get_n1(sims, qetype, config, resp_from_sims):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
@@ -1035,13 +1100,16 @@ def get_n1(sims, qetype, config, resp_from_sims):
             else:
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
+        #TODO
+        #resp_original = np.sum(resps_original, axis=1)
+        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
-        n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
+        n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
         for i, sim in enumerate(sims):
             # Get the lensed ij sims
-            plm_TT_ij = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
+            plm_T1T2_ij = np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
+            plm_T2T1_ij = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
             plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
             plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
             plm_ET_ij = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
@@ -1051,7 +1119,8 @@ def get_n1(sims, qetype, config, resp_from_sims):
             plm_BE_ij = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu1tqu2.npy')
 
             # Now get the ji sims
-            plm_TT_ji = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
+            plm_T1T2_ji = np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
+            plm_T2T1_ji = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
             plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
             plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
             plm_ET_ji = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
@@ -1060,34 +1129,38 @@ def get_n1(sims, qetype, config, resp_from_sims):
             plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
             plm_BE_ji = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh_cmbonly_phi1_tqu2tqu1.npy')
 
-            # Eight estimators!!!
-            plm_total_ij = plm_TT_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
-            plm_total_ji = plm_TT_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ij
+            # NINE estimators!!!
+            #TODO
+            plm_total_ij = 0.5*plm_T1T2_ij + 0.5*plm_T2T1_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
+            plm_total_ji = 0.5*plm_T1T2_ji + 0.5*plm_T2T1_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ij
 
             # Response correct healqest
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
-            plm_TT_ij = hp.almxfl(plm_TT_ij,inv_resps_original[:,0])
-            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
-            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
-            plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,3])
-            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,4])
-            plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,5])
-            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,6])
-            plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,7])
+            plm_T1T2_ij = hp.almxfl(plm_T1T2_ij,inv_resps_original[:,0])
+            plm_T2T1_ij = hp.almxfl(plm_T2T1_ij,inv_resps_original[:,1])
+            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,2])
+            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,3])
+            plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,4])
+            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,5])
+            plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,6])
+            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,7])
+            plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,8])
 
             plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
-            plm_TT_ji = hp.almxfl(plm_TT_ji,inv_resps_original[:,0])
-            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
-            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
-            plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,3])
-            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,4])
-            plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,5])
-            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,6])
-            plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,7])
+            plm_T1T2_ji = hp.almxfl(plm_T1T2_ji,inv_resps_original[:,0])
+            plm_T2T1_ji = hp.almxfl(plm_T2T1_ji,inv_resps_original[:,1])
+            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,2])
+            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,3])
+            plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,4])
+            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,5])
+            plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,6])
+            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,7])
+            plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,8])
 
             # Get ij auto spectra <ijij>
             auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
-            auto_TT = hp.alm2cl(plm_TT_ij, plm_TT_ij, lmax=lmax)
+            auto_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ij, lmax=lmax)
+            auto_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ij, lmax=lmax)
             auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
             auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
             auto_ET = hp.alm2cl(plm_ET_ij, plm_ET_ij, lmax=lmax)
@@ -1098,7 +1171,8 @@ def get_n1(sims, qetype, config, resp_from_sims):
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
-            cross_TT = hp.alm2cl(plm_TT_ij, plm_TT_ji, lmax=lmax)
+            cross_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ji, lmax=lmax)
+            cross_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ji, lmax=lmax)
             cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
             cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
             cross_ET = hp.alm2cl(plm_ET_ij, plm_ET_ji, lmax=lmax)
@@ -1108,7 +1182,8 @@ def get_n1(sims, qetype, config, resp_from_sims):
             cross_BE = hp.alm2cl(plm_BE_ij, plm_BE_ji, lmax=lmax)
 
             n1['total'] += auto + cross
-            n1['TT'] += auto_TT + cross_TT
+            n1['T1T2'] += auto_T1T2 + cross_T1T2
+            n1['T2T1'] += auto_T2T1 + cross_T2T1
             n1['EE'] += auto_EE + cross_EE
             n1['TE'] += auto_TE + cross_TE
             n1['ET'] += auto_ET + cross_ET
@@ -1118,7 +1193,8 @@ def get_n1(sims, qetype, config, resp_from_sims):
             n1['BE'] += auto_BE + cross_BE
 
         n1['total'] *= 1/num
-        n1['TT'] *= 1/num
+        n1['T1T2'] *= 1/num
+        n1['T2T1'] *= 1/num
         n1['EE'] *= 1/num
         n1['TE'] *= 1/num
         n1['ET'] *= 1/num
@@ -1131,7 +1207,8 @@ def get_n1(sims, qetype, config, resp_from_sims):
                     resp_from_sims=resp_from_sims,cmbonly=True)
 
         n1['total'] -= n0['total']
-        n1['TT'] -= n0['TT']
+        n1['T1T2'] -= n0['T1T2']
+        n1['T2T1'] -= n0['T2T1']
         n1['EE'] -= n0['EE']
         n1['TE'] -= n0['TE']
         n1['ET'] -= n0['ET']
@@ -1215,7 +1292,7 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
@@ -1224,13 +1301,16 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
             else:
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original, axis=1)
+        #TODO
+        #resp_original = np.sum(resps_original, axis=1)
+        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
-        n0 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
+        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
         for i, sim in enumerate(sims):
             # Get the unlensed sims
-            plm_TT = np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_T1T2 = np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            plm_T2T1 = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             plm_EE = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             plm_TE = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             plm_ET = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
@@ -1239,23 +1319,26 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
             plm_EB = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             plm_BE = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
 
-            # Eight estimators!!!
-            plm_total = plm_TT + plm_EE + plm_TE + plm_ET + plm_TB + plm_BT + plm_EB + plm_BE
+            # NINE estimators!!!
+            #TODO
+            plm_total = 0.5*plm_T1T2 + 0.5*plm_T2T1 + plm_EE + plm_TE + plm_ET + plm_TB + plm_BT + plm_EB + plm_BE
 
             # Response correct healqest
             plm_total = hp.almxfl(plm_total,inv_resp_original)
-            plm_TT = hp.almxfl(plm_TT,inv_resps_original[:,0])
-            plm_EE = hp.almxfl(plm_EE,inv_resps_original[:,1])
-            plm_TE = hp.almxfl(plm_TE,inv_resps_original[:,2])
-            plm_ET = hp.almxfl(plm_ET,inv_resps_original[:,3])
-            plm_TB = hp.almxfl(plm_TB,inv_resps_original[:,4])
-            plm_BT = hp.almxfl(plm_BT,inv_resps_original[:,5])
-            plm_EB = hp.almxfl(plm_EB,inv_resps_original[:,6])
-            plm_BE = hp.almxfl(plm_BE,inv_resps_original[:,7])
+            plm_T1T2 = hp.almxfl(plm_T1T2,inv_resps_original[:,0])
+            plm_T2T1 = hp.almxfl(plm_T2T1,inv_resps_original[:,1])
+            plm_EE = hp.almxfl(plm_EE,inv_resps_original[:,2])
+            plm_TE = hp.almxfl(plm_TE,inv_resps_original[:,3])
+            plm_ET = hp.almxfl(plm_ET,inv_resps_original[:,4])
+            plm_TB = hp.almxfl(plm_TB,inv_resps_original[:,5])
+            plm_BT = hp.almxfl(plm_BT,inv_resps_original[:,6])
+            plm_EB = hp.almxfl(plm_EB,inv_resps_original[:,7])
+            plm_BE = hp.almxfl(plm_BE,inv_resps_original[:,8])
 
             # Get auto spectra
             auto = hp.alm2cl(plm_total, plm_total, lmax=lmax)
-            auto_TT = hp.alm2cl(plm_TT, plm_TT, lmax=lmax)
+            auto_T1T2 = hp.alm2cl(plm_T1T2, plm_T1T2, lmax=lmax)
+            auto_T2T1 = hp.alm2cl(plm_T2T1, plm_T2T1, lmax=lmax)
             auto_EE = hp.alm2cl(plm_EE, plm_EE, lmax=lmax)
             auto_TE = hp.alm2cl(plm_TE, plm_TE, lmax=lmax)
             auto_ET = hp.alm2cl(plm_ET, plm_ET, lmax=lmax)
@@ -1265,7 +1348,8 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
             auto_BE = hp.alm2cl(plm_BE, plm_BE, lmax=lmax)
 
             n0['total'] += auto
-            n0['TT'] += auto_TT
+            n0['T1T2'] += auto_T1T2
+            n0['T2T1'] += auto_T2T1
             n0['EE'] += auto_EE
             n0['TE'] += auto_TE
             n0['ET'] += auto_ET
@@ -1275,7 +1359,8 @@ def get_n0_unl(sims, qetype, config, resp_from_sims):
             n0['BE'] += auto_BE
 
         n0['total'] *= 1/num
-        n0['TT'] *= 1/num
+        n0['T1T2'] *= 1/num
+        n0['T2T1'] *= 1/num
         n0['EE'] *= 1/num
         n0['TE'] *= 1/num
         n0['ET'] *= 1/num
@@ -1390,18 +1475,19 @@ def get_analytic_response(est, config, gmv,
             fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
-            if est[0] == 'T': flX = flt1
-            if est[0] == 'E': flX = fle
-            if est[0] == 'B': flX = flb
+            if est[:2] == 'T1': flX = flt1
+            elif est[:2] == 'T2': flX = flt2
+            elif est[0] == 'T': flX = flt1
+            elif est[0] == 'E': flX = fle
+            elif est[0] == 'B': flX = flb
 
-            if est[1] == 'T':
-                if est[0] == 'T':
-                    flY = flt2
-                else:
-                    flY = flt1
-            if est[1] == 'E': flY = fle
-            if est[1] == 'B': flY = flb
+            if est[2:4] == 'T1': flY = flt1
+            elif est[2:4] == 'T2': flY = flt2
+            elif est[1] == 'T': flY = flt1
+            elif est[1] == 'E': flY = fle
+            elif est[1] == 'B': flY = flb
 
+            if est == 'T1T2' or  est == 'T2T1': est='TT'
             qeXY = weights.weights(est,cls[cltype],lmax,u=None)
             qeZA = None
             R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
