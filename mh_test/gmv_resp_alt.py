@@ -263,10 +263,10 @@ class gmv_resp_alt(object):
 
         if not self.crossilc:
             det = 4*self.totalTE(l_1)**2*self.totalTE(l_2)**2
-            det *= self.totalTE(l_1)**2*self.totalTE(l_2)**2 - \
-                   2*self.totalEE(l_1)*self.totalTE(l_2)**2*self.totalTT(l_1) - \
-                   2*self.totalEE(l_2)*self.totalTE(l_1)**2*self.totalTT(l_2) + \
-                   3*self.totalEE(l_1)*self.totalEE(l_2)*self.totalTT(l_1)*self.totalTT(l_2)
+            det *= (self.totalTE(l_1)**2*self.totalTE(l_2)**2 - \
+                    2*self.totalEE(l_1)*self.totalTE(l_2)**2*self.totalTT(l_1) - \
+                    2*self.totalEE(l_2)*self.totalTE(l_1)**2*self.totalTT(l_2) + \
+                    3*self.totalEE(l_1)*self.totalEE(l_2)*self.totalTT(l_1)*self.totalTT(l_2))
 
             inv_m1[:,0,0] = 2*self.totalEE(l_1)*self.totalEE(l_2)* \
                             self.totalTE(l_1)**2*self.totalTE(l_2)**2
@@ -333,6 +333,7 @@ class gmv_resp_alt(object):
                                 self.totalEE(l_1)*self.totalTE(l_1)*self.totalTE(l_2)**3*self.totalTT(l_1)- \
                                 self.totalEE(l_1)*self.totalEE(l_2)*self.totalTE(l_2)**2*self.totalTT(l_1)**2+ \
                                 self.totalEE(l_2)*self.totalTE(l_1)**3*self.totalTE(l_2)*self.totalTT(l_2)- \
+                                self.totalEE(l_2)**2*self.totalTE(l_1)**2*self.totalTT(l_1)*self.totalTT(l_2)- \
                                 2*self.totalEE(l_1)*self.totalEE(l_2)*self.totalTE(l_1)*self.totalTE(l_2)*self.totalTT(l_1)*self.totalTT(l_2)+ \
                                 self.totalEE(l_1)*self.totalEE(l_2)**2*self.totalTT(l_1)**2*self.totalTT(l_2))
 
