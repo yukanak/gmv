@@ -5,7 +5,7 @@ import healpy as hp
 import camb
 import os, sys
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
-import gmv_resp
+import gmv_resp_alt as gmv_resp
 import healqest_utils as utils
 import matplotlib.pyplot as plt
 import weights
@@ -737,35 +737,35 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/(2R)$ (SQE, T1T2 from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='lightsteelblue', linestyle='--', label='$1/(2R)$ (SQE, T2T1 from sims)')
-    plt.plot(l, inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,3] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='silver', linestyle='--', label='$1/(2R)$ (SQE, ET from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,5] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='slateblue', linestyle='--', label='$1/(2R)$ (SQE, BT from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,7] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
-    plt.plot(l, 0.5*inv_resps_original_sim[:,8] * (l*(l+1))**2/4, color='paleturquoise', linestyle='--', label='$1/(2R$) (SQE, BE from sims)')
+    #plt.plot(l, inv_resp_original_sim * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='$1/R$ (SQE, from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,0] * (l*(l+1))**2/4, color='sandybrown', linestyle='--', label='$1/(2R)$ (SQE, T1T2 from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,1] * (l*(l+1))**2/4, color='lightsteelblue', linestyle='--', label='$1/(2R)$ (SQE, T2T1 from sims)')
+    #plt.plot(l, inv_resps_original_sim[:,2] * (l*(l+1))**2/4, color='plum', linestyle='--', label='$1/R$ (SQE, EE from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,3] * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='$1/(2R)$ (SQE, TE from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,4] * (l*(l+1))**2/4, color='silver', linestyle='--', label='$1/(2R)$ (SQE, ET from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,5] * (l*(l+1))**2/4, color='palegoldenrod', linestyle='--', label='$1/(2R)$ (SQE, TB from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,6] * (l*(l+1))**2/4, color='slateblue', linestyle='--', label='$1/(2R)$ (SQE, BT from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,7] * (l*(l+1))**2/4, color='bisque', linestyle='--', label='$1/(2R$) (SQE, EB from sims)')
+    #plt.plot(l, 0.5*inv_resps_original_sim[:,8] * (l*(l+1))**2/4, color='paleturquoise', linestyle='--', label='$1/(2R$) (SQE, BE from sims)')
 
-    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
-    plt.plot(l, 0.5*inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/(2R)$ (SQE, T1T2)')
-    plt.plot(l, 0.5*inv_resps_original[:,1] * (l*(l+1))**2/4, color='steelblue', linestyle='-', label='$1/(2R)$ (SQE, T2T1)')
-    plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
-    plt.plot(l, 0.5*inv_resps_original[:,3] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
-    plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='darkgray', linestyle='-', label='$1/(2R)$ (SQE, ET)')
-    plt.plot(l, 0.5*inv_resps_original[:,5] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
-    plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='mediumslateblue', linestyle='-', label='$1/(2R)$ (SQE, BT)')
-    plt.plot(l, 0.5*inv_resps_original[:,7] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
-    plt.plot(l, 0.5*inv_resps_original[:,8] * (l*(l+1))**2/4, color='aqua', linestyle='-', label='$1/(2R$) (SQE, BE)')
+    #plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='firebrick', linestyle='-', label='$1/R$ (SQE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,0] * (l*(l+1))**2/4, color='sienna', linestyle='-', label='$1/(2R)$ (SQE, T1T2)')
+    #plt.plot(l, 0.5*inv_resps_original[:,1] * (l*(l+1))**2/4, color='steelblue', linestyle='-', label='$1/(2R)$ (SQE, T2T1)')
+    #plt.plot(l, inv_resps_original[:,2] * (l*(l+1))**2/4, color='mediumorchid', linestyle='-', label='$1/R$ (SQE, EE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,3] * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='$1/(2R)$ (SQE, TE)')
+    #plt.plot(l, 0.5*inv_resps_original[:,4] * (l*(l+1))**2/4, color='darkgray', linestyle='-', label='$1/(2R)$ (SQE, ET)')
+    #plt.plot(l, 0.5*inv_resps_original[:,5] * (l*(l+1))**2/4, color='gold', linestyle='-', label='$1/(2R)$ (SQE, TB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,6] * (l*(l+1))**2/4, color='mediumslateblue', linestyle='-', label='$1/(2R)$ (SQE, BT)')
+    #plt.plot(l, 0.5*inv_resps_original[:,7] * (l*(l+1))**2/4, color='orange', linestyle='-', label='$1/(2R$) (SQE, EB)')
+    #plt.plot(l, 0.5*inv_resps_original[:,8] * (l*(l+1))**2/4, color='aqua', linestyle='-', label='$1/(2R$) (SQE, BE)')
 
-    #plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
-    #plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
-    #plt.plot(l, inv_resp_gmv_TBEB_sim * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB from sims)')
+    plt.plot(l, inv_resp_gmv_sim * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='$1/R$ (GMV, from sims)')
+    plt.plot(l, inv_resp_gmv_TTEETE_sim * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE from sims)')
+    plt.plot(l, inv_resp_gmv_TBEB_sim * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB from sims)')
 
-    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
-    #plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
-    #plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
+    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='$1/R$ (GMV)')
+    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE)')
+    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -774,12 +774,12 @@ def compare_resp(config_file='mh_yuka.yaml',
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    plt.ylim(8e-9,1e-5)
-    #plt.ylim(8e-9,1e-6)
+    #plt.ylim(8e-9,1e-5)
+    plt.ylim(8e-9,1e-6)
     if save_fig:
         #plt.savefig(dir_out+f'/figs/mh_response_comparison.png',bbox_inches='tight')
-        plt.savefig(dir_out+f'/figs/mh_response_comparison_sqe_only.png',bbox_inches='tight')
-        #plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
+        #plt.savefig(dir_out+f'/figs/mh_response_comparison_sqe_only.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/mh_response_comparison_gmv_only.png',bbox_inches='tight')
 
 def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
     '''
@@ -1466,7 +1466,7 @@ def get_analytic_response(est, config, gmv,
         # File doesn't exist!
         # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
         totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-        cltt1 = totalcls[:,0]; cltt2 = totalcls[:,1]; clee = totalcls[:,2]; clbb = totalcls[:,3]; clte = totalcls[:,4]
+        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
 
         if not gmv:
             # Create 1/Nl filters
@@ -1516,6 +1516,6 @@ def get_analytic_response(est, config, gmv,
 
 ####################
 
-#compare_resp()
+compare_resp()
 #compare_n0()
-analyze()
+#analyze()

@@ -7,7 +7,7 @@ from pathlib import Path
 from time import time
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 import healqest_utils as utils
-import qest
+import qest_alt as qest
 
 qe = str(sys.argv[1])
 sim1 = int(sys.argv[2])
@@ -281,14 +281,17 @@ else:
     #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
     #cltt_mv = hp.alm2cl(tlm1_mv,tlm1_mv) + artificial_noise
     #cltt_tszn = hp.alm2cl(tlm2_tszn,tlm2_tszn) + artificial_noise
+    #cltt_cross = hp.alm2cl(tlm1_mv,tlm2_tszn) + artificial_noise
     #clee = hp.alm2cl(elm1,elm2)
     #clbb = hp.alm2cl(blm1,blm2)
     #clte = hp.alm2cl(tlm1_mv,elm2)
+    #clte_tszn = hp.alm2cl(elm1,tlm2_tszn)
 
-    #totalcls = np.vstack((cltt_mv,cltt_tszn,clee,clbb,clte)).T
+    #totalcls = np.vstack((cltt_mv,clee,clbb,clte,cltt_mv,cltt_tszn,cltt_cross,cltt_mv,cltt_cross,clte,clte_tszn)).T
     #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
     totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-    cltt1 = totalcls[:,0]; cltt2 = totalcls[:,1]; clee = totalcls[:,2]; clbb = totalcls[:,3]; clte = totalcls[:,4]
+    # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
+    cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; cltt3 = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
 
     if not gmv:
         print('Creating filters...')
@@ -318,33 +321,36 @@ else:
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
         if append == 'mh' or append == 'mh_unl':
-            # Order is TT, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1_mv),8), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2_tszn),8), dtype=np.complex_)
-            # TT
+            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
+            alm1all = np.zeros((len(tlm1_mv),9), dtype=np.complex_)
+            alm2all = np.zeros((len(tlm2_tszn),9), dtype=np.complex_)
+            # T1T2
             alm1all[:,0] = hp.almxfl(tlm1_mv,invDl1)
             alm2all[:,0] = hp.almxfl(tlm2_tszn,invDl2)
+            # T2T1
+            alm1all[:,1] = hp.almxfl(tlm1_tszn,invDl2)
+            alm2all[:,1] = hp.almxfl(tlm2_mv,invDl1)
             # EE
-            alm1all[:,1] = hp.almxfl(elm1,invDl1)
-            alm2all[:,1] = hp.almxfl(elm2,invDl2)
-            # TE
-            alm1all[:,2] = hp.almxfl(tlm1_mv,invDl1)
+            alm1all[:,2] = hp.almxfl(elm1,invDl1)
             alm2all[:,2] = hp.almxfl(elm2,invDl2)
+            # TE
+            alm1all[:,3] = hp.almxfl(tlm1_mv,invDl1)
+            alm2all[:,3] = hp.almxfl(elm2,invDl2)
             # ET
-            alm1all[:,3] = hp.almxfl(elm1,invDl1)
-            alm2all[:,3] = hp.almxfl(tlm2_mv,invDl2)
+            alm1all[:,4] = hp.almxfl(elm1,invDl1)
+            alm2all[:,4] = hp.almxfl(tlm2_mv,invDl2)
             # TB
-            alm1all[:,4] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,4] = hp.almxfl(blm2,flb)
+            alm1all[:,5] = hp.almxfl(tlm1_mv,invDl1)
+            alm2all[:,5] = hp.almxfl(blm2,flb)
             # BT
-            alm1all[:,5] = hp.almxfl(blm1,flb)
-            alm2all[:,5] = hp.almxfl(tlm2_mv,invDl2)
+            alm1all[:,6] = hp.almxfl(blm1,flb)
+            alm2all[:,6] = hp.almxfl(tlm2_mv,invDl2) #TODO: Dl2 or Dl1?
             # EB
-            alm1all[:,6] = hp.almxfl(elm1,invDl1)
-            alm2all[:,6] = hp.almxfl(blm2,flb)
+            alm1all[:,7] = hp.almxfl(elm1,invDl1)
+            alm2all[:,7] = hp.almxfl(blm2,flb)
             # BE
-            alm1all[:,7] = hp.almxfl(blm1,flb)
-            alm2all[:,7] = hp.almxfl(elm2,invDl2)
+            alm1all[:,8] = hp.almxfl(blm1,flb)
+            alm2all[:,8] = hp.almxfl(elm2,invDl2)
         else:
             # Order is TT, EE, TE, ET, TB, BT, EB, BE
             alm1all = np.zeros((len(tlm1),8), dtype=np.complex_)
@@ -385,7 +391,10 @@ else:
         np.save(filename_sqe,glm)
     else:
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
+        if append == 'mh' or append == 'mh_unl':
+            glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
+        else:
+            glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=False)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)

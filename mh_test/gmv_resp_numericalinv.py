@@ -9,6 +9,7 @@ import healpy as hp
 
 class gmv_resp(object):
     '''
+    TESTING ONLY NOT CROSS ILC cASE.
     Not implemented: doing semi = True (rlzcls defined) with crossilc = True
     '''
 
@@ -260,7 +261,11 @@ class gmv_resp(object):
         F1prime = M1^{-1}*f1
         """
         f_1 = self.f_1(L, l_1, phi1)
-        M1_inv = np.linalg.inv(self.M1(L, l_1, phi1))
+        #TODO
+        M_1 = self.M_1(L, l_1, phi1)
+        #M_1[M_1==0] = 1e-30
+        M_1[M_1==0] = np.nan
+        M1_inv = np.linalg.inv(M_1)
         M1invf1 = np.einsum('ijk, ij -> ik', M1_inv, f_1)
         return M1invf1
 
@@ -270,7 +275,11 @@ class gmv_resp(object):
         F1prime = M1^{-1}*f1
         """
         f_1 = self.f_1_PRF(L, l_1, phi1)
-        M1_inv = np.linalg.inv(self.M1(L, l_1, phi1))
+        #TODO
+        M_1 = self.M_1(L, l_1, phi1)
+        #M_1[M_1==0] = 1e-30
+        M_1[M_1==0] = np.nan
+        M1_inv = np.linalg.inv(M_1)
         M1invf1 = np.einsum('ijk, ij -> ik', M1_inv, f_1)
         return M1invf1
 
@@ -450,7 +459,11 @@ class gmv_resp(object):
         F2prime = M2^{-1}*f2
         """
         f_2 = self.f_2(L, l_1, phi1)
-        M2_inv = np.linalg.inv(self.M2(L, l_1, phi1))
+        #TODO
+        M_2 = self.M_2(L, l_1, phi1)
+        #M_2[M_2==0] = 1e-30
+        M_2[M_2==0] = np.nan
+        M2_inv = np.linalg.inv(M_2)
         M2invf2 = np.einsum('ijk, ij -> ik', M2_inv, f_2)
         return M2invf2
 
@@ -460,7 +473,11 @@ class gmv_resp(object):
         F2prime = M2^{-1}*f2
         """
         f_2 = self.f_2_PRF(L, l_1, phi1)
-        M2_inv = np.linalg.inv(self.M2(L, l_1, phi1))
+        #TODO
+        M_2 = self.M_2(L, l_1, phi1)
+        #M_2[M_2==0] = 1e-30
+        M_2[M_2==0] = np.nan
+        M2_inv = np.linalg.inv(M_2)
         M2invf2 = np.einsum('ijk, ij -> ik', M2_inv, f_2)
         return M2invf2
 
@@ -573,6 +590,13 @@ class gmv_resp(object):
         vard = var_d1+var_d2
         return vard
 
+    def nan_helper(self, y):
+        """
+        Helper to handle indices and logical indices of NaNs.
+        See https://stackoverflow.com/questions/6518811/interpolate-nan-values-in-a-numpy-array.
+        """
+        return np.isnan(y), lambda z: z.nonzero()[0]
+
     def calc_tvar(self):
         data = np.zeros((self.Nl, 4))
         data[:, 0] = np.copy(self.L)
@@ -586,9 +610,16 @@ class gmv_resp(object):
 
         print("Computing variance for d1")
         data[:, 1] = np.array(pool.map(f1, self.L))
+        #TODO
+        data[1:,1][data[1:,1]==0] = np.nan
+        nans, x = self.nan_helper(data[:,1])
+        data[:,1][nans]= np.interp(x(nans), x(~nans), data[:,1][~nans])
 
         print("Computing variance for d2")
         data[:, 2] = np.array(pool.map(f2, self.L))
+        data[1:,2][data[1:,2]==0] = np.nan
+        nans, x = self.nan_helper(data[:,2])
+        data[:,2][nans]= np.interp(x(nans), x(~nans), data[:,2][~nans])
 
         print("Computing variance for d")
         data[:, 3] = self.var_d(data[:, 1], data[:, 2])
@@ -613,9 +644,15 @@ class gmv_resp(object):
 
         print("Computing variance for d1")
         data[:, 1] = np.array(pool.map(f1, self.L))
+        #data[1:,1][data[1:,1]==0] = np.nan
+        #nans, x = self.nan_helper(data[:,1])
+        #data[:,1][nans]= np.interp(x(nans), x(~nans), data[:,1][~nans])
 
         print("Computing variance for d2")
         data[:, 2] = np.array(pool.map(f2, self.L))
+        #data[1:,2][data[1:,2]==0] = np.nan
+        #nans, x = self.nan_helper(data[:,2])
+        #data[:,2][nans]= np.interp(x(nans), x(~nans), data[:,2][~nans])
 
         print("Computing variance for d")
         data[:, 3] = self.var_d(data[:, 1], data[:, 2])

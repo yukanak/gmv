@@ -358,8 +358,14 @@ class gmv_resp(object):
             M1_inv = self.M1_inv(L, l_1, phi1)
         else:
             M_1 = self.M_1(L, l_1, phi1)
-            M_1[M_1==0] = np.nan
-            M1_inv = np.linalg.inv(M_1)
+            try:
+                M1_inv = np.linalg.inv(M_1)
+            except np.linalg.LinAlgError:
+                print(L, phi1)
+                M_1[M_1==0] = np.nan
+                M1_inv = np.linalg.inv(M_1)
+                nans, x = self.nan_helper(M1_inv)
+                M1_inv[nans] = 0
         M1invf1 = np.einsum('ijk, ij -> ik', M1_inv, f_1)
         return M1invf1
 
@@ -715,15 +721,9 @@ class gmv_resp(object):
 
         print("Computing variance for d1")
         data[:, 1] = np.array(pool.map(f1, self.L))
-        data[1:,1][data[1:,1]==0] = np.nan
-        nans, x = self.nan_helper(data[:,1])
-        data[:,1][nans]= np.interp(x(nans), x(~nans), data[:,1][~nans])
 
         print("Computing variance for d2")
         data[:, 2] = np.array(pool.map(f2, self.L))
-        data[1:,2][data[1:,2]==0] = np.nan
-        nans, x = self.nan_helper(data[:,2])
-        data[:,2][nans]= np.interp(x(nans), x(~nans), data[:,2][~nans])
 
         print("Computing variance for d")
         data[:, 3] = self.var_d(data[:, 1], data[:, 2])

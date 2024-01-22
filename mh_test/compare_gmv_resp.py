@@ -7,6 +7,7 @@ import os, sys
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 import gmv_resp
 import gmv_resp_numericalinv
+import gmv_resp_alt
 import healqest_utils as utils
 import matplotlib.pyplot as plt
 import weights
@@ -51,6 +52,14 @@ def analyze(sims=np.arange(40)+1,config_file='mh_yuka.yaml'):
     inv_resp_gmv_TTEETE_alt = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_alt[1:] = 1./(resp_gmv_TTEETE_alt)[1:]
     inv_resp_gmv_TBEB_alt = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB_alt[1:] = 1./(resp_gmv_TBEB_alt)[1:]
 
+    # GMV response, my version, CROSS-ILC
+    resp_gmv_alt_crossilc = get_gmv_analytic_response('all',config,alt=True,crossilc=True)
+    resp_gmv_TTEETE_alt_crossilc = get_gmv_analytic_response('TTEETE',config,alt=True,crossilc=True)
+    resp_gmv_TBEB_alt_crossilc = get_gmv_analytic_response('TBEB',config,alt=True,crossilc=True)
+    inv_resp_gmv_alt_crossilc = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_alt_crossilc[1:] = 1./(resp_gmv_alt_crossilc)[1:]
+    inv_resp_gmv_TTEETE_alt_crossilc = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_alt_crossilc[1:] = 1./(resp_gmv_TTEETE_alt_crossilc)[1:]
+    inv_resp_gmv_TBEB_alt_crossilc = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB_alt_crossilc[1:] = 1./(resp_gmv_TBEB_alt_crossilc)[1:]
+
     # GMV response from before (2019/2020 ILC noise curves that are NOT correlated between frequencies, no foregrounds)
     resp_gmv_old = np.load(dir_out+f'/resp/an_resp_gmv_estall_lmaxT3000_lmaxP4096_lmin300_cltypelcmb_added_noise_from_file.npy')
     resp_gmv_TTEETE_old = resp_gmv_old[:,1]
@@ -70,9 +79,9 @@ def analyze(sims=np.arange(40)+1,config_file='mh_yuka.yaml'):
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, inv_resp_gmv_alt * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='1/R (GMV, new)')
-    plt.plot(l, inv_resp_gmv_TTEETE_alt * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE, new)')
-    plt.plot(l, inv_resp_gmv_TBEB_alt * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB, new)')
+    plt.plot(l, inv_resp_gmv_alt_crossilc * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='1/R (GMV, MH)')
+    plt.plot(l, inv_resp_gmv_TTEETE_alt_crossilc * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE, MH)')
+    plt.plot(l, inv_resp_gmv_TBEB_alt_crossilc * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB, MH)')
 
     plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV, old)')
     plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE, old)')
@@ -141,7 +150,7 @@ def get_sim_response(est, config, gmv, sims=np.arange(40)+1,
         np.save(filename, sim_resp)
     return sim_resp
 
-def get_gmv_analytic_response(est, config, alt=False,
+def get_gmv_analytic_response(est, config, alt=False, crossilc=False,
                               filename=None):
     '''
     ONLY for computing GMV analytic response, for comparing different inverse M.
@@ -164,9 +173,12 @@ def get_gmv_analytic_response(est, config, alt=False,
             append += '_gmv_estall'
         else:
             append += f'_gmv_est{est}'
-        append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_notmh'
-        if alt:
-            append += '_numericalinv'
+        if not crossilc:
+            append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_notmh'
+            if alt:
+                append += '_numericalinv'
+        else:
+            append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_mh_numericalinv_nanzeros'
         filename = dir_out+f'/resp/an_resp{append}.npy'
 
     if os.path.isfile(filename):
@@ -176,28 +188,27 @@ def get_gmv_analytic_response(est, config, alt=False,
         # File doesn't exist!
         # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
         totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-        cltt1 = totalcls[:,0]; cltt2 = totalcls[:,1]; clee = totalcls[:,2]; clbb = totalcls[:,3]; clte = totalcls[:,4]
-        totalcls = np.vstack((cltt1,clee,clbb,clte)).T
+        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        if not crossilc:
+            totalcls = np.vstack((cltt1,clee,clbb,clte)).T
 
-        if not alt:
+        if crossilc:
+            # GMV response using alternate inverse M matrix
+            gmv_r = gmv_resp_alt.gmv_resp(config,cltype,totalcls,u=None,crossilc=crossilc,save_path=filename)
+            if est == 'TTEETE' or est == 'TBEB' or est == 'all':
+                gmv_r.calc_tvar()
+            R = np.load(filename)
+        elif not alt:
             # GMV response
             gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=None,crossilc=False,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
                 gmv_r.calc_tvar()
-            elif est == 'TTEETEprf':
-                gmv_r.calc_tvar_PRF(cross=False)
-            elif est == 'TTEETETTEETEprf':
-                gmv_r.calc_tvar_PRF(cross=True)
             R = np.load(filename)
         else:
             # GMV response using alternate inverse M matrix
             gmv_r = gmv_resp_numericalinv.gmv_resp(config,cltype,totalcls,u=None,crossilc=False,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
                 gmv_r.calc_tvar()
-            elif est == 'TTEETEprf':
-                gmv_r.calc_tvar_PRF(cross=False)
-            elif est == 'TTEETETTEETEprf':
-                gmv_r.calc_tvar_PRF(cross=True)
             R = np.load(filename)
 
     # If GMV, save file has columns L, TTEETE, TBEB, all
