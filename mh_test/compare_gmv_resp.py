@@ -69,6 +69,30 @@ def analyze(sims=np.arange(40)+1,config_file='mh_yuka.yaml'):
     inv_resp_gmv_TTEETE_old = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_old[1:] = 1./(resp_gmv_TTEETE_old)[1:]
     inv_resp_gmv_TBEB_old = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB_old[1:] = 1./(resp_gmv_TBEB_old)[1:]
 
+    # SQE response, MH
+    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    resps_original_crossilc = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_original_crossilc = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_original_crossilc[:,i] = get_sqe_analytic_response(est,config,crossilc=True)
+        inv_resps_original_crossilc[1:,i] = 1/(resps_original_crossilc)[1:,i]
+    resp_original_crossilc = 0.5*resps_original_crossilc[:,0]+0.5*resps_original_crossilc[:,1]+np.sum(resps_original_crossilc[:,2:], axis=1)
+    TT_resp_original_crossilc = 0.5*resps_original_crossilc[:,0]+0.5*resps_original_crossilc[:,1]
+    inv_resp_original_crossilc = np.zeros_like(l,dtype=np.complex_); inv_resp_original_crossilc[1:] = 1/(resp_original_crossilc)[1:]
+    inv_TT_resp_original_crossilc = np.zeros_like(l,dtype=np.complex_); inv_TT_resp_original_crossilc[1:] = 1/(TT_resp_original_crossilc)[1:]
+
+    # SQE response, non-MH
+    ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_original[:,i] = get_sqe_analytic_response(est,config,crossilc=False)
+        inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+    resp_original = np.sum(resps_original, axis=1)
+    TT_resp_original = resps_original[:,0]
+    inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+    inv_TT_resp_original = np.zeros_like(l,dtype=np.complex_); inv_TT_resp_original[1:] = 1/(TT_resp_original)[1:]
+
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
     ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
@@ -79,24 +103,30 @@ def analyze(sims=np.arange(40)+1,config_file='mh_yuka.yaml'):
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, inv_resp_gmv_alt_crossilc * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='1/R (GMV, MH)')
-    plt.plot(l, inv_resp_gmv_TTEETE_alt_crossilc * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE, MH)')
-    plt.plot(l, inv_resp_gmv_TBEB_alt_crossilc * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB, MH)')
+    #plt.plot(l, inv_resp_gmv_alt_crossilc * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='1/R (GMV, MH)')
+    #plt.plot(l, inv_resp_gmv_TTEETE_alt_crossilc * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (GMV, TTEETE, MH)')
+    #plt.plot(l, inv_resp_gmv_TBEB_alt_crossilc * (l*(l+1))**2/4, color='blueviolet', linestyle='-', label='1/R (GMV, TBEB, MH)')
 
-    plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV, old)')
-    plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE, old)')
-    plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB, old)')
+    #plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV, old)')
+    #plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE, old)')
+    #plt.plot(l, inv_resp_gmv_TBEB * (l*(l+1))**2/4, color='thistle', linestyle='--', label='1/R (GMV, TBEB, old)')
+
+    plt.plot(l, inv_resp_original_crossilc * (l*(l+1))**2/4, color='darkblue', linestyle='-', label='1/R (SQE, MH)')
+    plt.plot(l, inv_TT_resp_original_crossilc * (l*(l+1))**2/4, color='forestgreen', linestyle='-', label='1/R (SQE, TT, MH)')
+
+    plt.plot(l, inv_resp_original * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (SQE, non-MH)')
+    plt.plot(l, inv_TT_resp_original * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (SQE, TT, non-MH)')
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
-    plt.title(f'GMV 1/Response Comparison')
+    plt.title(f'SQE 1/Response Comparison')
     plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
     plt.ylim(8e-9,1e-5)
 
-    plt.savefig(dir_out+f'/figs/gmv_resp_comparison.png',bbox_inches='tight')
+    plt.savefig(dir_out+f'/figs/sqe_resp_comparison.png',bbox_inches='tight')
 
 def get_sim_response(est, config, gmv, sims=np.arange(40)+1,
                      filename=None):
@@ -218,6 +248,83 @@ def get_gmv_analytic_response(est, config, alt=False, crossilc=False,
         R = R[:,2]
     elif est == 'all':
         R = R[:,3]
+
+    return R
+
+def get_sqe_analytic_response(est, config, crossilc=False,
+                              filename=None):
+    print(f'Computing analytic response for est {est}')
+    lmax = config['lensrec']['Lmax']
+    lmaxT = config['lensrec']['lmaxT']
+    lmaxP = config['lensrec']['lmaxP']
+    lmin = config['lensrec']['lminT']
+    nside = config['lensrec']['nside']
+    cltype = config['lensrec']['cltype']
+    cls = config['cls']
+    sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
+    ell = np.arange(lmax+1,dtype=np.float_)
+    dir_out = config['dir_out']
+
+    if filename is None:
+        append = f'_sqe_est{est}'
+        if not crossilc:
+            append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_notmh'
+        else:
+            append += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_mh'
+        filename = dir_out+f'/resp/an_resp{append}.npy'
+
+    if os.path.isfile(filename):
+        print('Loading from existing file!')
+        R = np.load(filename)
+    else:
+        # File doesn't exist!
+        # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
+        totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
+        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        if not crossilc:
+            totalcls = np.vstack((cltt1,clee,clbb,clte)).T
+        if crossilc:
+            # Create 1/Nl filters
+            flt1 = np.zeros(lmax+1); flt1[lmin:] = 1./cltt1[lmin:]
+            flt2 = np.zeros(lmax+1); flt2[lmin:] = 1./cltt2[lmin:]
+            fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
+            flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
+
+            if est[:2] == 'T1': flX = flt1
+            elif est[:2] == 'T2': flX = flt2
+            elif est[0] == 'T': flX = flt1
+            elif est[0] == 'E': flX = fle
+            elif est[0] == 'B': flX = flb
+
+            if est[2:4] == 'T1': flY = flt1
+            elif est[2:4] == 'T2': flY = flt2
+            elif est[1] == 'T': flY = flt1
+            elif est[1] == 'E': flY = fle
+            elif est[1] == 'B': flY = flb
+
+            if est == 'T1T2' or  est == 'T2T1': est='TT'
+            qeXY = weights.weights(est,cls[cltype],lmax,u=None)
+            qeZA = None
+            R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
+            np.save(filename, R)
+        else:
+            # Create 1/Nl filters
+            flt = np.zeros(lmax+1); flt[lmin:] = 1./cltt1[lmin:]
+            fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
+            flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
+
+            if est[0] == 'T': flX = flt
+            elif est[0] == 'E': flX = fle
+            elif est[0] == 'B': flX = flb
+
+            if est[1] == 'T': flY = flt
+            elif est[1] == 'E': flY = fle
+            elif est[1] == 'B': flY = flb
+
+            qeXY = weights.weights(est,cls[cltype],lmax,u=None)
+            qeZA = None
+            R = resp.fill_resp(qeXY,np.zeros(lmax+1, dtype=np.complex_),flX,flY,qeZA=qeZA)
+            np.save(filename, R)
 
     return R
 

@@ -9,7 +9,6 @@ import gmv_resp_alt as gmv_resp
 import healqest_utils as utils
 import matplotlib.pyplot as plt
 import weights
-import qest
 import wignerd
 import resp
 
@@ -867,7 +866,9 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        #TODO: not including T2T1 in N0 calculation?? but then should the response include T2T1 still?
+        #ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
@@ -877,11 +878,13 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
         #TODO
-        #resp_original = np.sum(resps_original, axis=1)
-        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
+        resp_original = np.sum(resps_original, axis=1)
+        #resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
+        resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]
         #resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]+resps_original[:,4]
-        resp_original_TTEETE = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+resps_original[:,2]+resps_original[:,3]+resps_original[:,4]
-        resp_original_TBEB = resps_original[:,5]+resps_original[:,6]+resps_original[:,7]+resps_original[:,8]
+        #resp_original_TTEETE = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+resps_original[:,2]+resps_original[:,3]+resps_original[:,4]
+        resp_original_TBEB = resps_original[:,4]+resps_original[:,5]+resps_original[:,6]+resps_original[:,7]
+        #resp_original_TBEB = resps_original[:,5]+resps_original[:,6]+resps_original[:,7]+resps_original[:,8]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
         inv_resp_original_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TTEETE[1:] = 1/(resp_original_TTEETE)[1:]
         inv_resp_original_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TBEB[1:] = 1/(resp_original_TBEB)[1:]
@@ -895,84 +898,71 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
             for i, est in enumerate(ests):
                 plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             #TODO
-            #plm_total_ij = np.sum(plms_ij, axis=1)
-            plm_total_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+np.sum(plms_ij[:,2:], axis=1)
+            plm_total_ij = np.sum(plms_ij, axis=1)
+            #plm_total_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+np.sum(plms_ij[:,2:], axis=1)
 
             # Now get the ji sims
             plms_ji = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
             for i, est in enumerate(ests):
                 plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             #TODO
-            #plm_total_ji = np.sum(plms_ji, axis=1)
-            plm_total_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+np.sum(plms_ji[:,2:], axis=1)
+            plm_total_ji = np.sum(plms_ji, axis=1)
+            #plm_total_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+np.sum(plms_ji[:,2:], axis=1)
 
             # NINE estimators!!!
             #TODO
-            plm_TTEETE_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+plms_ij[:,2]+plms_ij[:,3]+plms_ij[:,4]
-            plm_TTEETE_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+plms_ji[:,2]+plms_ji[:,3]+plms_ji[:,4]
-            plm_TBEB_ij = plms_ij[:,5]+plms_ij[:,6]+plms_ij[:,7]+plms_ij[:,8]
-            plm_TBEB_ji = plms_ji[:,5]+plms_ji[:,6]+plms_ji[:,7]+plms_ji[:,8]
+            plm_TTEETE_ij = plms_ij[:,0]+plms_ij[:,1]+plms_ij[:,2]+plms_ij[:,3]
+            plm_TTEETE_ji = plms_ji[:,0]+plms_ji[:,1]+plms_ji[:,2]+plms_ji[:,3]
+            plm_TBEB_ij = plms_ij[:,4]+plms_ij[:,5]+plms_ij[:,6]+plms_ij[:,7]
+            plm_TBEB_ji = plms_ji[:,4]+plms_ji[:,5]+plms_ji[:,6]+plms_ji[:,7]
+            #plm_TTEETE_ij = 0.5*plms_ij[:,0]+0.5*plms_ij[:,1]+plms_ij[:,2]+plms_ij[:,3]+plms_ij[:,4]
+            #plm_TTEETE_ji = 0.5*plms_ji[:,0]+0.5*plms_ji[:,1]+plms_ji[:,2]+plms_ji[:,3]+plms_ji[:,4]
+            #plm_TBEB_ij = plms_ij[:,5]+plms_ij[:,6]+plms_ij[:,7]+plms_ij[:,8]
+            #plm_TBEB_ji = plms_ji[:,5]+plms_ji[:,6]+plms_ji[:,7]+plms_ji[:,8]
 
             # Response correct healqest
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
             plm_TTEETE_ij = hp.almxfl(plm_TTEETE_ij,inv_resp_original_TTEETE)
             plm_TBEB_ij = hp.almxfl(plm_TBEB_ij,inv_resp_original_TBEB)
-            plm_T1T2_ij = hp.almxfl(plms_ij[:,0],inv_resps_original[:,0])
-            plm_T2T1_ij = hp.almxfl(plms_ij[:,1],inv_resps_original[:,1])
-            plm_EE_ij = hp.almxfl(plms_ij[:,2],inv_resps_original[:,2])
-            plm_TE_ij = hp.almxfl(plms_ij[:,3],inv_resps_original[:,3])
-            plm_ET_ij = hp.almxfl(plms_ij[:,4],inv_resps_original[:,4])
-            plm_TB_ij = hp.almxfl(plms_ij[:,5],inv_resps_original[:,5])
-            plm_BT_ij = hp.almxfl(plms_ij[:,6],inv_resps_original[:,6])
-            plm_EB_ij = hp.almxfl(plms_ij[:,7],inv_resps_original[:,7])
-            plm_BE_ij = hp.almxfl(plms_ij[:,8],inv_resps_original[:,8])
+            for i, est in enumerate(ests):
+                plms_ij[:,i] = hp.almxfl(plms_ij[:,i],inv_resps_original[:,i])
 
             plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
             plm_TTEETE_ji = hp.almxfl(plm_TTEETE_ji,inv_resp_original_TTEETE)
             plm_TBEB_ji = hp.almxfl(plm_TBEB_ji,inv_resp_original_TBEB)
-            plm_T1T2_ji = hp.almxfl(plms_ji[:,0],inv_resps_original[:,0])
-            plm_T2T1_ji = hp.almxfl(plms_ji[:,1],inv_resps_original[:,1])
-            plm_EE_ji = hp.almxfl(plms_ji[:,2],inv_resps_original[:,2])
-            plm_TE_ji = hp.almxfl(plms_ji[:,3],inv_resps_original[:,3])
-            plm_ET_ji = hp.almxfl(plms_ji[:,4],inv_resps_original[:,4])
-            plm_TB_ji = hp.almxfl(plms_ji[:,5],inv_resps_original[:,5])
-            plm_BT_ji = hp.almxfl(plms_ji[:,6],inv_resps_original[:,6])
-            plm_EB_ji = hp.almxfl(plms_ji[:,7],inv_resps_original[:,7])
-            plm_BE_ji = hp.almxfl(plms_ji[:,8],inv_resps_original[:,8])
+            for i, est in enumerate(ests):
+                plms_ji[:,i] = hp.almxfl(plms_ji[:,i],inv_resps_original[:,i])
 
             # Get ij auto spectra <ijij>
             auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
             auto_TTEETE = hp.alm2cl(plm_TTEETE_ij, plm_TTEETE_ij, lmax=lmax)
             auto_TBEB = hp.alm2cl(plm_TBEB_ij, plm_TBEB_ij, lmax=lmax)
-            auto_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ij, lmax=lmax)
-            auto_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ij, lmax=lmax)
-            auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
-            auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
-            auto_ET = hp.alm2cl(plm_ET_ij, plm_ET_ij, lmax=lmax)
-            auto_TB = hp.alm2cl(plm_TB_ij, plm_TB_ij, lmax=lmax)
-            auto_BT = hp.alm2cl(plm_BT_ij, plm_BT_ij, lmax=lmax)
-            auto_EB = hp.alm2cl(plm_EB_ij, plm_EB_ij, lmax=lmax)
-            auto_BE = hp.alm2cl(plm_BE_ij, plm_BE_ij, lmax=lmax)
+            auto_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ij[:,0], lmax=lmax)
+            auto_EE = hp.alm2cl(plms_ij[:,1], plms_ij[:,1], lmax=lmax)
+            auto_TE = hp.alm2cl(plms_ij[:,2], plms_ij[:,2], lmax=lmax)
+            auto_ET = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
+            auto_TB = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
+            auto_BT = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
+            auto_EB = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
+            auto_BE = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
             cross_TTEETE = hp.alm2cl(plm_TTEETE_ij, plm_TTEETE_ji, lmax=lmax)
             cross_TBEB = hp.alm2cl(plm_TBEB_ij, plm_TBEB_ji, lmax=lmax)
-            cross_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ji, lmax=lmax)
-            cross_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ji, lmax=lmax)
-            cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
-            cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
-            cross_ET = hp.alm2cl(plm_ET_ij, plm_ET_ji, lmax=lmax)
-            cross_TB = hp.alm2cl(plm_TB_ij, plm_TB_ji, lmax=lmax)
-            cross_BT = hp.alm2cl(plm_BT_ij, plm_BT_ji, lmax=lmax)
-            cross_EB = hp.alm2cl(plm_EB_ij, plm_EB_ji, lmax=lmax)
-            cross_BE = hp.alm2cl(plm_BE_ij, plm_BE_ji, lmax=lmax)
+            cross_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ji[:,0], lmax=lmax)
+            cross_EE = hp.alm2cl(plms_ij[:,1], plms_ji[:,1], lmax=lmax)
+            cross_TE = hp.alm2cl(plms_ij[:,2], plms_ji[:,2], lmax=lmax)
+            cross_ET = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
+            cross_TB = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
+            cross_BT = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
+            cross_EB = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
+            cross_BE = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
 
             n0['total'] += auto + cross
             n0['TTEETE'] += auto_TTEETE + cross_TTEETE
             n0['TBEB'] += auto_TBEB + cross_TBEB
             n0['T1T2'] += auto_T1T2 + cross_T1T2
-            n0['T2T1'] += auto_T2T1 + cross_T2T1
             n0['EE'] += auto_EE + cross_EE
             n0['TE'] += auto_TE + cross_TE
             n0['ET'] += auto_ET + cross_ET
@@ -985,7 +975,6 @@ def get_n0(sims, qetype, config, resp_from_sims, cmbonly=False):
         n0['TTEETE'] *= 1/num
         n0['TBEB'] *= 1/num
         n0['T1T2'] *= 1/num
-        n0['T2T1'] *= 1/num
         n0['EE'] *= 1/num
         n0['TE'] *= 1/num
         n0['ET'] *= 1/num
@@ -1516,6 +1505,6 @@ def get_analytic_response(est, config, gmv,
 
 ####################
 
-compare_resp()
-#compare_n0()
-#analyze()
+#compare_resp()
+compare_n0()
+analyze()

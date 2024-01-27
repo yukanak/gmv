@@ -361,7 +361,7 @@ class gmv_resp(object):
             try:
                 M1_inv = np.linalg.inv(M_1)
             except np.linalg.LinAlgError:
-                print(L, phi1)
+                #print(L, phi1)
                 M_1[M_1==0] = np.nan
                 M1_inv = np.linalg.inv(M_1)
                 nans, x = self.nan_helper(M1_inv)

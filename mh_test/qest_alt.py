@@ -302,7 +302,7 @@ class qest_gmv(object):
         cltype : str
           Should be one of 'grad'/'len'/'unl'
         '''
-        import gmv_resp
+        import gmv_resp_alt as gmv_resp
 
         print('Setting up lensing reconstruction')
         self.config     = config
@@ -365,7 +365,10 @@ class qest_gmv(object):
                     idxs = [0, 1, 2, 3]
             elif qe == 'TBEB':
                 ests = ['TB_GMV', 'BT_GMV', 'EB_GMV', 'BE_GMV']
-                idxs = [4, 5, 6, 7]
+                if crossilc:
+                    idxs = [5, 6, 7, 8]
+                else:
+                    idxs = [4, 5, 6, 7]
             elif qe == 'TTEETEprf':
                 ests = ['TT_GMV_PRF', 'EE_GMV_PRF', 'TE_GMV_PRF','ET_GMV_PRF']
                 idxs = [0, 1, 2, 3]
