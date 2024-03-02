@@ -29,7 +29,7 @@ noise_curves_090_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_2
 noise_curves_150_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_220.txt'))
 
 # Sims used for actual reconstruction and N0 calculation, lensed CMB + foregrounds + noise, using MV ILC map + tSZ nulled map (MH)
-#append = f'mh'
+append = f'mh'
 # Sims used for N1 calculation, these are lensed with the same phi but different CMB realizations, no foregrounds or noise
 #append = 'mh_cmbonly_phi1_tqu1tqu2'
 #append = 'mh_cmbonly_phi1_tqu2tqu1'
@@ -39,11 +39,16 @@ noise_curves_150_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_2
 #append = 'mh_unl_cmbonly'
 # Unlensed sims + foregrounds + noise
 #append = 'mh_unl'
-# Testing basic non-MH case
-append = 'notmh'
+# Testing basic non-MH case but still with crossilc = True
+#append = 'notmh'
 #append = 'notmh_cmbonly_phi1_tqu1tqu2'
 #append = 'notmh_cmbonly_phi1_tqu2tqu1'
 #append = 'notmh_cmbonly'
+# Testing basic non-MH case with crossilc = False
+#append = 'notmh_crossilcFalse'
+#append = 'notmh_crossilcFalse_cmbonly_phi1_tqu1tqu2'
+#append = 'notmh_crossilcFalse_cmbonly_phi1_tqu2tqu1'
+#append = 'notmh_crossilcFalse_cmbonly'
 
 # Full sky single frequency foreground sims
 flm_150ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
@@ -97,21 +102,21 @@ sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
 filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 
-if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
-#if False:
+#if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
+if False:
     print('File already exists!')
 else:
     print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}')
 
     # Get full sky CMB alms
     print('Getting alms...')
-    if append == 'mh' or append == 'mh_cmbonly' or append == 'notmh' or append == 'notmh_cmbonly':
+    if append == 'mh' or append == 'mh_cmbonly' or append == 'notmh' or append == 'notmh_cmbonly' or append == 'notmh_crossilcFalse' or append == 'notmh_crossilcFalse_cmbonly':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim2,hdu=[1,2,3])
-    elif append == 'mh_cmbonly_phi1_tqu1tqu2' or append == 'notmh_cmbonly_phi1_tqu1tqu2':
+    elif append == 'mh_cmbonly_phi1_tqu1tqu2' or append == 'notmh_cmbonly_phi1_tqu1tqu2' or append == 'notmh_crossilcFalse_cmbonly_phi1_tqu1tqu2':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim1_tqu2,hdu=[1,2,3])
-    elif append == 'mh_cmbonly_phi1_tqu2tqu1' or append == 'notmh_cmbonly_phi1_tqu2tqu1':
+    elif append == 'mh_cmbonly_phi1_tqu2tqu1' or append == 'notmh_cmbonly_phi1_tqu2tqu1' or append == 'notmh_crossilcFalse_cmbonly_phi1_tqu2tqu1':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1_tqu2,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
     elif append == 'mh_unl_cmbonly' or append == 'mh_unl':
@@ -125,7 +130,7 @@ else:
     tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
     elm2 = utils.reduce_lmax(elm2,lmax=lmax)
     blm2 = utils.reduce_lmax(blm2,lmax=lmax)
-    if append == 'mh' or append == 'mh_unl' or append == 'notmh':
+    if append == 'mh' or append == 'mh_unl':
         tlm1_150 = tlm1.copy(); tlm1_220 = tlm1.copy(); tlm1_95 = tlm1.copy()
         elm1_150 = elm1.copy(); elm1_220 = elm1.copy(); elm1_95 = elm1.copy()
         blm1_150 = blm1.copy(); blm1_220 = blm1.copy(); blm1_95 = blm1.copy()
@@ -134,7 +139,7 @@ else:
         blm2_150 = blm2.copy(); blm2_220 = blm2.copy(); blm2_95 = blm2.copy()
 
     # Adding foregrounds!
-    if append == 'mh' or append == 'mh_unl' or append == 'notmh':
+    if append == 'mh' or append == 'mh_unl':
         tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
         tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
         tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
@@ -156,7 +161,7 @@ else:
         blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
 
     # Adding noise!
-    if append == 'mh' or append == 'mh_unl' or append == 'notmh':
+    if append == 'mh' or append == 'mh_unl':
         nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
         nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
         nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
@@ -258,7 +263,32 @@ else:
         elm2_150 += nlme2_150; elm2_220 += nlme2_220; elm2_95 += nlme2_090
         blm2_150 += nlmb2_150; blm2_220 += nlmb2_220; blm2_95 += nlmb2_090
 
-    if append == 'mh' or append == 'mh_unl' or append == 'notmh':
+    # For notmh, add really simple Gaussian noise
+    if append == 'notmh' or append == 'notmh_crossilcFalse':
+        noise_file = 'nl_cmbmv_20192020.dat'
+        fsky_corr = 25.308939726920805
+        noise_curves = np.loadtxt(noise_file)
+        nltt = fsky_corr * noise_curves[:,1]; nlee = fsky_corr * noise_curves[:,2]; nlbb = fsky_corr * noise_curves[:,2]
+        nlm1_filename = dir_out + f'/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim1}.alm'
+        nlm2_filename = dir_out + f'/nlm/2019_2020_ilc_noise_nlm_lmax{lmax}_seed{sim2}.alm'
+        if os.path.isfile(nlm1_filename):
+            nlmt1,nlme1,nlmb1 = hp.read_alm(nlm1_filename,hdu=[1,2,3])
+        else:
+            np.random.seed(4190002645+sim1)
+            nlmt1,nlme1,nlmb1 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+            Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(nlm1_filename,[nlmt1,nlme1,nlmb1])
+        if os.path.isfile(nlm2_filename):
+            nlmt2,nlme2,nlmb2 = hp.read_alm(nlm2_filename,hdu=[1,2,3])
+        else:
+            np.random.seed(4190002645+sim2)
+            nlmt2,nlme2,nlmb2 = hp.synalm([nltt,nlee,nlbb,nltt*0],new=True,lmax=lmax)
+            Path(dir_out+f'/nlm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(nlm2_filename,[nlmt2,nlme2,nlmb2])
+        tlm1 += nlmt1; elm1 += nlme1; blm1 += nlmb1
+        tlm2 += nlmt2; elm2 += nlme2; blm2 += nlmb2
+
+    if append == 'mh' or append == 'mh_unl':
         tlm1_mv = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
         tlm1_tszn = hp.almxfl(tlm1_95,w_tsz_null[0][:lmax+1]) + hp.almxfl(tlm1_150,w_tsz_null[1][:lmax+1]) + hp.almxfl(tlm1_220,w_tsz_null[2][:lmax+1])
         elm1 = hp.almxfl(elm1_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm1_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm1_220,w_Emv[2][:lmax+1])
@@ -270,35 +300,49 @@ else:
 
         if not gmv:
             if qe[:2] == 'T1': tlm1 = tlm1_mv
-            elif qe[:2] == 'T2' and append == 'notmh': tlm1 = tlm1_mv
             elif qe[:2] == 'T2': tlm1 = tlm1_tszn
             elif qe[0] == 'T': tlm1 = tlm1_mv
 
             if qe[2:4] == 'T1': tlm2 = tlm2_mv
-            elif qe[2:4] == 'T2' and append == 'notmh': tlm2 = tlm2_mv
             elif qe[2:4] == 'T2': tlm2 = tlm2_tszn
             elif qe[1] == 'T': tlm2 = tlm2_mv
 
     # Get signal + noise residuals spectra for constructing fl filters
     print('Getting signal + noise residuals spectra for filtering')
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
-    #artificial_noise = np.zeros(lmax+1)
-    #artificial_noise[lmaxT+2:] = 1.e10
-    #if not (append == 'mh' or append == 'mh_unl'):
-    #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
-    #cltt_mv = hp.alm2cl(tlm1_mv,tlm1_mv) + artificial_noise
-    #cltt_tszn = hp.alm2cl(tlm2_tszn,tlm2_tszn) + artificial_noise
-    #cltt_cross = hp.alm2cl(tlm1_mv,tlm2_tszn) + artificial_noise
-    #clee = hp.alm2cl(elm1,elm2)
-    #clbb = hp.alm2cl(blm1,blm2)
-    #clte = hp.alm2cl(tlm1_mv,elm2)
-    #clte_tszn = hp.alm2cl(elm1,tlm2_tszn)
+    artificial_noise = np.zeros(lmax+1)
+    artificial_noise[lmaxT+2:] = 1.e10
+    if append[:5] == 'notmh':
+        noise_file = 'nl_cmbmv_20192020.dat'
+        fsky_corr = 25.308939726920805
+        noise_curves = np.loadtxt(noise_file)
+        nltt = fsky_corr * noise_curves[:,1]; nlee = fsky_corr * noise_curves[:,2]; nlbb = fsky_corr * noise_curves[:,2]
+        # Resulting spectra
+        cltt = sl['tt'][:lmax+1] + nltt[:lmax+1] + artificial_noise
+        clee = sl['ee'][:lmax+1] + nlee[:lmax+1]
+        clbb = sl['bb'][:lmax+1] + nlbb[:lmax+1]
+        clte = sl['te'][:lmax+1]
+        if append[:19] == 'notmh_crossilcFalse':
+            totalcls = np.vstack((cltt,clee,clbb,clte)).T
+        else:
+            totalcls = np.vstack((cltt,clee,clbb,clte,cltt,cltt,cltt,cltt,cltt,clte,clte)).T
+        cltt1 = cltt; cltt2 = cltt
+    else:
+        #if not (append == 'mh' or append == 'mh_unl'):
+        #    print('WARNING: even for CMB only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
+        #cltt_mv = hp.alm2cl(tlm1_mv,tlm1_mv) + artificial_noise
+        #cltt_tszn = hp.alm2cl(tlm2_tszn,tlm2_tszn) + artificial_noise
+        #cltt_cross = hp.alm2cl(tlm1_mv,tlm2_tszn) + artificial_noise
+        #clee = hp.alm2cl(elm1,elm2)
+        #clbb = hp.alm2cl(blm1,blm2)
+        #clte = hp.alm2cl(tlm1_mv,elm2)
+        #clte_tszn = hp.alm2cl(elm1,tlm2_tszn)
+        #totalcls = np.vstack((cltt_mv,clee,clbb,clte,cltt_mv,cltt_tszn,cltt_cross,cltt_mv,cltt_cross,clte,clte_tszn)).T
+        #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
 
-    #totalcls = np.vstack((cltt_mv,clee,clbb,clte,cltt_mv,cltt_tszn,cltt_cross,cltt_mv,cltt_cross,clte,clte_tszn)).T
-    #np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
-    totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-    # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
-    cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; cltt3 = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
+        # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
+        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; cltt3 = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
 
     if not gmv:
         print('Creating filters...')
@@ -309,14 +353,12 @@ else:
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
         if qe[:2] == 'T1': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
-        elif qe[:2] == 'T2' and append == 'notmh': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
         elif qe[:2] == 'T2': almbar1 = hp.almxfl(tlm1,flt2); flm1 = flt2
         elif qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
         elif qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
         elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
 
         if qe[2:4] == 'T1': almbar2 = hp.almxfl(tlm2,flt1); flm2 = flt1
-        elif qe[2:4] == 'T2' and append == 'notmh': almbar2 = hp.almxfl(tlm2,flt1); flm2 = flt1
         elif qe[2:4] == 'T2': almbar2 = hp.almxfl(tlm2,flt2); flm2 = flt2
         elif qe[1] == 'T': almbar2 = hp.almxfl(tlm2,flt1); flm2 = flt1
         elif qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
@@ -338,7 +380,7 @@ else:
             alm1all[:,0] = hp.almxfl(tlm1_mv,invDl1)
             alm2all[:,0] = hp.almxfl(tlm2_tszn,invDl2)
             # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1_tszn,invDl2)
+            alm1all[:,1] = hp.almxfl(tlm1_tszn,invDl2) #TODO: Dl2 or Dl1?
             alm2all[:,1] = hp.almxfl(tlm2_mv,invDl1)
             # EE
             alm1all[:,2] = hp.almxfl(elm1,invDl1)
@@ -361,69 +403,34 @@ else:
             # BE
             alm1all[:,8] = hp.almxfl(blm1,flb)
             alm2all[:,8] = hp.almxfl(elm2,invDl2)
-        elif append == 'notmh':
-            print('Doing notmh!')
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1_mv),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2_mv),9), dtype=np.complex_)
-            # T1T2
-            alm1all[:,0] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2_mv,invDl1)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,1] = hp.almxfl(tlm2_mv,invDl1)
-            # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl1)
-            alm2all[:,2] = hp.almxfl(elm2,invDl1)
-            # TE
-            alm1all[:,3] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,3] = hp.almxfl(elm2,invDl1)
-            # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm2_mv,invDl1)
-            # TB
-            alm1all[:,5] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
-            # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2_mv,invDl1)
-            # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl1)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
-            # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl1)
-        elif append =='notmh_cmbonly_phi1_tqu1tqu2' or append == 'notmh_cmbonly_phi1_tqu2tqu1' or append == 'notmh_cmbonly':
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2),9), dtype=np.complex_)
-            # T1T2
+        elif append[:19] == 'notmh_crossilcFalse':
+            # Order is TT, EE, TE, ET, TB, BT, EB, BE
+            alm1all = np.zeros((len(tlm1),8), dtype=np.complex_)
+            alm2all = np.zeros((len(tlm2),8), dtype=np.complex_)
+            # TT
             alm1all[:,0] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2,invDl1)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,1] = hp.almxfl(tlm2,invDl1)
+            alm2all[:,0] = hp.almxfl(tlm2,invDl2)
             # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl1)
-            alm2all[:,2] = hp.almxfl(elm2,invDl1)
+            alm1all[:,1] = hp.almxfl(elm1,invDl1)
+            alm2all[:,1] = hp.almxfl(elm2,invDl2)
             # TE
-            alm1all[:,3] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,3] = hp.almxfl(elm2,invDl1)
+            alm1all[:,2] = hp.almxfl(tlm1,invDl1)
+            alm2all[:,2] = hp.almxfl(elm2,invDl2)
             # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm2,invDl1)
+            alm1all[:,3] = hp.almxfl(elm1,invDl1)
+            alm2all[:,3] = hp.almxfl(tlm2,invDl2)
             # TB
-            alm1all[:,5] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
+            alm1all[:,4] = hp.almxfl(tlm1,invDl1)
+            alm2all[:,4] = hp.almxfl(blm2,flb)
             # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2,invDl1)
+            alm1all[:,5] = hp.almxfl(blm1,flb)
+            alm2all[:,5] = hp.almxfl(tlm2,invDl2)
             # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl1)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
+            alm1all[:,6] = hp.almxfl(elm1,invDl1)
+            alm2all[:,6] = hp.almxfl(blm2,flb)
             # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl1)
+            alm1all[:,7] = hp.almxfl(blm1,flb)
+            alm2all[:,7] = hp.almxfl(elm2,invDl2)
         else:
             # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
             alm1all = np.zeros((len(tlm1),9), dtype=np.complex_)
@@ -467,7 +474,10 @@ else:
         np.save(filename_sqe,glm)
     else:
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
+        if append[:19] == 'notmh_crossilcFalse':
+            glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=False)
+        else:
+            glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)

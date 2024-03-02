@@ -2,17 +2,18 @@ import sys, os
 sys.path.append('/home/users/yukanaka/healqest/healqest/src/')
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
+import healqest_utils as utils
 import healpy as hp
 
 config_file = 'mh_yuka.yaml'
 config = utils.parse_yaml(config_file)
-lmax = config['lmax']
-nside = config['nside']
+lmax = config['lensrec']['Lmax']
+lmin = config['lensrec']['lminT']
+lmaxT = config['lensrec']['lmaxT']
+lmaxP = config['lensrec']['lmaxP']
+nside = config['lensrec']['nside']
 dir_out = config['dir_out']
-lmaxT = config['lmaxT']
-lmaxP = config['lmaxP']
-cltype = config['cltype']
+cltype = config['lensrec']['cltype']
 append = f'mh'
 l = np.arange(0,lmax+1)
 sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
@@ -48,6 +49,7 @@ w_Tmv = np.loadtxt(weights_mv_ilc_T)
 w_Emv = np.loadtxt(weights_mv_ilc_E)
 w_Bmv = np.loadtxt(weights_mv_ilc_B)
 
+'''
 ##########
 
 old_fsky_corr=25.308939726920805
@@ -134,12 +136,12 @@ plt.savefig(dir_out+f'/figs/totalcls_mh_TT.png',bbox_inches='tight')
 
 ##########
 
-nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed1.alm'
-nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed1.alm'
-nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed1.alm'
-nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed2.alm'
-nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed2.alm'
-nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed2.alm'
+nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed98.alm'
+nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed98.alm'
+nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed98.alm'
+nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed99.alm'
+nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed99.alm'
+nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed99.alm'
 nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
 nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
 nlmt1_220,nlme1_220,nlmb1_220 = hp.read_alm(nlm1_220_filename,hdu=[1,2,3])
@@ -153,14 +155,14 @@ sim1_nltt_220_220 = hp.alm2cl(nlmt1_220)
 sim1_nlee_220_220 = hp.alm2cl(nlme1_220)
 sim1_nlbb_220_220 = hp.alm2cl(nlmb1_220)
 sim1_nltt_090_150 = hp.alm2cl(nlmt1_090,nlmt1_150)
-sim1_nlee_090_150 = hp.alm2cl(nlme1_090,nlmt1_150)
-sim1_nlbb_090_150 = hp.alm2cl(nlmb1_090,nlmt1_150)
+sim1_nlee_090_150 = hp.alm2cl(nlme1_090,nlme1_150)
+sim1_nlbb_090_150 = hp.alm2cl(nlmb1_090,nlmb1_150)
 sim1_nltt_090_220 = hp.alm2cl(nlmt1_090,nlmt1_220)
-sim1_nlee_090_220 = hp.alm2cl(nlme1_090,nlmt1_220)
-sim1_nlbb_090_220 = hp.alm2cl(nlmb1_090,nlmt1_220)
+sim1_nlee_090_220 = hp.alm2cl(nlme1_090,nlme1_220)
+sim1_nlbb_090_220 = hp.alm2cl(nlmb1_090,nlmb1_220)
 sim1_nltt_150_220 = hp.alm2cl(nlmt1_150,nlmt1_220)
-sim1_nlee_150_220 = hp.alm2cl(nlme1_150,nlmt1_220)
-sim1_nlbb_150_220 = hp.alm2cl(nlmb1_150,nlmt1_220)
+sim1_nlee_150_220 = hp.alm2cl(nlme1_150,nlme1_220)
+sim1_nlbb_150_220 = hp.alm2cl(nlmb1_150,nlmb1_220)
 nlev_t = 5
 nlev_p = 5
 nltt = (np.pi/180./60.*nlev_t)**2
@@ -206,24 +208,24 @@ plt.savefig(dir_out+f'/figs/noise_spectra_mh_sim1.png',bbox_inches='tight')
 
 plt.clf()
 # Expect around 5 uK-arcmin
-plt.plot(ell, nltt_090_150[:lmax+1], color='firebrick', linestyle='-', label='nltt 90 x 150 from file')
-plt.plot(ell, nltt_090_220[:lmax+1], color='sienna', linestyle='-', label='nltt 90 x 220 from file')
-plt.plot(ell, nltt_150_220[:lmax+1], color='orange', linestyle='-', label='nltt 150 x 220 from file')
 plt.plot(ell, sim1_nltt_090_150, color='pink', linestyle='--', label='nltt 90 x 150 from sims')
 plt.plot(ell, sim1_nltt_090_220, color='sandybrown', linestyle='--', label='nltt 90 x 220 from sims')
 plt.plot(ell, sim1_nltt_150_220, color='bisque', linestyle='--', label='nltt 150 x 220 from sims')
-plt.plot(ell, nlee_090_150[:lmax+1], color='forestgreen', linestyle='-', label='nlee 90 x 150 from file')
-plt.plot(ell, nlee_090_220[:lmax+1], color='lightseagreen', linestyle='-', label='nlee 90 x 220 from file')
-plt.plot(ell, nlee_150_220[:lmax+1], color='olive', linestyle='-', label='nlee 150 x 220 from file')
 plt.plot(ell, sim1_nlee_090_150, color='lightgreen', linestyle='--', label='nlee 90 x 150 from sims')
 plt.plot(ell, sim1_nlee_090_220, color='mediumaquamarine', linestyle='--', label='nlee 90 x 220 from sims')
 plt.plot(ell, sim1_nlee_150_220, color='darkseagreen', linestyle='--', label='nlee 150 x 220 from sims')
-plt.plot(ell, nlbb_090_150[:lmax+1], color='darkblue', linestyle='-', label='nlbb 90 x 150 from file')
-plt.plot(ell, nlbb_090_220[:lmax+1], color='rebeccapurple', linestyle='-', label='nlbb 90 x 220 from file')
-plt.plot(ell, nlbb_150_220[:lmax+1], color='steelblue', linestyle='-', label='nlbb 150 x 220 from file')
 plt.plot(ell, sim1_nlbb_090_150, color='cornflowerblue', linestyle='--', label='nlbb 90 x 150 from sims')
 plt.plot(ell, sim1_nlbb_090_220, color='thistle', linestyle='--', label='nlbb 90 x 220 from sims')
 plt.plot(ell, sim1_nlbb_150_220, color='lightsteelblue', linestyle='--', label='nlbb 150 x 220 from sims')
+plt.plot(ell, nltt_090_150[:lmax+1], color='firebrick', linestyle='-', label='nltt 90 x 150 from file')
+plt.plot(ell, nltt_090_220[:lmax+1], color='sienna', linestyle='-', label='nltt 90 x 220 from file')
+plt.plot(ell, nltt_150_220[:lmax+1], color='orange', linestyle='-', label='nltt 150 x 220 from file')
+plt.plot(ell, nlee_090_150[:lmax+1], color='forestgreen', linestyle='-', label='nlee 90 x 150 from file')
+plt.plot(ell, nlee_090_220[:lmax+1], color='lightseagreen', linestyle='-', label='nlee 90 x 220 from file')
+plt.plot(ell, nlee_150_220[:lmax+1], color='olive', linestyle='-', label='nlee 150 x 220 from file')
+plt.plot(ell, nlbb_090_150[:lmax+1], color='darkblue', linestyle='-', label='nlbb 90 x 150 from file')
+plt.plot(ell, nlbb_090_220[:lmax+1], color='rebeccapurple', linestyle='-', label='nlbb 90 x 220 from file')
+plt.plot(ell, nlbb_150_220[:lmax+1], color='steelblue', linestyle='-', label='nlbb 150 x 220 from file')
 plt.axhline(y=nlpp, color='darkgray', linestyle='--', label='5 uK-arcmin')
 plt.xscale('log')
 plt.yscale('log')
@@ -289,4 +291,190 @@ plt.title('BB fg+noise spectra')
 plt.ylabel("$C_\ell$")
 plt.xlabel('$\ell$')
 plt.savefig(dir_out+f'/figs/bb_residuals_spectra_mh.png',bbox_inches='tight')
+
+'''
+##########
+
+# Full sky single frequency foreground sims
+sim1 = 1
+sim2 = 99
+flm_150ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_150ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim2}_alm_lmax{lmax}.fits'
+flm_220ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_220ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim2}_alm_lmax{lmax}.fits'
+flm_95ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim1}_alm_lmax{lmax}.fits'
+flm_95ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim2}_alm_lmax{lmax}.fits'
+
+tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
+tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
+tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
+tflm1_220 = utils.reduce_lmax(tflm1_220,lmax=lmax); eflm1_220 = utils.reduce_lmax(eflm1_220,lmax=lmax); bflm1_220 = utils.reduce_lmax(bflm1_220,lmax=lmax)
+tflm1_95, eflm1_95, bflm1_95 = hp.read_alm(flm_95ghz_sim1,hdu=[1,2,3])
+tflm1_95 = utils.reduce_lmax(tflm1_95,lmax=lmax); eflm1_95 = utils.reduce_lmax(eflm1_95,lmax=lmax); bflm1_95 = utils.reduce_lmax(bflm1_95,lmax=lmax)
+
+tflm2_150, eflm2_150, bflm2_150 = hp.read_alm(flm_150ghz_sim2,hdu=[1,2,3])
+tflm2_150 = utils.reduce_lmax(tflm2_150,lmax=lmax); eflm2_150 = utils.reduce_lmax(eflm2_150,lmax=lmax); bflm2_150 = utils.reduce_lmax(bflm2_150,lmax=lmax)
+tflm2_220, eflm2_220, bflm2_220 = hp.read_alm(flm_220ghz_sim2,hdu=[1,2,3])
+tflm2_220 = utils.reduce_lmax(tflm2_220,lmax=lmax); eflm2_220 = utils.reduce_lmax(eflm2_220,lmax=lmax); bflm2_220 = utils.reduce_lmax(bflm2_220,lmax=lmax)
+tflm2_95, eflm2_95, bflm2_95 = hp.read_alm(flm_95ghz_sim2,hdu=[1,2,3])
+tflm2_95 = utils.reduce_lmax(tflm2_95,lmax=lmax); eflm2_95 = utils.reduce_lmax(eflm2_95,lmax=lmax); bflm2_95 = utils.reduce_lmax(bflm2_95,lmax=lmax)
+
+sim1_fltt_090_090 = hp.alm2cl(tflm1_95)
+sim1_flee_090_090 = hp.alm2cl(eflm1_95)
+sim1_flbb_090_090 = hp.alm2cl(bflm1_95)
+sim1_fltt_150_150 = hp.alm2cl(tflm1_150)
+sim1_flee_150_150 = hp.alm2cl(eflm1_150)
+sim1_flbb_150_150 = hp.alm2cl(bflm1_150)
+sim1_fltt_220_220 = hp.alm2cl(tflm1_220)
+sim1_flee_220_220 = hp.alm2cl(eflm1_220)
+sim1_flbb_220_220 = hp.alm2cl(bflm1_220)
+sim1_fltt_090_150 = hp.alm2cl(tflm1_95,tflm1_150)
+sim1_flee_090_150 = hp.alm2cl(eflm1_95,eflm1_150)
+sim1_flbb_090_150 = hp.alm2cl(bflm1_95,bflm1_150)
+sim1_fltt_090_220 = hp.alm2cl(tflm1_95,tflm1_220)
+sim1_flee_090_220 = hp.alm2cl(eflm1_95,eflm1_220)
+sim1_flbb_090_220 = hp.alm2cl(bflm1_95,bflm1_220)
+sim1_fltt_150_220 = hp.alm2cl(tflm1_150,tflm1_220)
+sim1_flee_150_220 = hp.alm2cl(eflm1_150,eflm1_220)
+sim1_flbb_150_220 = hp.alm2cl(bflm1_150,bflm1_220)
+
+sim2_fltt_090_090 = hp.alm2cl(tflm2_95)
+sim2_flee_090_090 = hp.alm2cl(eflm2_95)
+sim2_flbb_090_090 = hp.alm2cl(bflm2_95)
+sim2_fltt_150_150 = hp.alm2cl(tflm2_150)
+sim2_flee_150_150 = hp.alm2cl(eflm2_150)
+sim2_flbb_150_150 = hp.alm2cl(bflm2_150)
+sim2_fltt_220_220 = hp.alm2cl(tflm2_220)
+sim2_flee_220_220 = hp.alm2cl(eflm2_220)
+sim2_flbb_220_220 = hp.alm2cl(bflm2_220)
+sim2_fltt_090_150 = hp.alm2cl(tflm2_95,tflm2_150)
+sim2_flee_090_150 = hp.alm2cl(eflm2_95,eflm2_150)
+sim2_flbb_090_150 = hp.alm2cl(bflm2_95,bflm2_150)
+sim2_fltt_090_220 = hp.alm2cl(tflm2_95,tflm2_220)
+sim2_flee_090_220 = hp.alm2cl(eflm2_95,eflm2_220)
+sim2_flbb_090_220 = hp.alm2cl(bflm2_95,bflm2_220)
+sim2_fltt_150_220 = hp.alm2cl(tflm2_150,tflm2_220)
+sim2_flee_150_220 = hp.alm2cl(eflm2_150,eflm2_220)
+sim2_flbb_150_220 = hp.alm2cl(bflm2_150,bflm2_220)
+
+plt.figure(3)
+plt.clf()
+plt.plot(ell, fg_curves_090_090[:lmax+1,1], color='firebrick', linestyle='-', label='fltt 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,1], color='sienna', linestyle='-', label='fltt 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,1], color='orange', linestyle='-', label='fltt 220 x 220 from file')
+plt.plot(ell, sim1_fltt_090_090, color='pink', linestyle='--', label='fltt 90 x 90 from sims')
+plt.plot(ell, sim1_fltt_150_150, color='sandybrown', linestyle='--', label='fltt 150 x 150 from sims')
+plt.plot(ell, sim1_fltt_220_220, color='bisque', linestyle='--', label='fltt 220 x 220 from sims')
+plt.plot(ell, fg_curves_090_090[:lmax+1,2], color='forestgreen', linestyle='-', label='flee 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,2], color='lightseagreen', linestyle='-', label='flee 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,2], color='olive', linestyle='-', label='flee 220 x 220 from file')
+plt.plot(ell, sim1_flee_090_090, color='lightgreen', linestyle='--', label='flee 90 x 90 from sims')
+plt.plot(ell, sim1_flee_150_150, color='mediumaquamarine', linestyle='--', label='flee 150 x 150 from sims')
+plt.plot(ell, sim1_flee_220_220, color='darkseagreen', linestyle='--', label='flee 220 x 220 from sims')
+plt.plot(ell, fg_curves_090_090[:lmax+1,3], color='darkblue', linestyle='-', label='flbb 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,3], color='rebeccapurple', linestyle='-', label='flbb 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,3], color='steelblue', linestyle='-', label='flbb 220 x 220 from file')
+plt.plot(ell, sim1_flbb_090_090, color='cornflowerblue', linestyle='--', label='flbb 90 x 90 from sims')
+plt.plot(ell, sim1_flbb_150_150, color='thistle', linestyle='--', label='flbb 150 x 150 from sims')
+plt.plot(ell, sim1_flbb_220_220, color='lightsteelblue', linestyle='--', label='flbb 220 x 220 from sims')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(200,lmax)
+plt.ylim(1e-10,1e-2)
+plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
+plt.title(f'Foregrounds Check, sim = {sim1}')
+plt.ylabel("$C_\ell$")
+plt.xlabel('$\ell$')
+plt.savefig(dir_out+f'/figs/fg_auto_spectra_mh_sim1.png',bbox_inches='tight')
+
+plt.clf()
+plt.plot(ell, fg_curves_090_090[:lmax+1,1], color='firebrick', linestyle='-', label='fltt 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,1], color='sienna', linestyle='-', label='fltt 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,1], color='orange', linestyle='-', label='fltt 220 x 220 from file')
+plt.plot(ell, sim2_fltt_090_090, color='pink', linestyle='--', label='fltt 90 x 90 from sims')
+plt.plot(ell, sim2_fltt_150_150, color='sandybrown', linestyle='--', label='fltt 150 x 150 from sims')
+plt.plot(ell, sim2_fltt_220_220, color='bisque', linestyle='--', label='fltt 220 x 220 from sims')
+plt.plot(ell, fg_curves_090_090[:lmax+1,2], color='forestgreen', linestyle='-', label='flee 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,2], color='lightseagreen', linestyle='-', label='flee 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,2], color='olive', linestyle='-', label='flee 220 x 220 from file')
+plt.plot(ell, sim2_flee_090_090, color='lightgreen', linestyle='--', label='flee 90 x 90 from sims')
+plt.plot(ell, sim2_flee_150_150, color='mediumaquamarine', linestyle='--', label='flee 150 x 150 from sims')
+plt.plot(ell, sim2_flee_220_220, color='darkseagreen', linestyle='--', label='flee 220 x 220 from sims')
+plt.plot(ell, fg_curves_090_090[:lmax+1,3], color='darkblue', linestyle='-', label='flbb 90 x 90 from file')
+plt.plot(ell, fg_curves_150_150[:lmax+1,3], color='rebeccapurple', linestyle='-', label='flbb 150 x 150 from file')
+plt.plot(ell, fg_curves_220_220[:lmax+1,3], color='steelblue', linestyle='-', label='flbb 220 x 220 from file')
+plt.plot(ell, sim2_flbb_090_090, color='cornflowerblue', linestyle='--', label='flbb 90 x 90 from sims')
+plt.plot(ell, sim2_flbb_150_150, color='thistle', linestyle='--', label='flbb 150 x 150 from sims')
+plt.plot(ell, sim2_flbb_220_220, color='lightsteelblue', linestyle='--', label='flbb 220 x 220 from sims')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(200,lmax)
+plt.ylim(1e-10,1e-2)
+plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
+plt.title(f'Foregrounds Check, sim = {sim2}')
+plt.ylabel("$C_\ell$")
+plt.xlabel('$\ell$')
+plt.savefig(dir_out+f'/figs/fg_auto_spectra_mh_sim2.png',bbox_inches='tight')
+
+plt.clf()
+plt.plot(ell, sim1_fltt_090_150, color='pink', linestyle='--', label='fltt 90 x 150 from sims')
+plt.plot(ell, sim1_fltt_090_220, color='sandybrown', linestyle='--', label='fltt 90 x 220 from sims')
+plt.plot(ell, sim1_fltt_150_220, color='bisque', linestyle='--', label='fltt 150 x 220 from sims')
+plt.plot(ell, sim1_flee_090_150, color='lightgreen', linestyle='--', label='flee 90 x 150 from sims')
+plt.plot(ell, sim1_flee_090_220, color='mediumaquamarine', linestyle='--', label='flee 90 x 220 from sims')
+plt.plot(ell, sim1_flee_150_220, color='darkseagreen', linestyle='--', label='flee 150 x 220 from sims')
+plt.plot(ell, sim1_flbb_090_150, color='cornflowerblue', linestyle='--', label='flbb 90 x 150 from sims')
+plt.plot(ell, sim1_flbb_090_220, color='thistle', linestyle='--', label='flbb 90 x 220 from sims')
+plt.plot(ell, sim1_flbb_150_220, color='lightsteelblue', linestyle='--', label='flbb 150 x 220 from sims')
+plt.plot(ell, fg_curves_090_150[:lmax+1,1], color='firebrick', linestyle='-', label='fltt 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,1], color='sienna', linestyle='-', label='fltt 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,1], color='orange', linestyle='-', label='fltt 150 x 220 from file')
+plt.plot(ell, fg_curves_090_150[:lmax+1,2], color='forestgreen', linestyle='-', label='flee 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,2], color='lightseagreen', linestyle='-', label='flee 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,2], color='olive', linestyle='-', label='flee 150 x 220 from file')
+plt.plot(ell, fg_curves_090_150[:lmax+1,3], color='darkblue', linestyle='-', label='flbb 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,3], color='rebeccapurple', linestyle='-', label='flbb 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,3], color='steelblue', linestyle='-', label='flbb 150 x 220 from file')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(200,lmax)
+plt.ylim(1e-10,1e-3)
+plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
+plt.title(f'Foregrounds Check, sim = {sim1}')
+plt.ylabel("$C_\ell$")
+plt.xlabel('$\ell$')
+plt.savefig(dir_out+f'/figs/fg_cross_spectra_mh_sim1.png',bbox_inches='tight')
+
+plt.clf()
+plt.plot(ell, sim2_fltt_090_150, color='pink', linestyle='--', label='fltt 90 x 150 from sims')
+plt.plot(ell, sim2_fltt_090_220, color='sandybrown', linestyle='--', label='fltt 90 x 220 from sims')
+plt.plot(ell, sim2_fltt_150_220, color='bisque', linestyle='--', label='fltt 150 x 220 from sims')
+plt.plot(ell, sim2_flee_090_150, color='lightgreen', linestyle='--', label='flee 90 x 150 from sims')
+plt.plot(ell, sim2_flee_090_220, color='mediumaquamarine', linestyle='--', label='flee 90 x 220 from sims')
+plt.plot(ell, sim2_flee_150_220, color='darkseagreen', linestyle='--', label='flee 150 x 220 from sims')
+plt.plot(ell, sim2_flbb_090_150, color='cornflowerblue', linestyle='--', label='flbb 90 x 150 from sims')
+plt.plot(ell, sim2_flbb_090_220, color='thistle', linestyle='--', label='flbb 90 x 220 from sims')
+plt.plot(ell, sim2_flbb_150_220, color='lightsteelblue', linestyle='--', label='flbb 150 x 220 from sims')
+plt.plot(ell, fg_curves_090_150[:lmax+1,1], color='firebrick', linestyle='-', label='fltt 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,1], color='sienna', linestyle='-', label='fltt 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,1], color='orange', linestyle='-', label='fltt 150 x 220 from file')
+plt.plot(ell, fg_curves_090_150[:lmax+1,2], color='forestgreen', linestyle='-', label='flee 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,2], color='lightseagreen', linestyle='-', label='flee 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,2], color='olive', linestyle='-', label='flee 150 x 220 from file')
+plt.plot(ell, fg_curves_090_150[:lmax+1,3], color='darkblue', linestyle='-', label='flbb 90 x 150 from file')
+plt.plot(ell, fg_curves_090_220[:lmax+1,3], color='rebeccapurple', linestyle='-', label='flbb 90 x 220 from file')
+plt.plot(ell, fg_curves_150_220[:lmax+1,3], color='steelblue', linestyle='-', label='flbb 150 x 220 from file')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(200,lmax)
+plt.ylim(1e-10,1e-3)
+plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
+plt.title(f'Foregrounds Check, sim = {sim2}')
+plt.ylabel("$C_\ell$")
+plt.xlabel('$\ell$')
+plt.savefig(dir_out+f'/figs/fg_cross_spectra_mh_sim2.png',bbox_inches='tight')
 

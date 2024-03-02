@@ -12,10 +12,10 @@ import weights
 import wignerd
 import resp
 
-def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
+def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             config_file='mh_yuka.yaml',
             save_fig=True,
-            unl=False,notmh=True,
+            unl=False,notmh=False,
             n0=True,n1=True,resp_from_sims=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
@@ -40,7 +40,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         append = 'mh_unl'
 
     # Get SQE response
-    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    if append == 'notmh_crossilcFalse':
+        ests = ['T1T2', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    else:
+        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
     resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
@@ -50,8 +53,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
             resps_original[:,i] = get_analytic_response(est,config,gmv=False,append=append)
         inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
     #TODO
-    #resp_original = np.sum(resps_original, axis=1)
-    resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
+    if append == 'notmh_crossilcFalse':
+        resp_original = np.sum(resps_original, axis=1)
+    else:
+        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
     inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
     # GMV response
@@ -145,8 +150,10 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         for i, est in enumerate(ests):
             plms_original[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
         #TODO
-        #plm_original = np.sum(plms_original, axis=1)
-        plm_original = 0.5*plms_original[:,0]+0.5*plms_original[:,1]+np.sum(plms_original[:,2:], axis=1)
+        if append == 'notmh_crossilcFalse':
+            plm_original = np.sum(plms_original, axis=1)
+        else:
+            plm_original = 0.5*plms_original[:,0]+0.5*plms_original[:,1]+np.sum(plms_original[:,2:], axis=1)
 
         # MF subtract
         #plm_gmv -= mf_gmv_total
@@ -157,15 +164,25 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         plm_gmv_resp_corr_TTEETE = hp.almxfl(plm_gmv_TTEETE,inv_resp_gmv_TTEETE)
         plm_gmv_resp_corr_TBEB = hp.almxfl(plm_gmv_TBEB,inv_resp_gmv_TBEB)
         plm_original_resp_corr = hp.almxfl(plm_original,inv_resp_original)
-        plm_original_resp_corr_T1T2 = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
-        plm_original_resp_corr_T2T1 = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
-        plm_original_resp_corr_EE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
-        plm_original_resp_corr_TE = hp.almxfl(plms_original[:,3],inv_resps_original[:,3])
-        plm_original_resp_corr_ET = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
-        plm_original_resp_corr_TB = hp.almxfl(plms_original[:,5],inv_resps_original[:,5])
-        plm_original_resp_corr_BT = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
-        plm_original_resp_corr_EB = hp.almxfl(plms_original[:,7],inv_resps_original[:,7])
-        plm_original_resp_corr_BE = hp.almxfl(plms_original[:,8],inv_resps_original[:,8])
+        if append == 'notmh_crossilcFalse':
+            plm_original_resp_corr_T1T2 = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
+            plm_original_resp_corr_EE = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
+            plm_original_resp_corr_TE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
+            plm_original_resp_corr_ET = hp.almxfl(plms_original[:,3],inv_resps_original[:,3])
+            plm_original_resp_corr_TB = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
+            plm_original_resp_corr_BT = hp.almxfl(plms_original[:,5],inv_resps_original[:,5])
+            plm_original_resp_corr_EB = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
+            plm_original_resp_corr_BE = hp.almxfl(plms_original[:,7],inv_resps_original[:,7])
+        else:
+            plm_original_resp_corr_T1T2 = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
+            plm_original_resp_corr_T2T1 = hp.almxfl(plms_original[:,1],inv_resps_original[:,1])
+            plm_original_resp_corr_EE = hp.almxfl(plms_original[:,2],inv_resps_original[:,2])
+            plm_original_resp_corr_TE = hp.almxfl(plms_original[:,3],inv_resps_original[:,3])
+            plm_original_resp_corr_ET = hp.almxfl(plms_original[:,4],inv_resps_original[:,4])
+            plm_original_resp_corr_TB = hp.almxfl(plms_original[:,5],inv_resps_original[:,5])
+            plm_original_resp_corr_BT = hp.almxfl(plms_original[:,6],inv_resps_original[:,6])
+            plm_original_resp_corr_EB = hp.almxfl(plms_original[:,7],inv_resps_original[:,7])
+            plm_original_resp_corr_BE = hp.almxfl(plms_original[:,8],inv_resps_original[:,8])
 
         # Get spectra
         auto_gmv = hp.alm2cl(plm_gmv_resp_corr, plm_gmv_resp_corr, lmax=lmax) * (l*(l+1))**2/4
@@ -173,7 +190,8 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         auto_gmv_TBEB = hp.alm2cl(plm_gmv_resp_corr_TBEB, plm_gmv_resp_corr_TBEB, lmax=lmax) * (l*(l+1))**2/4
         auto_original = hp.alm2cl(plm_original_resp_corr, plm_original_resp_corr, lmax=lmax) * (l*(l+1))**2/4
         auto_original_T1T2 = hp.alm2cl(plm_original_resp_corr_T1T2, plm_original_resp_corr_T1T2, lmax=lmax) * (l*(l+1))**2/4
-        auto_original_T2T1 = hp.alm2cl(plm_original_resp_corr_T2T1, plm_original_resp_corr_T2T1, lmax=lmax) * (l*(l+1))**2/4
+        if not append == 'notmh_crossilcFalse':
+            auto_original_T2T1 = hp.alm2cl(plm_original_resp_corr_T2T1, plm_original_resp_corr_T2T1, lmax=lmax) * (l*(l+1))**2/4
         auto_original_EE = hp.alm2cl(plm_original_resp_corr_EE, plm_original_resp_corr_EE, lmax=lmax) * (l*(l+1))**2/4
         auto_original_TE = hp.alm2cl(plm_original_resp_corr_TE, plm_original_resp_corr_TE, lmax=lmax) * (l*(l+1))**2/4
         auto_original_ET = hp.alm2cl(plm_original_resp_corr_ET, plm_original_resp_corr_ET, lmax=lmax) * (l*(l+1))**2/4
@@ -186,11 +204,11 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         if n0 and n1:
             auto_gmv_debiased = auto_gmv - n0_gmv_total - n1_gmv_total
             auto_original_debiased = auto_original - n0_original_total - n1_original_total
-            auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2 - (n1_original_T1T2+n1_original_T2T1)*0.5
+            #auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2 - (n1_original_T1T2+n1_original_T2T1)*0.5
         elif n0:
             auto_gmv_debiased = auto_gmv - n0_gmv_total
             auto_original_debiased = auto_original - n0_original_total
-            auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2
+            #auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2
 
         # Sum the auto spectra
         auto_gmv_all += auto_gmv
@@ -198,7 +216,8 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         auto_gmv_all_TBEB += auto_gmv_TBEB
         auto_original_all += auto_original
         auto_original_all_T1T2 += auto_original_T1T2
-        auto_original_all_T2T1 += auto_original_T2T1
+        if not append == 'notmh_crossilcFalse':
+            auto_original_all_T2T1 += auto_original_T2T1
         auto_original_all_EE += auto_original_EE
         auto_original_all_TE += auto_original_TE
         auto_original_all_ET += auto_original_ET
@@ -209,7 +228,7 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
         if n0:
             auto_gmv_debiased_all += auto_gmv_debiased
             auto_original_debiased_all += auto_original_debiased
-            auto_original_debiased_all_TT += auto_original_debiased_TT
+            #auto_original_debiased_all_TT += auto_original_debiased_TT
 
         if not unl:
             input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
@@ -222,12 +241,12 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
                 # Bin!
                 binned_auto_gmv_debiased = [auto_gmv_debiased[digitized == i].mean() for i in range(1, len(lbins))]
                 binned_auto_original_debiased = [auto_original_debiased[digitized == i].mean() for i in range(1, len(lbins))]
-                binned_auto_original_debiased_TT = [auto_original_debiased_TT[digitized == i].mean() for i in range(1, len(lbins))]
+                #binned_auto_original_debiased_TT = [auto_original_debiased_TT[digitized == i].mean() for i in range(1, len(lbins))]
                 binned_auto_input = [auto_input[digitized == i].mean() for i in range(1, len(lbins))]
                 # Get ratio
                 ratio_gmv[ii,:] = np.array(binned_auto_gmv_debiased) / np.array(binned_auto_input)
                 ratio_original[ii,:] = np.array(binned_auto_original_debiased) / np.array(binned_auto_input)
-                ratio_original_TT[ii,:] = np.array(binned_auto_original_debiased_TT) / np.array(binned_auto_input)
+                #ratio_original_TT[ii,:] = np.array(binned_auto_original_debiased_TT) / np.array(binned_auto_input)
 
     # Average
     auto_gmv_avg = auto_gmv_all / num
@@ -235,7 +254,8 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     auto_gmv_avg_TBEB = auto_gmv_all_TBEB / num
     auto_original_avg = auto_original_all / num
     auto_original_avg_T1T2 = auto_original_all_T1T2 / num
-    auto_original_avg_T2T1 = auto_original_all_T2T1 / num
+    if not append == 'notmh_crossilcFalse':
+        auto_original_avg_T2T1 = auto_original_all_T2T1 / num
     auto_original_avg_EE = auto_original_all_EE / num
     auto_original_avg_TE = auto_original_all_TE / num
     auto_original_avg_ET = auto_original_all_ET / num
@@ -246,18 +266,18 @@ def analyze(sims=np.arange(40)+1,n0_n1_sims=np.arange(39)+1,
     if n0:
         auto_gmv_debiased_avg = auto_gmv_debiased_all / num
         auto_original_debiased_avg = auto_original_debiased_all / num
-        auto_original_debiased_avg_TT = auto_original_debiased_all_TT / num
+        #auto_original_debiased_avg_TT = auto_original_debiased_all_TT / num
         # If debiasing, get the ratio points, error bars for the ratio points, and bin
         errorbars_gmv = np.std(ratio_gmv,axis=0)/np.sqrt(num)
         errorbars_original = np.std(ratio_original,axis=0)/np.sqrt(num)
-        errorbars_original_TT = np.std(ratio_original_TT,axis=0)/np.sqrt(num)
+        #errorbars_original_TT = np.std(ratio_original_TT,axis=0)/np.sqrt(num)
         ratio_gmv = np.mean(ratio_gmv,axis=0)
         ratio_original = np.mean(ratio_original,axis=0)
-        ratio_original_TT = np.mean(ratio_original_TT,axis=0)
+        #ratio_original_TT = np.mean(ratio_original_TT,axis=0)
         # Bin!
         binned_auto_gmv_debiased_avg = [auto_gmv_debiased_avg[digitized == i].mean() for i in range(1, len(lbins))]
         binned_auto_original_debiased_avg = [auto_original_debiased_avg[digitized == i].mean() for i in range(1, len(lbins))]
-        binned_auto_original_debiased_avg_TT = [auto_original_debiased_avg_TT[digitized == i].mean() for i in range(1, len(lbins))]
+        #binned_auto_original_debiased_avg_TT = [auto_original_debiased_avg_TT[digitized == i].mean() for i in range(1, len(lbins))]
 
     if not unl:
         # Average the cross with input spectra
@@ -1240,8 +1260,11 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
             pickle.dump(n1, f)
 
     elif qetype == 'sqe':
-        # SQE response
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        # Get SQE response
+        if append == 'notmh_crossilcFalse':
+            ests = ['T1T2', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        else:
+            ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
@@ -1251,15 +1274,18 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
                 resps_original[:,i] = get_analytic_response(est,config,gmv=False,append=append)
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
         #TODO
-        #resp_original = np.sum(resps_original, axis=1)
-        resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
+        if append == 'notmh_crossilcFalse':
+            resp_original = np.sum(resps_original, axis=1)
+        else:
+            resp_original = 0.5*resps_original[:,0]+0.5*resps_original[:,1]+np.sum(resps_original[:,2:], axis=1)
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
 
         n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
         for i, sim in enumerate(sims):
             # Get the lensed ij sims
             plm_T1T2_ij = np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
-            plm_T2T1_ij = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
+            if not append == 'notmh_crossilcFalse':
+                plm_T2T1_ij = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
             plm_EE_ij = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
             plm_TE_ij = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
             plm_ET_ij = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2.npy')
@@ -1270,7 +1296,8 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
 
             # Now get the ji sims
             plm_T1T2_ji = np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
-            plm_T2T1_ji = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
+            if not append == 'notmh_crossilcFalse':
+                plm_T2T1_ji = np.load(dir_out+f'/plm_T2T1_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
             plm_EE_ji = np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
             plm_TE_ji = np.load(dir_out+f'/plm_TE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
             plm_ET_ji = np.load(dir_out+f'/plm_ET_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
@@ -1279,38 +1306,63 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
             plm_EB_ji = np.load(dir_out+f'/plm_EB_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
             plm_BE_ji = np.load(dir_out+f'/plm_BE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1.npy')
 
-            # NINE estimators!!!
             #TODO
-            plm_total_ij = 0.5*plm_T1T2_ij + 0.5*plm_T2T1_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
-            plm_total_ji = 0.5*plm_T1T2_ji + 0.5*plm_T2T1_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ij
+            if append == 'notmh_crossilcFalse':
+                plm_total_ij = plm_T1T2_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
+                plm_total_ji = plm_T1T2_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ji
+            else:
+                # NINE estimators!!!
+                plm_total_ij = 0.5*plm_T1T2_ij + 0.5*plm_T2T1_ij + plm_EE_ij + plm_TE_ij + plm_ET_ij + plm_TB_ij + plm_BT_ij + plm_EB_ij + plm_BE_ij
+                plm_total_ji = 0.5*plm_T1T2_ji + 0.5*plm_T2T1_ji + plm_EE_ji + plm_TE_ji + plm_ET_ji + plm_TB_ji + plm_BT_ji + plm_EB_ji + plm_BE_ji
 
             # Response correct healqest
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp_original)
-            plm_T1T2_ij = hp.almxfl(plm_T1T2_ij,inv_resps_original[:,0])
-            plm_T2T1_ij = hp.almxfl(plm_T2T1_ij,inv_resps_original[:,1])
-            plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,2])
-            plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,3])
-            plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,4])
-            plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,5])
-            plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,6])
-            plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,7])
-            plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,8])
+            if append == 'notmh_crossilcFalse':
+                plm_T1T2_ij = hp.almxfl(plm_T1T2_ij,inv_resps_original[:,0])
+                plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,1])
+                plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,2])
+                plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,3])
+                plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,4])
+                plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,5])
+                plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,6])
+                plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,7])
+            else:
+                plm_T1T2_ij = hp.almxfl(plm_T1T2_ij,inv_resps_original[:,0])
+                plm_T2T1_ij = hp.almxfl(plm_T2T1_ij,inv_resps_original[:,1])
+                plm_EE_ij = hp.almxfl(plm_EE_ij,inv_resps_original[:,2])
+                plm_TE_ij = hp.almxfl(plm_TE_ij,inv_resps_original[:,3])
+                plm_ET_ij = hp.almxfl(plm_ET_ij,inv_resps_original[:,4])
+                plm_TB_ij = hp.almxfl(plm_TB_ij,inv_resps_original[:,5])
+                plm_BT_ij = hp.almxfl(plm_BT_ij,inv_resps_original[:,6])
+                plm_EB_ij = hp.almxfl(plm_EB_ij,inv_resps_original[:,7])
+                plm_BE_ij = hp.almxfl(plm_BE_ij,inv_resps_original[:,8])
 
             plm_total_ji = hp.almxfl(plm_total_ji,inv_resp_original)
-            plm_T1T2_ji = hp.almxfl(plm_T1T2_ji,inv_resps_original[:,0])
-            plm_T2T1_ji = hp.almxfl(plm_T2T1_ji,inv_resps_original[:,1])
-            plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,2])
-            plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,3])
-            plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,4])
-            plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,5])
-            plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,6])
-            plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,7])
-            plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,8])
+            if append == 'notmh_crossilcFalse':
+                plm_T1T2_ji = hp.almxfl(plm_T1T2_ji,inv_resps_original[:,0])
+                plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,1])
+                plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,2])
+                plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,3])
+                plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,4])
+                plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,5])
+                plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,6])
+                plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,7])
+            else:
+                plm_T1T2_ji = hp.almxfl(plm_T1T2_ji,inv_resps_original[:,0])
+                plm_T2T1_ji = hp.almxfl(plm_T2T1_ji,inv_resps_original[:,1])
+                plm_EE_ji = hp.almxfl(plm_EE_ji,inv_resps_original[:,2])
+                plm_TE_ji = hp.almxfl(plm_TE_ji,inv_resps_original[:,3])
+                plm_ET_ji = hp.almxfl(plm_ET_ji,inv_resps_original[:,4])
+                plm_TB_ji = hp.almxfl(plm_TB_ji,inv_resps_original[:,5])
+                plm_BT_ji = hp.almxfl(plm_BT_ji,inv_resps_original[:,6])
+                plm_EB_ji = hp.almxfl(plm_EB_ji,inv_resps_original[:,7])
+                plm_BE_ji = hp.almxfl(plm_BE_ji,inv_resps_original[:,8])
 
             # Get ij auto spectra <ijij>
             auto = hp.alm2cl(plm_total_ij, plm_total_ij, lmax=lmax)
             auto_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ij, lmax=lmax)
-            auto_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ij, lmax=lmax)
+            if not append == 'notmh_crossilcFalse':
+                auto_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ij, lmax=lmax)
             auto_EE = hp.alm2cl(plm_EE_ij, plm_EE_ij, lmax=lmax)
             auto_TE = hp.alm2cl(plm_TE_ij, plm_TE_ij, lmax=lmax)
             auto_ET = hp.alm2cl(plm_ET_ij, plm_ET_ij, lmax=lmax)
@@ -1322,7 +1374,8 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
             cross_T1T2 = hp.alm2cl(plm_T1T2_ij, plm_T1T2_ji, lmax=lmax)
-            cross_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ji, lmax=lmax)
+            if not append == 'notmh_crossilcFalse':
+                cross_T2T1 = hp.alm2cl(plm_T2T1_ij, plm_T2T1_ji, lmax=lmax)
             cross_EE = hp.alm2cl(plm_EE_ij, plm_EE_ji, lmax=lmax)
             cross_TE = hp.alm2cl(plm_TE_ij, plm_TE_ji, lmax=lmax)
             cross_ET = hp.alm2cl(plm_ET_ij, plm_ET_ji, lmax=lmax)
@@ -1333,7 +1386,8 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
 
             n1['total'] += auto + cross
             n1['T1T2'] += auto_T1T2 + cross_T1T2
-            n1['T2T1'] += auto_T2T1 + cross_T2T1
+            if not append == 'notmh_crossilcFalse':
+                n1['T2T1'] += auto_T2T1 + cross_T2T1
             n1['EE'] += auto_EE + cross_EE
             n1['TE'] += auto_TE + cross_TE
             n1['ET'] += auto_ET + cross_ET
@@ -1344,7 +1398,8 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
 
         n1['total'] *= 1/num
         n1['T1T2'] *= 1/num
-        n1['T2T1'] *= 1/num
+        if not append == 'notmh_crossilcFalse':
+            n1['T2T1'] *= 1/num
         n1['EE'] *= 1/num
         n1['TE'] *= 1/num
         n1['ET'] *= 1/num
@@ -1358,7 +1413,8 @@ def get_n1(sims, qetype, config, resp_from_sims, append='mh'):
 
         n1['total'] -= n0['total']
         n1['T1T2'] -= n0['T1T2']
-        n1['T2T1'] -= n0['T2T1']
+        if not append == 'notmh_crossilcFalse':
+            n1['T2T1'] -= n0['T2T1']
         n1['EE'] -= n0['EE']
         n1['TE'] -= n0['TE']
         n1['ET'] -= n0['ET']
@@ -1585,6 +1641,7 @@ def get_analytic_response(est, config, gmv, append='mh',
     If not gmv, assume sqe and est should be 'TT'/'EE'/'TE'/'TB'/'EB'.
     Also, we are taking lmax values from the config file, so make sure those are right.
     Note we are also assuming noise files used in the MH test, and just loading the saved totalcl file.
+    NOT implemented for notmh_crossilcFalse.
     '''
     print(f'Computing analytic response for est {est}')
     lmax = config['lensrec']['Lmax']
@@ -1615,8 +1672,23 @@ def get_analytic_response(est, config, gmv, append='mh',
     else:
         # File doesn't exist!
         # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
-        totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
-        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        if append == 'mh':
+            totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
+            cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+        elif append == 'notmh':
+            artificial_noise = np.zeros(lmax+1)
+            artificial_noise[lmaxT+2:] = 1.e10
+            noise_file = 'nl_cmbmv_20192020.dat'
+            fsky_corr = 25.308939726920805
+            noise_curves = np.loadtxt(noise_file)
+            nltt = fsky_corr * noise_curves[:,1]; nlee = fsky_corr * noise_curves[:,2]; nlbb = fsky_corr * noise_curves[:,2]
+            cltt = sl['tt'][:lmax+1] + nltt[:lmax+1] + artificial_noise
+            clee = sl['ee'][:lmax+1] + nlee[:lmax+1]
+            clbb = sl['bb'][:lmax+1] + nlbb[:lmax+1]
+            clte = sl['te'][:lmax+1]
+            #totalcls = np.vstack((cltt,clee,clbb,clte)).T
+            totalcls = np.vstack((cltt,clee,clbb,clte,cltt,cltt,cltt,cltt,cltt,clte,clte)).T
+            cltt1 = cltt; cltt2 = cltt
 
         if not gmv:
             # Create 1/Nl filters
@@ -1626,14 +1698,12 @@ def get_analytic_response(est, config, gmv, append='mh',
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
             if est[:2] == 'T1': flX = flt1
-            elif est[:2] == 'T2' and append == 'notmh': flX = flt1
             elif est[:2] == 'T2': flX = flt2
             elif est[0] == 'T': flX = flt1
             elif est[0] == 'E': flX = fle
             elif est[0] == 'B': flX = flb
 
             if est[2:4] == 'T1': flY = flt1
-            elif est[2:4] == 'T2' and append == 'notmh': flY = flt1
             elif est[2:4] == 'T2': flY = flt2
             elif est[1] == 'T': flY = flt1
             elif est[1] == 'E': flY = fle
@@ -1646,8 +1716,6 @@ def get_analytic_response(est, config, gmv, append='mh',
             np.save(filename, R)
         else:
             # GMV response
-            if append == 'notmh':
-                totalcls = np.vstack((cltt1,clee,clbb,clte,cltt1,cltt1,cltt1,cltt1,cltt1,clte,clte)).T
             gmv_r = gmv_resp.gmv_resp(config,cltype,totalcls,u=None,crossilc=True,save_path=filename)
             if est == 'TTEETE' or est == 'TBEB' or est == 'all':
                 gmv_r.calc_tvar()

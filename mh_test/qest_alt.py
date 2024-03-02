@@ -85,7 +85,7 @@ class qest(object):
             if qe == 'TTprf':
                 assert u is not None, "Need profile function to compute this estimator"
 
-            #ef __init__(self,config,cls,est,u=None,totalcls=None):
+            #def __init__(self,config,cls,est,u=None,totalcls=None):
             q = weights.weights(qe, self.cls[self.cltype], self.lmax, u=u)
 
             #sys.exit()

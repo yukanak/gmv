@@ -17,8 +17,9 @@ append = 'mh'
 l = np.arange(0,lmax+1)
 
 ell,sltt,slee,slbb,slte = utils.get_lensedcls('/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat' ,lmax=lmax)
-n = 40
+n = 99
 
+'''
 cltt1 = np.zeros(lmax+1)
 cltt2 = np.zeros(lmax+1)
 clttx = np.zeros(lmax+1)
@@ -57,6 +58,9 @@ clt2e /= 40
 # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
 totalcls_avg = np.vstack((cltt3,clee,clbb,clte,cltt1,cltt2,clttx,clt1t3,clt2t3,clt1e,clt2e)).T
 np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
+'''
+
+totalcls_avg = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
 
 plt.figure(0)
 plt.clf()
@@ -75,7 +79,7 @@ plt.yscale('log')
 plt.xlim(10,lmax)
 plt.ylim(1e-9,1e2)
 plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
-plt.title('average of sims 1 through 40')
+plt.title(f'average of sims 1 through {n}')
 plt.ylabel("$C_\ell$")
 plt.xlabel('$\ell$')
 plt.savefig(dir_out+f'/figs/totalcls_vs_signal_mh_average.png',bbox_inches='tight')
