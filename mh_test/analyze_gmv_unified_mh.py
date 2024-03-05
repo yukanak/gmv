@@ -424,8 +424,8 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
         plt.title(f'Spectra Averaged over {num} Sims')
         plt.legend(loc='lower left', fontsize='x-small')
         plt.xscale('log')
-        #plt.ylim(0.98,1.02)
-        plt.ylim(0.95,1.10)
+        plt.ylim(0.98,1.02)
+        #plt.ylim(0.95,1.10)
         plt.xlim(10,lmax)
         if save_fig:
             if n1:
@@ -1671,7 +1671,7 @@ def get_analytic_response(est, config, gmv, append='mh',
         R = np.load(filename)
     else:
         # File doesn't exist!
-        # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 40 sims
+        # Load total Cls; these are for the MH test, obtained from alm2cl and averaging over 99 sims
         if append == 'mh':
             totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_mh.npy')
             cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]

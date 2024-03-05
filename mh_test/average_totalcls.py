@@ -19,7 +19,6 @@ l = np.arange(0,lmax+1)
 ell,sltt,slee,slbb,slte = utils.get_lensedcls('/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat' ,lmax=lmax)
 n = 99
 
-'''
 cltt1 = np.zeros(lmax+1)
 cltt2 = np.zeros(lmax+1)
 clttx = np.zeros(lmax+1)
@@ -44,23 +43,22 @@ for i in np.arange(n)+1:
     clt2t3 += totalcls[:,8]
     clt1e += totalcls[:,9]
     clt2e += totalcls[:,10]
-cltt1 /= 40
-cltt2 /= 40
-clttx /= 40
-cltt3 /= 40
-clee /= 40
-clbb /= 40
-clte /= 40
-clt1t3 /= 40
-clt2t3 /= 40
-clt1e /= 40
-clt2e /= 40
+cltt1 /= n
+cltt2 /= n
+clttx /= n
+cltt3 /= n
+clee /= n
+clbb /= n
+clte /= n
+clt1t3 /= n
+clt2t3 /= n
+clt1e /= n
+clt2e /= n
 # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
 totalcls_avg = np.vstack((cltt3,clee,clbb,clte,cltt1,cltt2,clttx,clt1t3,clt2t3,clt1e,clt2e)).T
 np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
-'''
 
-totalcls_avg = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+#totalcls_avg = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
 
 plt.figure(0)
 plt.clf()
