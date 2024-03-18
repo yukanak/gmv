@@ -26,7 +26,13 @@ def compare_n0(config_file='test_yuka.yaml'):
     nside = config['lensrec']['nside']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
-    #TODO: should i be using kappa units? (l*(l+1))**2/4 factor or 2pi in denom instead
+
+    # Standard SQE
+    # Full sky, no masking, no ILC weighting
+    # No foregrounds, just signal + Gaussian uncorrelated noise generated from 2019/2020 noise curves
+    filename = dir_out+f'/n0/n0_lensing19-20_no_foregrounds_with_ilc_noise/n0_98simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_cmbonly_resp_from_sims.pkl'
+    n0_sqe = pickle.load(open(filename,'rb'))
+    n0_sqe_total = n0_sqe['total'] * (l*(l+1))**2/4
 
     # Standard GMV
     # Full sky, no masking, no ILC weighting
@@ -47,8 +53,24 @@ def compare_n0(config_file='test_yuka.yaml'):
     n0_mh_TBEB = n0_mh['TBEB'] * (l*(l+1))**2/4
 
     # Cross-ILC GMV
+    filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_crossilc_onesed_resp_from_sims.pkl'
+    n0_crossilc_onesed = pickle.load(open(filename,'rb'))
+    n0_crossilc_onesed_total = n0_crossilc_onesed['total'] * (l*(l+1))**2/4
+    n0_crossilc_onesed_TTEETE = n0_crossilc_onesed['TTEETE'] * (l*(l+1))**2/4
+    n0_crossilc_onesed_TBEB = n0_crossilc_onesed['TBEB'] * (l*(l+1))**2/4
+    filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_crossilc_twoseds_resp_from_sims.pkl'
+    n0_crossilc_twoseds = pickle.load(open(filename,'rb'))
+    n0_crossilc_twoseds_total = n0_crossilc_twoseds['total'] * (l*(l+1))**2/4
+    n0_crossilc_twoseds_TTEETE = n0_crossilc_twoseds['TTEETE'] * (l*(l+1))**2/4
+    n0_crossilc_twoseds_TBEB = n0_crossilc_twoseds['TBEB'] * (l*(l+1))**2/4
+
 
     # Profile hardened GMV
+    filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_profhrd_resp_from_sims.pkl'
+    n0_profhrd = pickle.load(open(filename,'rb'))
+    n0_profhrd_total = n0_profhrd['total'] * (l*(l+1))**2/4
+    n0_profhrd_TTEETE = n0_profhrd['TTEETE'] * (l*(l+1))**2/4
+    n0_profhrd_TBEB = n0_profhrd['TBEB'] * (l*(l+1))**2/4
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -59,20 +81,21 @@ def compare_n0(config_file='test_yuka.yaml'):
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, n0_standard_total, color='darkblue', linestyle='-',label='Standard GMV, total')
-    plt.plot(l, n0_standard_TTEETE, color='forestgreen', linestyle='-',label='Standard GMV, TTEETE')
-    plt.plot(l, n0_standard_TBEB, color='blueviolet', linestyle='-',label='Standard GMV, TBEB')
+    plt.plot(l, n0_sqe_total, color='firebrick', alpha=0.8, linestyle='-',label='Standard SQE, MV')
+    plt.plot(l, n0_standard_total, color='darkblue', alpha=0.8, linestyle='-',label='Standard GMV, total')
+    plt.plot(l, n0_crossilc_onesed_total, color='goldenrod', alpha=0.8, linestyle='-',label='Cross-ILC GMV (one component CIB), total')
+    plt.plot(l, n0_crossilc_twoseds_total, color='sandybrown', alpha=0.8, linestyle='-',label='Cross-ILC GMV (two component CIB), total')
+    plt.plot(l, n0_mh_total, color='darkseagreen', alpha=0.8, linestyle='-',label='MH GMV, total')
+    plt.plot(l, n0_profhrd_total, color='blueviolet', alpha=0.8, linestyle='-',label='Profile Hardened GMV, total')
 
-    plt.plot(l, n0_mh_total, color='powderblue', linestyle='-',label='MH GMV, total')
-    plt.plot(l, n0_mh_TTEETE, color='olive', linestyle='-',label='MH GMV, TTEETE')
-    plt.plot(l, n0_mh_TBEB, color='rebeccapurple', linestyle='-',label='MH GMV, TBEB')
-
-    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.ylabel("$[\ell(\ell+1)]^2$$N_0$ / 4 $[\mu K^2]$")
     plt.xlabel('$\ell$')
     plt.title(f'GMV $N_0$ Comparison')
-    plt.legend(loc='center left', bbox_to_anchor=(1,0.5), fontsize='x-small')
+    plt.legend(loc='upper left', fontsize='x-small')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    plt.ylim(1e-8,1e-5)
+    plt.ylim(1e-8,1e-6)
     plt.savefig(dir_out+f'/figs/n0_comparison_gmv.png',bbox_inches='tight')
+
+compare_n0()
