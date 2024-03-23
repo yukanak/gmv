@@ -138,6 +138,14 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     ratio_gmv = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
     ratio_original = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
     ratio_original_TT = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
+    temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_gmv_TTEETE = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe_TT = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv_TTEETE = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe_TT = np.zeros((len(sims),len(l)),dtype=np.complex_)
 
     for ii, sim in enumerate(sims):
         # Load GMV plms
@@ -204,7 +212,8 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
         if n0 and n1:
             auto_gmv_debiased = auto_gmv - n0_gmv_total - n1_gmv_total
             auto_original_debiased = auto_original - n0_original_total - n1_original_total
-            #auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2 - (n1_original_T1T2+n1_original_T2T1)*0.5
+            auto_gmv_debiased_TTEETE = auto_gmv_TTEETE - n0_gmv_TTEETE - n1_gmv_TTEETE
+            auto_original_debiased_TT = (auto_original_T1T2+auto_original_T2T1)*0.5 - n0_original_T1T2 - (n1_original_T1T2+n1_original_T2T1)*0.5
         elif n0:
             auto_gmv_debiased = auto_gmv - n0_gmv_total
             auto_original_debiased = auto_original - n0_original_total
@@ -229,6 +238,15 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             auto_gmv_debiased_all += auto_gmv_debiased
             auto_original_debiased_all += auto_original_debiased
             #auto_original_debiased_all_TT += auto_original_debiased_TT
+            # Need this to compute uncertainty...
+            temp_gmv[ii,:] = auto_gmv_debiased
+            temp_sqe[ii,:] = auto_original_debiased
+            temp_gmv_TTEETE[ii,:] = auto_gmv_debiased_TTEETE
+            temp_sqe_TT[ii,:] = auto_original_debiased_TT
+            binned_temp_gmv = [auto_gmv_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe = [auto_original_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_gmv_TTEETE = [auto_gmv_debiased_TTEETE[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe_TT = [auto_original_debiased_TT[digitized == i].mean() for i in range(1, len(lbins))]
 
         if not unl:
             input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
@@ -247,6 +265,20 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
                 ratio_gmv[ii,:] = np.array(binned_auto_gmv_debiased) / np.array(binned_auto_input)
                 ratio_original[ii,:] = np.array(binned_auto_original_debiased) / np.array(binned_auto_input)
                 #ratio_original_TT[ii,:] = np.array(binned_auto_original_debiased_TT) / np.array(binned_auto_input)
+
+    # GET THE UNCERTAINTIES (error bar from spread of sims - measurement uncertainty of bandpowers)
+    uncertainty = np.zeros((len(l),4), dtype=np.complex_)
+    binned_uncertainty = np.zeros((len(bin_centers),4), dtype=np.complex_)
+    uncertainty[:,0] = np.std(temp_gmv,axis=0)
+    uncertainty[:,1] = np.std(temp_sqe,axis=0)
+    uncertainty[:,2] = np.std(temp_gmv_TTEETE,axis=0)
+    uncertainty[:,3] = np.std(temp_sqe_TT,axis=0)
+    binned_uncertainty[:,0] = np.std(binned_temp_gmv,axis=0)
+    binned_uncertainty[:,1] = np.std(binned_temp_sqe,axis=0)
+    binned_uncertainty[:,2] = np.std(binned_temp_gmv_TTEETE,axis=0)
+    binned_uncertainty[:,3] = np.std(binned_temp_sqe_TT,axis=0)
+    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_{append}.npy',uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_{append}.npy',binned_uncertainty)
 
     # Average
     auto_gmv_avg = auto_gmv_all / num
@@ -378,7 +410,6 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims.png',bbox_inches='tight')
         else:
             plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}.png',bbox_inches='tight')
-    '''
 
     if n0:
         plt.figure(1)
@@ -439,7 +470,6 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
                 else:
                     plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_n0subtracted_binnedratio.png',bbox_inches='tight')
 
-    '''
     plt.figure(3)
     plt.clf()
     # Looking at cross with input spectra

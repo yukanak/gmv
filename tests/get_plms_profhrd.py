@@ -38,7 +38,7 @@ def main():
     filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
     filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 
-    if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
+    if False:#os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
         print('File already exists!')
     else:
         do_reconstruction(qe,sim1,sim2,append)
@@ -77,15 +77,14 @@ def do_reconstruction(qe,sim1,sim2,append):
     noise_curves_090_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_220.txt'))
     noise_curves_150_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_220.txt'))
 
-    # Foreground curves
-    fg_curves = pickle.load(open('fg_curves/agora_tsz_spec.pk','rb'))
-    tsz_curve_095_095 = fg_curves['masked']['95x95']
-    tsz_curve_150_150 = fg_curves['masked']['150x150']
-    tsz_curve_220_220 = fg_curves['masked']['220x220']
-    tsz_curve_095_150 = fg_curves['masked']['95x150']
-    tsz_curve_095_220 = fg_curves['masked']['95x220']
-    tsz_curve_150_220 = fg_curves['masked']['150x220']
-
+    # Full sky single frequency foreground sims
+    flm_150ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
+    flm_150ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim2}_alm_lmax{lmax}.fits'
+    flm_220ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim1}_alm_lmax{lmax}.fits'
+    flm_220ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim2}_alm_lmax{lmax}.fits'
+    flm_95ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim1}_alm_lmax{lmax}.fits'
+    flm_95ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim2}_alm_lmax{lmax}.fits'
+    
     # Full sky CMB signal maps; same at all frequencies
     # From amscott:/sptlocal/analysis/eete+lensing_19-20/resources/sims/planck2018/inputcmb/
     alm_cmb_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
@@ -109,13 +108,13 @@ def do_reconstruction(qe,sim1,sim2,append):
     w_Tmv_srini = np.vstack((w_Tmv_srini_95,w_Tmv_srini_150,w_Tmv_srini_220))
 
     # Profile
-    profile_filename = 'fg_profiles/TT_mvilc_foreground_residuals.pkl'
+    profile_filename = 'fg_profiles/TT_srini_mvilc_foreground_residuals.pkl'
     if os.path.isfile(profile_filename):
         u = pickle.load(open(profile_filename,'rb'))
     else:
         # Combine Agora TT cross frequency tSZ spectra with MV ILC weights to get ILC-ed foreground residuals
         ret = np.zeros((lmax+1))
-        b='tt'; c=1; w1=w_Tmv; w2=w_Tmv
+        b='tt'; c=1; w1=w_Tmv_srini; w2=w_Tmv_srini
         for ll in l:
             # At each ell, get 3x3 matrix with each block containing Cl for different freq combinations
             clmat = np.zeros((3,3))
@@ -170,95 +169,25 @@ def do_reconstruction(qe,sim1,sim2,append):
 
     # Adding foregrounds!
     if append == f'profhrd' or append == 'profhrd_unl':
-        flmt1_095_filename = dir_out + f'flm/flmt_095_lmax{lmax}_seed{sim1}.alm'
-        flmt1_150_filename = dir_out + f'flm/flmt_150_lmax{lmax}_seed{sim1}.alm'
-        flmt1_220_filename = dir_out + f'flm/flmt_220_lmax{lmax}_seed{sim1}.alm'
-        flmt2_095_filename = dir_out + f'flm/flmt_095_lmax{lmax}_seed{sim2}.alm'
-        flmt2_150_filename = dir_out + f'flm/flmt_150_lmax{lmax}_seed{sim2}.alm'
-        flmt2_220_filename = dir_out + f'flm/flmt_220_lmax{lmax}_seed{sim2}.alm'
+        tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
+        tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
+        tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
+        tflm1_220 = utils.reduce_lmax(tflm1_220,lmax=lmax); eflm1_220 = utils.reduce_lmax(eflm1_220,lmax=lmax); bflm1_220 = utils.reduce_lmax(bflm1_220,lmax=lmax)
+        tflm1_95, eflm1_95, bflm1_95 = hp.read_alm(flm_95ghz_sim1,hdu=[1,2,3])
+        tflm1_95 = utils.reduce_lmax(tflm1_95,lmax=lmax); eflm1_95 = utils.reduce_lmax(eflm1_95,lmax=lmax); bflm1_95 = utils.reduce_lmax(bflm1_95,lmax=lmax)
+        tlm1_150 += tflm1_150; tlm1_220 += tflm1_220; tlm1_95 += tflm1_95
+        elm1_150 += eflm1_150; elm1_220 += eflm1_220; elm1_95 += eflm1_95
+        blm1_150 += bflm1_150; blm1_220 += bflm1_220; blm1_95 += bflm1_95
 
-        if os.path.isfile(flmt1_095_filename):
-            flmt1_095 = hp.read_alm(flmt1_095_filename,hdu=1)
-            flmt1_150 = hp.read_alm(flmt1_150_filename,hdu=1)
-            flmt1_220 = hp.read_alm(flmt1_220_filename,hdu=1)
-        else:
-            # See appendix of https://arxiv.org/pdf/0801.4380.pdf
-            # Need to generate frequency correlated realizations
-            # Seed "A"
-            np.random.seed(3241998+sim1)
-            flmt1_095 = hp.synalm(tsz_curve_095_095,lmax=lmax)
-
-            # Seed "A"
-            # Quick note, the hash part returns a different value for different python processes
-            np.random.seed(3241998+sim1)
-            fltt_T2a = np.nan_to_num((tsz_curve_095_150)**2 / tsz_curve_095_095)
-            flmt1_T2a = hp.synalm(fltt_T2a,lmax=lmax)
-            # Seed "B"
-            np.random.seed(4102002+sim1)
-            fltt_T2b = tsz_curve_150_150 - fltt_T2a
-            flmt1_T2b = hp.synalm(fltt_T2b,lmax=lmax)
-            flmt1_150 = flmt1_T2a + flmt1_T2b
-
-            # Seed "A"
-            np.random.seed(3241998+sim1)
-            fltt_T3a = np.nan_to_num((tsz_curve_095_220)**2 / tsz_curve_095_095)
-            flmt1_T3a = hp.synalm(fltt_T3a,lmax=lmax)
-            # Seed "B"
-            np.random.seed(4102002+sim1)
-            fltt_T3b = np.nan_to_num((tsz_curve_150_220 - tsz_curve_095_150*tsz_curve_095_220/tsz_curve_095_095)**2 / fltt_T2b)
-            flmt1_T3b = hp.synalm(fltt_T3b,lmax=lmax)
-            # Seed "C"
-            np.random.seed(9011958+sim1)
-            fltt_T3c = tsz_curve_220_220 - fltt_T3a - fltt_T3b
-            flmt1_T3c = hp.synalm(fltt_T3c,lmax=lmax)
-            flmt1_220 = flmt1_T3a + flmt1_T3b + flmt1_T3c
-
-            Path(dir_out+f'/flm/').mkdir(parents=True, exist_ok=True)
-            hp.write_alm(flmt1_095_filename,flmt1_095)
-            hp.write_alm(flmt1_150_filename,flmt1_150)
-            hp.write_alm(flmt1_220_filename,flmt1_220)
-
-        if os.path.isfile(flmt2_095_filename):
-            flmt2_095 = hp.read_alm(flmt2_095_filename,hdu=1)
-            flmt2_150 = hp.read_alm(flmt2_150_filename,hdu=1)
-            flmt2_220 = hp.read_alm(flmt2_220_filename,hdu=1)
-        else:
-            # Seed "A"
-            np.random.seed(3241998+sim2)
-            flmt2_095 = hp.synalm(tsz_curve_095_095,lmax=lmax)
-
-            # Seed "A"
-            np.random.seed(3241998+sim2)
-            fltt_T2a = np.nan_to_num((tsz_curve_095_150)**2 / tsz_curve_095_095)
-            flmt2_T2a = hp.synalm(fltt_T2a,lmax=lmax)
-            # Seed "B"
-            np.random.seed(4102002+sim2)
-            fltt_T2b = tsz_curve_150_150 - fltt_T2a
-            flmt2_T2b = hp.synalm(fltt_T2b,lmax=lmax)
-            flmt2_150 = flmt2_T2a + flmt2_T2b
-
-            # Seed "A"
-            np.random.seed(3241998+sim2)
-            fltt_T3a = np.nan_to_num((tsz_curve_095_220)**2 / tsz_curve_095_095)
-            flmt2_T3a = hp.synalm(fltt_T3a,lmax=lmax)
-            # Seed "B"
-            np.random.seed(4102002+sim2)
-            fltt_T3b = np.nan_to_num((tsz_curve_150_220 - tsz_curve_095_150*tsz_curve_095_220/tsz_curve_095_095)**2 / fltt_T2b)
-            flmt2_T3b = hp.synalm(fltt_T3b,lmax=lmax)
-            # Seed "C"
-            np.random.seed(9011958+sim2)
-            fltt_T3c = tsz_curve_220_220 - fltt_T3a - fltt_T3b
-            flmt2_T3c = hp.synalm(fltt_T3c,lmax=lmax)
-            flmt2_220 = flmt2_T3a + flmt2_T3b + flmt2_T3c
-
-            Path(dir_out+f'/flm/').mkdir(parents=True, exist_ok=True)
-            hp.write_alm(flmt2_095_filename,flmt2_095)
-            hp.write_alm(flmt2_150_filename,flmt2_150)
-            hp.write_alm(flmt2_220_filename,flmt2_220)
-
-        # Sign flip the 220 alm because 95x150 is positive, 150x220 are 90x220 negative
-        tlm1_150 += flmt1_150; tlm1_220 += -1*flmt1_220; tlm1_95 += flmt1_095
-        tlm2_150 += flmt2_150; tlm2_220 += -1*flmt2_220; tlm2_95 += flmt2_095
+        tflm2_150, eflm2_150, bflm2_150 = hp.read_alm(flm_150ghz_sim2,hdu=[1,2,3])
+        tflm2_150 = utils.reduce_lmax(tflm2_150,lmax=lmax); eflm2_150 = utils.reduce_lmax(eflm2_150,lmax=lmax); bflm2_150 = utils.reduce_lmax(bflm2_150,lmax=lmax)
+        tflm2_220, eflm2_220, bflm2_220 = hp.read_alm(flm_220ghz_sim2,hdu=[1,2,3])
+        tflm2_220 = utils.reduce_lmax(tflm2_220,lmax=lmax); eflm2_220 = utils.reduce_lmax(eflm2_220,lmax=lmax); bflm2_220 = utils.reduce_lmax(bflm2_220,lmax=lmax)
+        tflm2_95, eflm2_95, bflm2_95 = hp.read_alm(flm_95ghz_sim2,hdu=[1,2,3])
+        tflm2_95 = utils.reduce_lmax(tflm2_95,lmax=lmax); eflm2_95 = utils.reduce_lmax(eflm2_95,lmax=lmax); bflm2_95 = utils.reduce_lmax(bflm2_95,lmax=lmax)
+        tlm2_150 += tflm2_150; tlm2_220 += tflm2_220; tlm2_95 += tflm2_95
+        elm2_150 += eflm2_150; elm2_220 += eflm2_220; elm2_95 += eflm2_95
+        blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
 
     # Adding noise!
     if append == 'profhrd' or append == 'profhrd_unl':

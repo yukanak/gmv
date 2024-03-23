@@ -14,8 +14,8 @@ import resp
 
 def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             config_file='test_yuka.yaml',
-            profile_file='fg_profiles/TT_mvilc_foreground_residuals.pkl',
-            append='profhrd',
+            profile_file='fg_profiles/TT_srini_mvilc_foreground_residuals.pkl',
+            append='profhrd_tszfg',
             n0=True,n1=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
@@ -136,6 +136,22 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     ratio_original = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
     ratio_gmv_hrd = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
     ratio_original_hrd = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
+    temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_gmv_TTEETE = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe_TT = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv_TTEETE = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe_TT = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_gmv_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_gmv_TTEETE_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    temp_sqe_TT_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv_TTEETE_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_sqe_TT_hrd = np.zeros((len(sims),len(l)),dtype=np.complex_)
 
     for ii, sim in enumerate(sims):
         # Load GMV plms
@@ -201,6 +217,10 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             auto_original_debiased = auto_original - n0_original_total - n1_original_total
             auto_gmv_debiased_hrd = auto_gmv_hrd - n0_gmv_total_hrd - n1_gmv_total
             auto_original_debiased_hrd = auto_original_hrd - n0_original_total_hrd - n1_original_total
+            auto_gmv_debiased_TTEETE = auto_gmv_TTEETE - n0_gmv_TTEETE - n1_gmv_TTEETE
+            auto_original_debiased_TT = auto_original_TT - n0_original_TT - n1_original_TT
+            auto_gmv_debiased_TTEETE_hrd = auto_gmv_TTEETE_hrd - n0_gmv_TTEETE_hrd - n1_gmv_TTEETE
+            auto_original_debiased_TT_hrd = auto_original_TT_hrd - n0_original_TT_hrd - n1_original_TT
         elif n0:
             auto_gmv_debiased = auto_gmv - n0_gmv_total
             auto_original_debiased = auto_original - n0_original_total
@@ -229,6 +249,23 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             auto_original_debiased_all += auto_original_debiased
             auto_gmv_debiased_all_hrd += auto_gmv_debiased_hrd
             auto_original_debiased_all_hrd += auto_original_debiased_hrd
+            # Need this to compute uncertainty...
+            temp_gmv[ii,:] = auto_gmv_debiased
+            temp_sqe[ii,:] = auto_original_debiased
+            temp_gmv_TTEETE[ii,:] = auto_gmv_debiased_TTEETE
+            temp_sqe_TT[ii,:] = auto_original_debiased_TT
+            binned_temp_gmv = [auto_gmv_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe = [auto_original_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_gmv_TTEETE = [auto_gmv_debiased_TTEETE[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe_TT = [auto_original_debiased_TT[digitized == i].mean() for i in range(1, len(lbins))]
+            temp_gmv_hrd[ii,:] = auto_gmv_debiased_hrd
+            temp_sqe_hrd[ii,:] = auto_original_debiased_hrd
+            temp_gmv_TTEETE_hrd[ii,:] = auto_gmv_debiased_TTEETE_hrd
+            temp_sqe_TT_hrd[ii,:] = auto_original_debiased_TT_hrd
+            binned_temp_gmv_hrd = [auto_gmv_debiased_hrd[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe_hrd = [auto_original_debiased_hrd[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_gmv_TTEETE_hrd = [auto_gmv_debiased_TTEETE_hrd[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_sqe_TT_hrd = [auto_original_debiased_TT_hrd[digitized == i].mean() for i in range(1, len(lbins))]
 
         # If debiasing, get the binned ratio against input
         if n0:
@@ -245,6 +282,28 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             ratio_original[ii,:] = np.array(binned_auto_original_debiased) / np.array(binned_auto_input)
             ratio_gmv_hrd[ii,:] = np.array(binned_auto_gmv_debiased_hrd) / np.array(binned_auto_input)
             ratio_original_hrd[ii,:] = np.array(binned_auto_original_debiased_hrd) / np.array(binned_auto_input)
+
+    # GET THE UNCERTAINTIES (error bar from spread of sims - measurement uncertainty of bandpowers)
+    uncertainty = np.zeros((len(l),8), dtype=np.complex_)
+    binned_uncertainty = np.zeros((len(bin_centers),8), dtype=np.complex_)
+    uncertainty[:,0] = np.std(temp_gmv_hrd,axis=0)
+    uncertainty[:,1] = np.std(temp_sqe_hrd,axis=0)
+    uncertainty[:,2] = np.std(temp_gmv_TTEETE_hrd,axis=0)
+    uncertainty[:,3] = np.std(temp_sqe_TT_hrd,axis=0)
+    binned_uncertainty[:,0] = np.std(binned_temp_gmv_hrd,axis=0)
+    binned_uncertainty[:,1] = np.std(binned_temp_sqe_hrd,axis=0)
+    binned_uncertainty[:,2] = np.std(binned_temp_gmv_TTEETE_hrd,axis=0)
+    binned_uncertainty[:,3] = np.std(binned_temp_sqe_TT_hrd,axis=0)
+    uncertainty[:,4] = np.std(temp_gmv,axis=0)
+    uncertainty[:,5] = np.std(temp_sqe,axis=0)
+    uncertainty[:,6] = np.std(temp_gmv_TTEETE,axis=0)
+    uncertainty[:,7] = np.std(temp_sqe_TT,axis=0)
+    binned_uncertainty[:,4] = np.std(binned_temp_gmv,axis=0)
+    binned_uncertainty[:,5] = np.std(binned_temp_sqe,axis=0)
+    binned_uncertainty[:,6] = np.std(binned_temp_gmv_TTEETE,axis=0)
+    binned_uncertainty[:,7] = np.std(binned_temp_sqe_TT,axis=0)
+    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_{append}.npy',uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_{append}.npy',binned_uncertainty)
 
     # Average
     auto_gmv_avg = auto_gmv_all / num

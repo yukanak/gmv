@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# Run like python3 get_plms_unified.py TT 100 101 append
-# Note: argument append should be either 'crossilc_onesed' or 'crossilc_twoseds' (used for actual reconstruction and N0 calculation, lensed CMB + Yuuki's foreground sims + noise, first leg is CIB-nulled and second is tSZ-nulled),
-# 'crossilc_onesed_cmbonly_phi1_tqu1tqu2', 'crossilc_onesed_cmbonly_phi1_tqu2tqu1', similarly for two SEDs (used for N1 calculation, these are lensed with the same phi but different CMB realizations, no foregrounds or noise),
-# 'crossilc_onesed_cmbonly' (used for N0 calculation for subtracting from N1, lensed CMB + no foregrounds + no noise),
-# 'crossilc_onesed_unl_cmbonly' (unlensed sims + no foregrounds + no noise), or 'crossilc_onesed_unl' (unlensed sims + foregrounds + noise)
+# Run like python3 get_plms_example.py TT 100 101 append
+# Note: argument append should be either 'profhrd_tszfg' (used for actual reconstruction and N0 calculation, lensed CMB + tSZ in T + noise),
+# 'profhrd_tszfg_cmbonly_phi1_tqu1tqu2', 'profhrd_tszfg_cmbonly_phi1_tqu2tqu1' (used for N1 calculation, these are lensed with the same phi but different CMB realizations, no foregrounds or noise),
+# 'profhrd_tszfg_cmbonly' (used for N0 calculation for subtracting from N1, lensed CMB + no foregrounds + no noise),
+# 'profhrd_tszfg_unl_cmbonly' (unlensed sims + no foregrounds + no noise), or 'profhrd_tszfg_unl' (unlensed sims + foregrounds + noise)
 import os, sys
 import numpy as np
 import healpy as hp
@@ -38,7 +38,7 @@ def main():
     filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
     filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 
-    if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
+    if False:#os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
         print('File already exists!')
     else:
         do_reconstruction(qe,sim1,sim2,append)
@@ -69,7 +69,7 @@ def do_reconstruction(qe,sim1,sim2,append):
     filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
 
     # Noise curves
-    fsky_corr=1
+    fsky_corr = 1
     noise_curves_090_090 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_090.txt'))
     noise_curves_150_150 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_150.txt'))
     noise_curves_220_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_220_220.txt'))
@@ -77,15 +77,16 @@ def do_reconstruction(qe,sim1,sim2,append):
     noise_curves_090_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_220.txt'))
     noise_curves_150_220 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_150_220.txt'))
 
-    # Full sky single frequency foreground sims
-    flm_150ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim1}_alm_lmax{lmax}.fits'
-    flm_150ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_150ghz_seed{sim2}_alm_lmax{lmax}.fits'
-    flm_220ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim1}_alm_lmax{lmax}.fits'
-    flm_220ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_220ghz_seed{sim2}_alm_lmax{lmax}.fits'
-    flm_95ghz_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim1}_alm_lmax{lmax}.fits'
-    flm_95ghz_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/fg/totfg_95ghz_seed{sim2}_alm_lmax{lmax}.fits'
+    # Foreground curves
+    fg_curves = pickle.load(open('fg_curves/agora_tsz_spec.pk','rb'))
+    tsz_curve_095_095 = fg_curves['masked']['95x95']
+    tsz_curve_150_150 = fg_curves['masked']['150x150']
+    tsz_curve_220_220 = fg_curves['masked']['220x220']
+    tsz_curve_095_150 = fg_curves['masked']['95x150']
+    tsz_curve_095_220 = fg_curves['masked']['95x220']
+    tsz_curve_150_220 = fg_curves['masked']['150x220']
 
-    # CMB is same at all frequencies; also full sky here
+    # Full sky CMB signal maps; same at all frequencies
     # From amscott:/sptlocal/analysis/eete+lensing_19-20/resources/sims/planck2018/inputcmb/
     alm_cmb_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim1}_alm_lmax{lmax}.fits'
     alm_cmb_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/tqu1/len/alms/lensed_planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_teb1_seed{sim2}_alm_lmax{lmax}.fits'
@@ -101,17 +102,34 @@ def do_reconstruction(qe,sim1,sim2,append):
     w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
     w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
     w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
-    # These are from Srini... Weird format. Assumes either one or two spectral energy distributions for CIB
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl':
-        w_cib_null = np.load('ilc_weights/weights_cmb_mv_cmbfree_cibfree_spt3g1920.npy',allow_pickle=True)
-        w_cib_null_95 = w_cib_null.item()['cmbcibfree'][95][1]
-        w_cib_null_150 = w_cib_null.item()['cmbcibfree'][150][1]
-        w_cib_null_220 = w_cib_null.item()['cmbcibfree'][220][1]
-    elif append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-        w_cib_null = np.load('ilc_weights/weights_cmb_mv_cmbfree_cibfreetwoSEDs_spt3g1920.npy',allow_pickle=True)
-        w_cib_null_95 = w_cib_null.item()['cmbcibfree'][95][1]
-        w_cib_null_150 = w_cib_null.item()['cmbcibfree'][150][1]
-        w_cib_null_220 = w_cib_null.item()['cmbcibfree'][220][1]
+    w_srini = np.load('ilc_weights/weights_cmb_mv_cmbfree_cibfree_spt3g1920.npy',allow_pickle=True)
+    w_Tmv_srini_95 = w_srini.item()['cmbmv'][95][1]
+    w_Tmv_srini_150 = w_srini.item()['cmbmv'][150][1]
+    w_Tmv_srini_220 = w_srini.item()['cmbmv'][220][1]
+    w_Tmv_srini = np.vstack((w_Tmv_srini_95,w_Tmv_srini_150,w_Tmv_srini_220))
+
+    # Profile
+    profile_filename = 'fg_profiles/TT_srini_mvilc_foreground_residuals.pkl'
+    if os.path.isfile(profile_filename):
+        u = pickle.load(open(profile_filename,'rb'))
+    else:
+        # Combine Agora TT cross frequency tSZ spectra with MV ILC weights to get ILC-ed foreground residuals
+        ret = np.zeros((lmax+1))
+        b='tt'; c=1; w1=w_Tmv_srini; w2=w_Tmv_srini
+        for ll in l:
+            # At each ell, get 3x3 matrix with each block containing Cl for different freq combinations
+            clmat = np.zeros((3,3))
+            clmat[0,0] = tsz_curve_095_095[ll]
+            clmat[1,1] = tsz_curve_150_150[ll]
+            clmat[2,2] = tsz_curve_220_220[ll]
+            clmat[0,1] = clmat[1,0] = tsz_curve_095_150[ll]
+            clmat[0,2] = clmat[2,0] = tsz_curve_095_220[ll]
+            clmat[1,2] = clmat[2,1] = tsz_curve_150_220[ll]
+            ret[ll] = np.dot(w1[:,ll], np.dot(clmat, w2[:,ll].T))
+        # Use the TT ILC-ed foreground residuals as the profile
+        u = ret
+        with open(profile_filename,'wb') as f:
+            pickle.dump(u,f)
 
     if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
         gmv = True
@@ -122,16 +140,16 @@ def do_reconstruction(qe,sim1,sim2,append):
 
     # Get full sky CMB alms
     print('Getting alms...')
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_cmbonly' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_cmbonly':
+    if append == f'profhrd_tszfg' or append == 'profhrd_tszfg_cmbonly':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim2,hdu=[1,2,3])
-    elif append == 'crossilc_onesed_cmbonly_phi1_tqu1tqu2' or append == 'crossilc_twoseds_cmbonly_phi1_tqu1tqu2':
+    elif append == 'profhrd_tszfg_cmbonly_phi1_tqu1tqu2':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim1_tqu2,hdu=[1,2,3])
-    elif append == 'crossilc_onesed_cmbonly_phi1_tqu2tqu1' or append == 'crossilc_twoseds_cmbonly_phi1_tqu2tqu1':
+    elif append == 'profhrd_tszfg_cmbonly_phi1_tqu2tqu1':
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1_tqu2,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
-    elif append == 'crossilc_onesed_unl_cmbonly' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds_unl_cmbonly' or append == 'crossilc_twoseds_unl':
+    elif append == 'profhrd_tszfg_unl' or append == 'profhrd_tszfg_unl_cmbonly':
         t1,q1,u1 = hp.read_map(unl_map_sim1,field=[0,1,2])
         tlm1,elm1,blm1 = hp.map2alm([t1,q1,u1],lmax=lmax)
         t2,q2,u2 = hp.read_map(unl_map_sim2,field=[0,1,2])
@@ -142,7 +160,7 @@ def do_reconstruction(qe,sim1,sim2,append):
     tlm2 = utils.reduce_lmax(tlm2,lmax=lmax)
     elm2 = utils.reduce_lmax(elm2,lmax=lmax)
     blm2 = utils.reduce_lmax(blm2,lmax=lmax)
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
+    if append == 'profhrd_tszfg' or append == 'profhrd_tszfg_unl':
         tlm1_150 = tlm1.copy(); tlm1_220 = tlm1.copy(); tlm1_95 = tlm1.copy()
         elm1_150 = elm1.copy(); elm1_220 = elm1.copy(); elm1_95 = elm1.copy()
         blm1_150 = blm1.copy(); blm1_220 = blm1.copy(); blm1_95 = blm1.copy()
@@ -151,29 +169,99 @@ def do_reconstruction(qe,sim1,sim2,append):
         blm2_150 = blm2.copy(); blm2_220 = blm2.copy(); blm2_95 = blm2.copy()
 
     # Adding foregrounds!
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-        tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
-        tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
-        tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
-        tflm1_220 = utils.reduce_lmax(tflm1_220,lmax=lmax); eflm1_220 = utils.reduce_lmax(eflm1_220,lmax=lmax); bflm1_220 = utils.reduce_lmax(bflm1_220,lmax=lmax)
-        tflm1_95, eflm1_95, bflm1_95 = hp.read_alm(flm_95ghz_sim1,hdu=[1,2,3])
-        tflm1_95 = utils.reduce_lmax(tflm1_95,lmax=lmax); eflm1_95 = utils.reduce_lmax(eflm1_95,lmax=lmax); bflm1_95 = utils.reduce_lmax(bflm1_95,lmax=lmax)
-        tlm1_150 += tflm1_150; tlm1_220 += tflm1_220; tlm1_95 += tflm1_95
-        elm1_150 += eflm1_150; elm1_220 += eflm1_220; elm1_95 += eflm1_95
-        blm1_150 += bflm1_150; blm1_220 += bflm1_220; blm1_95 += bflm1_95
+    if append == f'profhrd_tszfg' or append == 'profhrd_tszfg_unl':
+        flmt1_095_filename = dir_out + f'flm/flmt_095_lmax{lmax}_seed{sim1}.alm'
+        flmt1_150_filename = dir_out + f'flm/flmt_150_lmax{lmax}_seed{sim1}.alm'
+        flmt1_220_filename = dir_out + f'flm/flmt_220_lmax{lmax}_seed{sim1}.alm'
+        flmt2_095_filename = dir_out + f'flm/flmt_095_lmax{lmax}_seed{sim2}.alm'
+        flmt2_150_filename = dir_out + f'flm/flmt_150_lmax{lmax}_seed{sim2}.alm'
+        flmt2_220_filename = dir_out + f'flm/flmt_220_lmax{lmax}_seed{sim2}.alm'
 
-        tflm2_150, eflm2_150, bflm2_150 = hp.read_alm(flm_150ghz_sim2,hdu=[1,2,3])
-        tflm2_150 = utils.reduce_lmax(tflm2_150,lmax=lmax); eflm2_150 = utils.reduce_lmax(eflm2_150,lmax=lmax); bflm2_150 = utils.reduce_lmax(bflm2_150,lmax=lmax)
-        tflm2_220, eflm2_220, bflm2_220 = hp.read_alm(flm_220ghz_sim2,hdu=[1,2,3])
-        tflm2_220 = utils.reduce_lmax(tflm2_220,lmax=lmax); eflm2_220 = utils.reduce_lmax(eflm2_220,lmax=lmax); bflm2_220 = utils.reduce_lmax(bflm2_220,lmax=lmax)
-        tflm2_95, eflm2_95, bflm2_95 = hp.read_alm(flm_95ghz_sim2,hdu=[1,2,3])
-        tflm2_95 = utils.reduce_lmax(tflm2_95,lmax=lmax); eflm2_95 = utils.reduce_lmax(eflm2_95,lmax=lmax); bflm2_95 = utils.reduce_lmax(bflm2_95,lmax=lmax)
-        tlm2_150 += tflm2_150; tlm2_220 += tflm2_220; tlm2_95 += tflm2_95
-        elm2_150 += eflm2_150; elm2_220 += eflm2_220; elm2_95 += eflm2_95
-        blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
+        if os.path.isfile(flmt1_095_filename):
+            flmt1_095 = hp.read_alm(flmt1_095_filename,hdu=1)
+            flmt1_150 = hp.read_alm(flmt1_150_filename,hdu=1)
+            flmt1_220 = hp.read_alm(flmt1_220_filename,hdu=1)
+        else:
+            # See appendix of https://arxiv.org/pdf/0801.4380.pdf
+            # Need to generate frequency correlated realizations
+            # Seed "A"
+            np.random.seed(3241998+sim1)
+            flmt1_095 = hp.synalm(tsz_curve_095_095,lmax=lmax)
+
+            # Seed "A"
+            # Quick note, the hash part returns a different value for different python processes
+            np.random.seed(3241998+sim1)
+            fltt_T2a = np.nan_to_num((tsz_curve_095_150)**2 / tsz_curve_095_095)
+            flmt1_T2a = hp.synalm(fltt_T2a,lmax=lmax)
+            # Seed "B"
+            np.random.seed(4102002+sim1)
+            fltt_T2b = tsz_curve_150_150 - fltt_T2a
+            flmt1_T2b = hp.synalm(fltt_T2b,lmax=lmax)
+            flmt1_150 = flmt1_T2a + flmt1_T2b
+
+            # Seed "A"
+            np.random.seed(3241998+sim1)
+            fltt_T3a = np.nan_to_num((tsz_curve_095_220)**2 / tsz_curve_095_095)
+            flmt1_T3a = hp.synalm(fltt_T3a,lmax=lmax)
+            # Seed "B"
+            np.random.seed(4102002+sim1)
+            fltt_T3b = np.nan_to_num((tsz_curve_150_220 - tsz_curve_095_150*tsz_curve_095_220/tsz_curve_095_095)**2 / fltt_T2b)
+            flmt1_T3b = hp.synalm(fltt_T3b,lmax=lmax)
+            # Seed "C"
+            np.random.seed(9011958+sim1)
+            fltt_T3c = tsz_curve_220_220 - fltt_T3a - fltt_T3b
+            flmt1_T3c = hp.synalm(fltt_T3c,lmax=lmax)
+            flmt1_220 = flmt1_T3a + flmt1_T3b + flmt1_T3c
+
+            Path(dir_out+f'/flm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(flmt1_095_filename,flmt1_095)
+            hp.write_alm(flmt1_150_filename,flmt1_150)
+            hp.write_alm(flmt1_220_filename,flmt1_220)
+
+        if os.path.isfile(flmt2_095_filename):
+            flmt2_095 = hp.read_alm(flmt2_095_filename,hdu=1)
+            flmt2_150 = hp.read_alm(flmt2_150_filename,hdu=1)
+            flmt2_220 = hp.read_alm(flmt2_220_filename,hdu=1)
+        else:
+            # Seed "A"
+            np.random.seed(3241998+sim2)
+            flmt2_095 = hp.synalm(tsz_curve_095_095,lmax=lmax)
+
+            # Seed "A"
+            np.random.seed(3241998+sim2)
+            fltt_T2a = np.nan_to_num((tsz_curve_095_150)**2 / tsz_curve_095_095)
+            flmt2_T2a = hp.synalm(fltt_T2a,lmax=lmax)
+            # Seed "B"
+            np.random.seed(4102002+sim2)
+            fltt_T2b = tsz_curve_150_150 - fltt_T2a
+            flmt2_T2b = hp.synalm(fltt_T2b,lmax=lmax)
+            flmt2_150 = flmt2_T2a + flmt2_T2b
+
+            # Seed "A"
+            np.random.seed(3241998+sim2)
+            fltt_T3a = np.nan_to_num((tsz_curve_095_220)**2 / tsz_curve_095_095)
+            flmt2_T3a = hp.synalm(fltt_T3a,lmax=lmax)
+            # Seed "B"
+            np.random.seed(4102002+sim2)
+            fltt_T3b = np.nan_to_num((tsz_curve_150_220 - tsz_curve_095_150*tsz_curve_095_220/tsz_curve_095_095)**2 / fltt_T2b)
+            flmt2_T3b = hp.synalm(fltt_T3b,lmax=lmax)
+            # Seed "C"
+            np.random.seed(9011958+sim2)
+            fltt_T3c = tsz_curve_220_220 - fltt_T3a - fltt_T3b
+            flmt2_T3c = hp.synalm(fltt_T3c,lmax=lmax)
+            flmt2_220 = flmt2_T3a + flmt2_T3b + flmt2_T3c
+
+            Path(dir_out+f'/flm/').mkdir(parents=True, exist_ok=True)
+            hp.write_alm(flmt2_095_filename,flmt2_095)
+            hp.write_alm(flmt2_150_filename,flmt2_150)
+            hp.write_alm(flmt2_220_filename,flmt2_220)
+
+        # Sign flip the 220 alm because 95x150 is positive, 150x220 are 90x220 negative
+        tlm1_150 += flmt1_150; tlm1_220 += -1*flmt1_220; tlm1_95 += flmt1_095
+        tlm2_150 += flmt2_150; tlm2_220 += -1*flmt2_220; tlm2_95 += flmt2_095
 
     # Adding noise!
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
+    if append == 'profhrd_tszfg' or append == 'profhrd_tszfg_unl':
         nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
         nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
         nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
@@ -186,6 +274,7 @@ def do_reconstruction(qe,sim1,sim2,append):
         nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim2}.alm'
         nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim2}.alm'
         nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim2}.alm'
+
         if os.path.isfile(nlm1_090_filename):
             nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
             nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
@@ -229,6 +318,7 @@ def do_reconstruction(qe,sim1,sim2,append):
             hp.write_alm(nlm1_090_filename,[nlmt1_090,nlme1_090,nlmb1_090])
             hp.write_alm(nlm1_150_filename,[nlmt1_150,nlme1_150,nlmb1_150])
             hp.write_alm(nlm1_220_filename,[nlmt1_220,nlme1_220,nlmb1_220])
+
         if os.path.isfile(nlm2_090_filename):
             nlmt2_090,nlme2_090,nlmb2_090 = hp.read_alm(nlm2_090_filename,hdu=[1,2,3])
             nlmt2_150,nlme2_150,nlmb2_150 = hp.read_alm(nlm2_150_filename,hdu=[1,2,3])
@@ -275,171 +365,104 @@ def do_reconstruction(qe,sim1,sim2,append):
         elm2_150 += nlme2_150; elm2_220 += nlme2_220; elm2_95 += nlme2_090
         blm2_150 += nlmb2_150; blm2_220 += nlmb2_220; blm2_95 += nlmb2_090
 
-    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-        tlm1_mv = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
-        tlm1_cibn = hp.almxfl(tlm1_95,w_cib_null_95[:lmax+1]) + hp.almxfl(tlm1_150,w_cib_null_150[:lmax+1]) + hp.almxfl(tlm1_220,w_cib_null_220[:lmax+1])
-        tlm1_tszn = hp.almxfl(tlm1_95,w_tsz_null[0][:lmax+1]) + hp.almxfl(tlm1_150,w_tsz_null[1][:lmax+1]) + hp.almxfl(tlm1_220,w_tsz_null[2][:lmax+1])
+    if append == 'profhrd_tszfg' or append == 'profhrd_tszfg_unl':
+        tlm1 = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
+        #tlm1 = hp.almxfl(tlm1_95,w_Tmv_srini[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv_srini[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv_srini[2][:lmax+1])
         elm1 = hp.almxfl(elm1_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm1_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm1_220,w_Emv[2][:lmax+1])
         blm1 = hp.almxfl(blm1_95,w_Bmv[0][:lmax+1]) + hp.almxfl(blm1_150,w_Bmv[1][:lmax+1]) + hp.almxfl(blm1_220,w_Bmv[2][:lmax+1])
-        tlm2_mv = hp.almxfl(tlm2_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm2_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm2_220,w_Tmv[2][:lmax+1])
-        tlm2_cibn = hp.almxfl(tlm2_95,w_cib_null_95[:lmax+1]) + hp.almxfl(tlm2_150,w_cib_null_150[:lmax+1]) + hp.almxfl(tlm2_220,w_cib_null_220[:lmax+1])
-        tlm2_tszn = hp.almxfl(tlm2_95,w_tsz_null[0][:lmax+1]) + hp.almxfl(tlm2_150,w_tsz_null[1][:lmax+1]) + hp.almxfl(tlm2_220,w_tsz_null[2][:lmax+1])
+        tlm2 = hp.almxfl(tlm2_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm2_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm2_220,w_Tmv[2][:lmax+1])
+        #tlm2 = hp.almxfl(tlm2_95,w_Tmv_srini[0][:lmax+1]) + hp.almxfl(tlm2_150,w_Tmv_srini[1][:lmax+1]) + hp.almxfl(tlm2_220,w_Tmv_srini[2][:lmax+1])
         elm2 = hp.almxfl(elm2_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm2_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm2_220,w_Emv[2][:lmax+1])
         blm2 = hp.almxfl(blm2_95,w_Bmv[0][:lmax+1]) + hp.almxfl(blm2_150,w_Bmv[1][:lmax+1]) + hp.almxfl(blm2_220,w_Bmv[2][:lmax+1])
 
-    # Get signal + noise residuals spectra for constructing fl filters
+    # Get signal + noise spectra for constructing fl filters
     print('Getting signal + noise residuals spectra for filtering')
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
     artificial_noise = np.zeros(lmax+1)
     artificial_noise[lmaxT+2:] = 1.e10
-    if append[9:15] == 'onesed':
-        totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_crossilc_onesed.npy'
-    elif append[9:16] == 'twoseds':
-        totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_crossilc_twoseds.npy'
+    totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_tszfg.npy'
+    #totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_tszfg_theoryclte.npy'
+    #totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_tszfg_theory.npy'
     if os.path.isfile(totalcls_filename):
         totalcls = np.load(totalcls_filename)
-        # totalcls: T3T3, EE, BB, T3E, T1T1, T2T2, T1T2, T1T3, T2T3, T1E, T2E
-        cltt1 = totalcls[:,4]; cltt2 = totalcls[:,5]; clttx = totalcls[:,6]; cltt3 = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
-    elif append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+        cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
+    elif append == 'profhrd_tszfg':
         print(f"Averaged totalcls file doesn't exist yet, getting the totalcls for sim {sim1}, need to average later")
-        cltt_mv = hp.alm2cl(tlm1_mv,tlm1_mv) + artificial_noise
+        cltt_mv = hp.alm2cl(tlm1,tlm1) + artificial_noise
         clee = hp.alm2cl(elm1,elm1)
         clbb = hp.alm2cl(blm1,blm1)
-        clte = hp.alm2cl(tlm1_mv,elm1)
-        cltt_cibn = hp.alm2cl(tlm1_cibn,tlm1_cibn) + artificial_noise
-        cltt_tszn = hp.alm2cl(tlm1_tszn,tlm1_tszn) + artificial_noise
-        clt1t2 = hp.alm2cl(tlm1_cibn,tlm1_tszn) + artificial_noise
-        clt1t3 = hp.alm2cl(tlm1_cibn,tlm1_mv) + artificial_noise
-        clt2t3 = hp.alm2cl(tlm1_tszn,tlm1_mv) + artificial_noise
-        clt1e = hp.alm2cl(elm1,tlm1_cibn)
-        clt2e = hp.alm2cl(elm1,tlm1_tszn)
-        totalcls = np.vstack((cltt_mv,clee,clbb,clte,cltt_cibn,cltt_tszn,clt1t2,clt1t3,clt2t3,clt1e,clt2e)).T
+        clte = hp.alm2cl(tlm1,elm1)
+        totalcls = np.vstack((cltt_mv,clee,clbb,clte)).T
         np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls)
         return
     else:
         print('WARNING: even for CMB-only sims, we want the filters to have the noise residuals if being used for N1 calculation!')
-        print("Averaged totalcls file doesn't exist, run this script with append == 'crossilc_onesed' or append == 'crossilc_twoseds'")
+        print("Averaged totalcls file doesn't exist, run this script with append == 'profhrd_tszfg'")
         return
 
     if not gmv:
         print('Creating filters...')
+        # Even when you are computing noiseless sims for the N1 calculation, you want the filter to still include residuals to suppress modes exactly as in the signal map
         # Create 1/cl filters
-        flt1 = np.zeros(lmax+1); flt1[lmin:] = 1./cltt1[lmin:] # CIB-null
-        flt2 = np.zeros(lmax+1); flt2[lmin:] = 1./cltt2[lmin:] # tSZ-null
-        flt3 = np.zeros(lmax+1); flt3[lmin:] = 1./cltt3[lmin:] # MV
+        flt = np.zeros(lmax+1); flt[lmin:] = 1./cltt[lmin:]
         fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
-        if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-            if qe[:2] == 'T1': almbar1 = hp.almxfl(tlm1_cibn,flt1); flm1 = flt1
-            elif qe[:2] == 'T2': almbar1 = hp.almxfl(tlm1_tszn,flt2); flm1 = flt2
-            elif qe[0] == 'T': almbar1 = hp.almxfl(tlm1_mv,flt3); flm1 = flt3
-            elif qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
-            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
+        if qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt); flm1 = flt
+        if qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
+        if qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
 
-            if qe[2:4] == 'T1': almbar2 = hp.almxfl(tlm2_cibn,flt1); flm2 = flt1
-            elif qe[2:4] == 'T2': almbar2 = hp.almxfl(tlm2_tszn,flt2); flm2 = flt2
-            elif qe[1] == 'T': almbar2 = hp.almxfl(tlm2_mv,flt3); flm2 = flt3
-            elif qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
-            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
-        else:
-            if qe[:2] == 'T1': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
-            elif qe[:2] == 'T2': almbar1 = hp.almxfl(tlm1,flt2); flm1 = flt2
-            elif qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt3); flm1 = flt3
-            elif qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
-            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
-
-            if qe[2:4] == 'T1': almbar2 = hp.almxfl(tlm2,flt1); flm2 = flt1
-            elif qe[2:4] == 'T2': almbar2 = hp.almxfl(tlm2,flt2); flm2 = flt2
-            elif qe[1] == 'T': almbar2 = hp.almxfl(tlm2,flt3); flm2 = flt3
-            elif qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
-            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
+        if qe[1] == 'T': almbar2 = hp.almxfl(tlm2,flt); flm2 = flt
+        if qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
+        if qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
     else:
         print('Doing the 1/Dl for GMV...')
-        invDl1 = np.zeros(lmax+1, dtype=np.complex_)
-        invDl2 = np.zeros(lmax+1, dtype=np.complex_)
-        invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
-        invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
+        invDl = np.zeros(lmax+1, dtype=np.complex_)
+        invDl[lmin:] = 1./(cltt[lmin:]*clee[lmin:] - clte[lmin:]**2)
         flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
-        if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1_cibn),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2_tszn),9), dtype=np.complex_)
-
-            # T1T2
-            alm1all[:,0] = hp.almxfl(tlm1_cibn,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2_tszn,invDl2)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1_tszn,invDl1) #TODO: Dl2 or Dl1? Flipped from MH
-            alm2all[:,1] = hp.almxfl(tlm2_cibn,invDl2)
-            # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl1)
-            alm2all[:,2] = hp.almxfl(elm2,invDl2)
-            # TE
-            alm1all[:,3] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,3] = hp.almxfl(elm2,invDl2)
-            # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm2_mv,invDl2)
-            # TB
-            alm1all[:,5] = hp.almxfl(tlm1_mv,invDl1)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
-            # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2_mv,invDl2)
-            # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl1)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
-            # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl2)
-        else:
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2),9), dtype=np.complex_)
-
-            # T1T2
-            alm1all[:,0] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2,invDl2)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,1] = hp.almxfl(tlm2,invDl2)
-            # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl1)
-            alm2all[:,2] = hp.almxfl(elm2,invDl2)
-            # TE
-            alm1all[:,3] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,3] = hp.almxfl(elm2,invDl2)
-            # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm2,invDl2)
-            # TB
-            alm1all[:,5] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
-            # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2,invDl2)
-            # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl1)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
-            # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl2)
+        # Order is TT, EE, TE, ET, TB, BT, EB, BE
+        alm1all = np.zeros((len(tlm1),8), dtype=np.complex_)
+        alm2all = np.zeros((len(tlm2),8), dtype=np.complex_)
+        # TT
+        alm1all[:,0] = hp.almxfl(tlm1,invDl)
+        alm2all[:,0] = hp.almxfl(tlm2,invDl)
+        # EE
+        alm1all[:,1] = hp.almxfl(elm1,invDl)
+        alm2all[:,1] = hp.almxfl(elm2,invDl)
+        # TE
+        alm1all[:,2] = hp.almxfl(tlm1,invDl)
+        alm2all[:,2] = hp.almxfl(elm2,invDl)
+        # ET
+        alm1all[:,3] = hp.almxfl(elm1,invDl)
+        alm2all[:,3] = hp.almxfl(tlm2,invDl)
+        # TB
+        alm1all[:,4] = hp.almxfl(tlm1,invDl)
+        alm2all[:,4] = hp.almxfl(blm2,flb)
+        # BT
+        alm1all[:,5] = hp.almxfl(blm1,flb)
+        alm2all[:,5] = hp.almxfl(tlm2,invDl)
+        # EB
+        alm1all[:,6] = hp.almxfl(elm1,invDl)
+        alm2all[:,6] = hp.almxfl(blm2,flb)
+        # BE
+        alm1all[:,7] = hp.almxfl(blm1,flb)
+        alm2all[:,7] = hp.almxfl(elm2,invDl)
 
     # Run healqest
     print('Running healqest...')
     if not gmv:
         q_original = qest.qest(config,cls)
-        if qe == 'T1T2' or qe == 'T2T1': qe='TT'
-        glm,clm = q_original.eval(qe,almbar1,almbar2)
+        glm,clm = q_original.eval(qe,almbar1,almbar2,u=u)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_sqe,glm)
         return
     else:
+        totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_tszfg_theory.npy'
+        totalcls = np.load(totalcls_filename)
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
+        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,u=u,crossilc=False)
         # Save plm and clm
         Path(dir_out).mkdir(parents=True, exist_ok=True)
         np.save(filename_gmv,glm)
