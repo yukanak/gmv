@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Run like python3 get_plms.py TT append
+# Run like python3 get_plms.py TT append test_yuka.yaml
 # Note: argument append should be 'agora_standard', 'agora_mh', 'agora_crossilc_onesed', 'agora_crossilc_twoseds', 'agora_profhrd'
 import os, sys
 import numpy as np
@@ -15,10 +15,10 @@ def main():
 
     qe = str(sys.argv[1])
     append = str(sys.argv[2])
+    config_file = str(sys.argv[3])
 
     time0 = time()
 
-    config_file = 'test_yuka.yaml'
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
     nside = config['lensrec']['nside']
@@ -36,19 +36,18 @@ def main():
     if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
         print('File already exists!')
     else:
-        do_reconstruction(qe,append)
+        do_reconstruction(qe,append,config_file)
 
     elapsed = time() - time0
     elapsed /= 60
     print('Time taken (minutes): ', elapsed)
 
-def do_reconstruction(qe,append):
+def do_reconstruction(qe,append,config_file):
     '''
     Function to do the actual reconstruction.
     '''
     print(f'Doing reconstruction for qe {qe}, append {append}')
 
-    config_file = 'test_yuka.yaml'
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
     nside = config['lensrec']['nside']
@@ -352,8 +351,10 @@ def do_reconstruction(qe,append):
             print('Doing the 1/Dl for GMV...')
             invDl1 = np.zeros(lmax+1, dtype=np.complex_)
             invDl2 = np.zeros(lmax+1, dtype=np.complex_)
+            invDl3 = np.zeros(lmax+1, dtype=np.complex_)
             invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
             invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
+            invDl3[lmin:] = 1./(cltt3[lmin:]*clee[lmin:] - clte[lmin:]**2)
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
             # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
@@ -364,35 +365,37 @@ def do_reconstruction(qe,append):
             alm1all[:,0] = hp.almxfl(tlm_mv,invDl1)
             alm2all[:,0] = hp.almxfl(tlm_tszn,invDl2)
             # T2T1
-            alm1all[:,1] = hp.almxfl(tlm_tszn,invDl1) #TODO: Dl2 or Dl1? Flipped from MH from sims
-            alm2all[:,1] = hp.almxfl(tlm_mv,invDl2)
+            alm1all[:,1] = hp.almxfl(tlm_tszn,invDl2)
+            alm2all[:,1] = hp.almxfl(tlm_mv,invDl1)
             # EE
-            alm1all[:,2] = hp.almxfl(elm,invDl1)
-            alm2all[:,2] = hp.almxfl(elm,invDl2)
+            alm1all[:,2] = hp.almxfl(elm,invDl3)
+            alm2all[:,2] = hp.almxfl(elm,invDl3)
             # TE
-            alm1all[:,3] = hp.almxfl(tlm_mv,invDl1)
-            alm2all[:,3] = hp.almxfl(elm,invDl2)
+            alm1all[:,3] = hp.almxfl(tlm_mv,invDl3)
+            alm2all[:,3] = hp.almxfl(elm,invDl3)
             # ET
-            alm1all[:,4] = hp.almxfl(elm,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm_mv,invDl2)
+            alm1all[:,4] = hp.almxfl(elm,invDl3)
+            alm2all[:,4] = hp.almxfl(tlm_mv,invDl3)
             # TB
-            alm1all[:,5] = hp.almxfl(tlm_mv,invDl1)
+            alm1all[:,5] = hp.almxfl(tlm_mv,invDl3)
             alm2all[:,5] = hp.almxfl(blm,flb)
             # BT
             alm1all[:,6] = hp.almxfl(blm,flb)
-            alm2all[:,6] = hp.almxfl(tlm_mv,invDl2)
+            alm2all[:,6] = hp.almxfl(tlm_mv,invDl3)
             # EB
-            alm1all[:,7] = hp.almxfl(elm,invDl1)
+            alm1all[:,7] = hp.almxfl(elm,invDl3)
             alm2all[:,7] = hp.almxfl(blm,flb)
             # BE
             alm1all[:,8] = hp.almxfl(blm,flb)
-            alm2all[:,8] = hp.almxfl(elm,invDl2)
+            alm2all[:,8] = hp.almxfl(elm,invDl3)
         elif append == 'agora_crossilc_onesed' or append == 'agora_crossilc_twoseds':
             print('Doing the 1/Dl for GMV...')
             invDl1 = np.zeros(lmax+1, dtype=np.complex_)
             invDl2 = np.zeros(lmax+1, dtype=np.complex_)
+            invDl3 = np.zeros(lmax+1, dtype=np.complex_)
             invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
             invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
+            invDl3[lmin:] = 1./(cltt3[lmin:]*clee[lmin:] - clte[lmin:]**2)
             flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
             # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
@@ -403,29 +406,29 @@ def do_reconstruction(qe,append):
             alm1all[:,0] = hp.almxfl(tlm_cibn,invDl1)
             alm2all[:,0] = hp.almxfl(tlm_tszn,invDl2)
             # T2T1
-            alm1all[:,1] = hp.almxfl(tlm_tszn,invDl1) #TODO: Dl2 or Dl1? Flipped from MH
-            alm2all[:,1] = hp.almxfl(tlm_cibn,invDl2)
+            alm1all[:,1] = hp.almxfl(tlm_tszn,invDl2)
+            alm2all[:,1] = hp.almxfl(tlm_cibn,invDl1)
             # EE
-            alm1all[:,2] = hp.almxfl(elm,invDl1)
-            alm2all[:,2] = hp.almxfl(elm,invDl2)
+            alm1all[:,2] = hp.almxfl(elm,invDl3)
+            alm2all[:,2] = hp.almxfl(elm,invDl3)
             # TE
-            alm1all[:,3] = hp.almxfl(tlm_mv,invDl1)
-            alm2all[:,3] = hp.almxfl(elm,invDl2)
+            alm1all[:,3] = hp.almxfl(tlm_mv,invDl3)
+            alm2all[:,3] = hp.almxfl(elm,invDl3)
             # ET
-            alm1all[:,4] = hp.almxfl(elm,invDl1)
-            alm2all[:,4] = hp.almxfl(tlm_mv,invDl2)
+            alm1all[:,4] = hp.almxfl(elm,invDl3)
+            alm2all[:,4] = hp.almxfl(tlm_mv,invDl3)
             # TB
-            alm1all[:,5] = hp.almxfl(tlm_mv,invDl1)
+            alm1all[:,5] = hp.almxfl(tlm_mv,invDl3)
             alm2all[:,5] = hp.almxfl(blm,flb)
             # BT
             alm1all[:,6] = hp.almxfl(blm,flb)
-            alm2all[:,6] = hp.almxfl(tlm_mv,invDl2)
+            alm2all[:,6] = hp.almxfl(tlm_mv,invDl3)
             # EB
-            alm1all[:,7] = hp.almxfl(elm,invDl1)
+            alm1all[:,7] = hp.almxfl(elm,invDl3)
             alm2all[:,7] = hp.almxfl(blm,flb)
             # BE
             alm1all[:,8] = hp.almxfl(blm,flb)
-            alm2all[:,8] = hp.almxfl(elm,invDl2)
+            alm2all[:,8] = hp.almxfl(elm,invDl3)
 
     # Run healqest
     print('Running healqest...')

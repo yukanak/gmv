@@ -8,4 +8,4 @@
 
 export OMP_NUM_THREADS=12
 
-python3 ~/gmv/analyze_gmv_unified.py
+python3 /home/users/yukanaka/gmv/prfhrd_test/analyze_gmv_unified_prfhrd_modified202402.py

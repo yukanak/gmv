@@ -13,7 +13,8 @@ sim2=$(((SLURM_ARRAY_TASK_ID-1)/11+2))
 
 export OMP_NUM_THREADS=12
 
-~/gmv/tests/get_plms_standard.py TT $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID standard
+~/gmv/tests/get_plms_standard.py TT $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID standard test_yuka_lmaxT3500.yaml
+~/gmv/tests/get_plms_standard.py TT $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID standard test_yuka_lmaxT4000.yaml
 
 #~/gmv/tests/get_plms_standard.py $qe $sim1 $sim1 standard
 #~/gmv/tests/get_plms_standard.py $qe $sim1 $sim2 standard

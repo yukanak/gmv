@@ -7,7 +7,7 @@ import healqest_utils as utils
 import healpy as hp
 
 append = 'standard'
-config_file = 'test_yuka.yaml'
+config_file = 'test_yuka_lmaxT3500.yaml'
 config = utils.parse_yaml(config_file)
 lmax = config['lensrec']['Lmax']
 lmaxT = config['lensrec']['lmaxT']
@@ -65,6 +65,7 @@ for i in np.arange(n)+1:
     clee += totalcls[:,1]
     clbb += totalcls[:,2]
     clte += totalcls[:,3]
+
     #cltt1 += totalcls[:,4]
     #cltt2 += totalcls[:,5]
     #clttx += totalcls[:,6]
@@ -72,8 +73,6 @@ for i in np.arange(n)+1:
     #clt2t3 += totalcls[:,8]
     #clt1e += totalcls[:,9]
     #clt2e += totalcls[:,10]
-    #if np.any(totalcls==np.inf):
-    #    print(i)
 cltt1 /= n
 cltt2 /= n
 clttx /= n
@@ -121,7 +120,7 @@ clee = ret[:,2]
 clbb = ret[:,3]
 clte = slte
 totalcls_avg = np.vstack((cltt3,clee,clbb,clte)).T
-np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_theory.npy',totalcls_avg)
+np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_profhrd_tszfg_theory.npy',totalcls_avg)
 '''
 
 plt.figure(0)
@@ -130,9 +129,9 @@ plt.plot(ell, sltt, color='firebrick', linestyle='-', label='sltt')
 plt.plot(ell, slee, color='forestgreen', linestyle='-', label='slee')
 plt.plot(ell, slbb, color='darkblue', linestyle='-', label='slbb')
 plt.plot(ell, slte, color='gold', linestyle='-', label='slte')
-#plt.plot(ell, totalcls_avg[:,4], color='pink', linestyle='--', label='total TT1')
-#plt.plot(ell, totalcls_avg[:,5], color='darkorchid', linestyle='--', label='total TT2')
-#plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT3')
+plt.plot(ell, totalcls_avg[:,4], color='pink', linestyle='--', label='total TT1')
+plt.plot(ell, totalcls_avg[:,5], color='darkorchid', linestyle='--', label='total TT2')
+plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT3')
 plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT')
 plt.plot(ell, totalcls_avg[:,1], color='lightgreen', linestyle='--', label='total EE')
 plt.plot(ell, totalcls_avg[:,2], color='powderblue', linestyle='--', label='total BB')
@@ -145,4 +144,4 @@ plt.legend(loc='center left', bbox_to_anchor=(1,0.5))
 plt.title(f'average of sims 1 through {n}')
 plt.ylabel("$C_\ell$")
 plt.xlabel('$\ell$')
-plt.savefig(dir_out+f'/figs/totalcls_vs_signal_{append}_average.png',bbox_inches='tight')
+plt.savefig(dir_out+f'/figs/totalcls_vs_signal_{append}_average_lmaxT{lmaxT}.png',bbox_inches='tight')

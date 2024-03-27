@@ -216,8 +216,8 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     binned_uncertainty[:,1] = np.std(binned_temp_sqe,axis=0)
     binned_uncertainty[:,2] = np.std(binned_temp_gmv_TTEETE,axis=0)
     binned_uncertainty[:,3] = np.std(binned_temp_sqe_TT,axis=0)
-    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_{append}.npy',uncertainty)
-    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_{append}.npy',binned_uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_lmaxT{lmaxT}_{append}.npy',uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_lmaxT{lmaxT}_{append}.npy',binned_uncertainty)
 
     # Average
     auto_gmv_avg = auto_gmv_all / num
@@ -270,9 +270,9 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     plt.xlim(10,lmax)
     plt.ylim(1e-9,1e-6)
     if n1:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_lmaxT{lmaxT}.png',bbox_inches='tight')
     else:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_lmaxT{lmaxT}.png',bbox_inches='tight')
 
     plt.figure(1)
     plt.clf()
@@ -287,9 +287,9 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     plt.ylim(0.98,1.02)
     plt.xlim(10,lmax)
     if n1:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio_lmaxT{lmaxT}.png',bbox_inches='tight')
     else:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio_lmaxT{lmaxT}.png',bbox_inches='tight')
 
 def get_n0(sims,qetype,config,append,cmbonly=False):
     '''

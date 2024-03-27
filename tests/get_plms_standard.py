@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Run like python3 get_plms.py TT 100 101 append
+# Run like python3 get_plms.py TT 100 101 append test_yuka.yaml
 # Note: argument append should be either 'standard' (used for actual reconstruction and N0 calculation, lensed CMB + Yuuki's foreground sims + noise),
 # 'standard_cmbonly_phi1_tqu1tqu2', 'standard_cmbonly_phi1_tqu2tqu1' (used for N1 calculation, these are lensed with the same phi but different CMB realizations, no foregrounds or noise),
 # 'standard_cmbonly' (used for N0 calculation for subtracting from N1, lensed CMB + no foregrounds + no noise),
@@ -20,10 +20,10 @@ def main():
     sim1 = int(sys.argv[2])
     sim2 = int(sys.argv[3])
     append = str(sys.argv[4])
+    config_file = str(sys.argv[5])
 
     time0 = time()
 
-    config_file = 'test_yuka.yaml'
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
     nside = config['lensrec']['nside']
@@ -41,19 +41,18 @@ def main():
     if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
         print('File already exists!')
     else:
-        do_reconstruction(qe,sim1,sim2,append)
+        do_reconstruction(qe,sim1,sim2,append,config_file)
 
     elapsed = time() - time0
     elapsed /= 60
     print('Time taken (minutes): ', elapsed)
 
-def do_reconstruction(qe,sim1,sim2,append):
+def do_reconstruction(qe,sim1,sim2,append,config_file):
     '''
     Function to do the actual reconstruction.
     '''
     print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}')
 
-    config_file = 'test_yuka.yaml'
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
     nside = config['lensrec']['nside']

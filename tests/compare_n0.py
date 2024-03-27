@@ -98,8 +98,8 @@ def compare_n0(config_file='test_yuka.yaml'):
     # Sims are signal + frequency correlated tSZ foregrounds from tSZ curves + frequency correlated noise realizations generated from frequency separated noise spectra
     filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_profhrd_resp_from_sims.pkl'
     n0_profhrd = pickle.load(open(filename,'rb'))
-    n0_profhrd_total = n0_profhrd['total'] * (l*(l+1))**2/4
-    n0_profhrd_TTEETE = n0_profhrd['TTEETE'] * (l*(l+1))**2/4
+    n0_profhrd_total = n0_profhrd['total_hrd'] * (l*(l+1))**2/4
+    n0_profhrd_TTEETE = n0_profhrd['TTEETE_hrd'] * (l*(l+1))**2/4
     n0_profhrd_TBEB = n0_profhrd['TBEB'] * (l*(l+1))**2/4
 
     # Theory spectrum
@@ -165,7 +165,7 @@ def compare_n0(config_file='test_yuka.yaml'):
     plt.title(f'GMV $N_0$ Comparison')
     plt.legend(loc='upper left', fontsize='x-small')
     plt.xscale('log')
-    #plt.ylim(0.98,1.02)
+    plt.ylim(0.9,1.4)
     plt.xlim(10,lmax)
     plt.savefig(dir_out+f'/figs/n0_comparison_gmv_ratio.png',bbox_inches='tight')
 

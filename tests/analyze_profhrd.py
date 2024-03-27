@@ -15,7 +15,9 @@ import resp
 def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             config_file='test_yuka.yaml',
             profile_file='fg_profiles/TT_srini_mvilc_foreground_residuals.pkl',
-            append='profhrd_tszfg',
+            #profile_file='fg_profiles/flat_profile.pkl',
+            append='profhrd',
+            #append='profhrd_flatgaussian',
             n0=True,n1=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''
@@ -58,8 +60,10 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     resp_original_TT_ss = get_analytic_response('TTprf',config,gmv=False,append=append,u=u)
     resp_original_TT_sk = get_analytic_response('TTTTprf',config,gmv=False,append=append,u=u)
     weight_original = -1 * resp_original_TT_sk / resp_original_TT_ss
-    resp_original_hrd = resp_original + weight_original*resp_original_TT_sk # Equivalent to resp_original_TT (hardened) + np.sum(resps_original[:,1:], axis=1)
-    resp_original_TT_hrd = resps_original[:,0] + weight_original*resp_original_TT_sk
+    resp_original_hrd = get_sim_response('total_hrd',config,gmv=False,append=append,sims=sims,u=u)
+    resp_original_TT_hrd = get_sim_response('TT_hrd',config,gmv=False,append=append,sims=sims,u=u)
+    #resp_original_hrd = resp_original + weight_original*resp_original_TT_sk # Equivalent to resp_original_TT (hardened) + np.sum(resps_original[:,1:], axis=1)
+    #resp_original_TT_hrd = resps_original[:,0] + weight_original*resp_original_TT_sk
     inv_resp_original_hrd = np.zeros_like(l,dtype=np.complex_); inv_resp_original_hrd[1:] = 1/(resp_original_hrd)[1:]
     inv_resp_original_TT_hrd = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TT_hrd[1:] = 1/(resp_original_TT_hrd)[1:]
 
@@ -67,8 +71,10 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,append=append,u=u[lmin:])
     resp_gmv_TTEETE_sk = get_analytic_response('TTEETETTEETEprf',config,gmv=True,append=append,u=u[lmin:])
     weight_gmv = -1 * resp_gmv_TTEETE_sk / resp_gmv_TTEETE_ss
-    resp_gmv_hrd = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
-    resp_gmv_TTEETE_hrd = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
+    resp_gmv_hrd = get_sim_response('all_hrd',config,gmv=True,append=append,sims=sims,u=u)
+    resp_gmv_TTEETE_hrd = get_sim_response('TTEETE_hrd',config,gmv=True,append=append,sims=sims,u=u)
+    #resp_gmv_hrd = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
+    #resp_gmv_TTEETE_hrd = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
     inv_resp_gmv_hrd = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_hrd[1:] = 1./(resp_gmv_hrd)[1:]
     inv_resp_gmv_TTEETE_hrd = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_hrd[1:] = 1./(resp_gmv_TTEETE_hrd)[1:]
 
@@ -302,8 +308,8 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     binned_uncertainty[:,5] = np.std(binned_temp_sqe,axis=0)
     binned_uncertainty[:,6] = np.std(binned_temp_gmv_TTEETE,axis=0)
     binned_uncertainty[:,7] = np.std(binned_temp_sqe_TT,axis=0)
-    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_{append}.npy',uncertainty)
-    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_{append}.npy',binned_uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/measurement_uncertainty_lmaxT{lmaxT}_{append}.npy',uncertainty)
+    np.save(dir_out+f'/agora_reconstruction/binned_measurement_uncertainty_lmaxT{lmaxT}_{append}.npy',binned_uncertainty)
 
     # Average
     auto_gmv_avg = auto_gmv_all / num
@@ -350,8 +356,8 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     # Plot
     plt.figure(0)
     plt.clf()
-    #plt.plot(l, auto_gmv_debiased_avg, color='cornflowerblue', linestyle='-', label="Auto Spectrum (GMV)")
-    #plt.plot(l, auto_original_debiased_avg, color='lightcoral', linestyle='-', label=f'Auto Spectrum (SQE)')
+    plt.plot(l, auto_gmv_debiased_avg, color='green', linestyle='-', label="Auto Spectrum (GMV)")
+    plt.plot(l, auto_original_debiased_avg, color='magenta', linestyle='-', label=f'Auto Spectrum (SQE)')
     plt.plot(l, auto_gmv_debiased_avg_hrd, color='cornflowerblue', linestyle='--', label="Auto Spectrum (GMV, hardened)")
     plt.plot(l, auto_original_debiased_avg_hrd, color='lightcoral', linestyle='--', label=f'Auto Spectrum (SQE, hardened)')
 
@@ -394,6 +400,24 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     else:
         plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio.png',bbox_inches='tight')
 
+    plt.clf()
+    # Ratios with error bars
+    plt.axhline(y=1, color='k', linestyle='--')
+    plt.errorbar(bin_centers,ratio_gmv,yerr=errorbars_gmv,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input (Not Hardened)")
+    plt.errorbar(bin_centers,ratio_original,yerr=errorbars_original,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio Original/Input (Not Hardened)")
+    plt.errorbar(bin_centers,ratio_gmv_hrd,yerr=errorbars_gmv_hrd,color='cornflowerblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input (Hardened)")
+    plt.errorbar(bin_centers,ratio_original_hrd,yerr=errorbars_original_hrd,color='pink', marker='o', linestyle='None', ms=3, label="Ratio Original/Input (Hardened)")
+    plt.xlabel('$\ell$')
+    plt.title(f'Spectra Averaged over {num} Sims')
+    plt.legend(loc='lower left', fontsize='x-small')
+    plt.xscale('log')
+    #plt.ylim(0.98,1.02)
+    plt.xlim(10,lmax)
+    if n1:
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio_nothrd.png',bbox_inches='tight')
+    else:
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio_nothrd.png',bbox_inches='tight')
+
 def get_n0(sims,qetype,config,append,u,cmbonly=False):
     '''
     Get N0 bias. qetype should be 'gmv' or 'sqe'.
@@ -431,8 +455,10 @@ num+1))
         resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,append=append_original,u=u[lmin:])
         resp_gmv_TTEETE_sk = get_analytic_response('TTEETETTEETEprf',config,gmv=True,append=append_original,u=u[lmin:])
         weight_gmv = -1 * resp_gmv_TTEETE_sk / resp_gmv_TTEETE_ss
-        resp_gmv_hrd = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
-        resp_gmv_TTEETE_hrd = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
+        resp_gmv_hrd = get_sim_response('all_hrd',config,gmv=True,append=append,sims=sims,u=u)
+        resp_gmv_TTEETE_hrd = get_sim_response('TTEETE_hrd',config,gmv=True,append=append,sims=sims,u=u)
+        #resp_gmv_hrd = resp_gmv + weight_gmv*resp_gmv_TTEETE_sk # Equivalent to resp_gmv_TTEETE (hardened) + resp_gmv_TBEB (unhardened)
+        #resp_gmv_TTEETE_hrd = resp_gmv_TTEETE + weight_gmv*resp_gmv_TTEETE_sk
         inv_resp_gmv_hrd = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_hrd[1:] = 1./(resp_gmv_hrd)[1:]
         inv_resp_gmv_TTEETE_hrd = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE_hrd[1:] = 1./(resp_gmv_TTEETE_hrd)[1:]
 
@@ -520,8 +546,10 @@ num+1))
         resp_original_TT_ss = get_analytic_response('TTprf',config,gmv=False,append=append_original,u=u)
         resp_original_TT_sk = get_analytic_response('TTTTprf',config,gmv=False,append=append_original,u=u)
         weight_original = -1 * resp_original_TT_sk / resp_original_TT_ss
-        resp_original_hrd = resp_original + weight_original*resp_original_TT_sk # Equivalent to resp_original_TT (hardened) + np.sum(resps_original[:,1:], axis=1)
-        resp_original_TT_hrd = resps_original[:,0] + weight_original*resp_original_TT_sk
+        resp_original_hrd = get_sim_response('total_hrd',config,gmv=False,append=append,sims=sims,u=u)
+        resp_original_TT_hrd = get_sim_response('TT_hrd',config,gmv=False,append=append,sims=sims,u=u)
+        #resp_original_hrd = resp_original + weight_original*resp_original_TT_sk # Equivalent to resp_original_TT (hardened) + np.sum(resps_original[:,1:], axis=1)
+        #resp_original_TT_hrd = resps_original[:,0] + weight_original*resp_original_TT_sk
         resp_original_TTEETE_hrd = resp_original_TT_hrd+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]
         inv_resp_original_hrd = np.zeros_like(l,dtype=np.complex_); inv_resp_original_hrd[1:] = 1/(resp_original_hrd)[1:]
         inv_resp_original_TT_hrd = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TT_hrd[1:] = 1/(resp_original_TT_hrd)[1:]
@@ -851,7 +879,7 @@ def get_n1(sims,qetype,config,append,u):
 
     return n1
 
-def get_sim_response(est,config,gmv,append,sims,filename=None):
+def get_sim_response(est,config,gmv,append,sims,filename=None,u=None):
     '''
     Make sure the sims are lensed, not unlensed!
     '''
@@ -864,6 +892,17 @@ def get_sim_response(est,config,gmv,append,sims,filename=None):
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
     num = len(sims)
+    if u is not None:
+        # Get the profile response and weight
+        # SQE
+        resp_original_TT_ss = get_analytic_response('TTprf',config,gmv=False,append=append,u=u)
+        resp_original_TT_sk = get_analytic_response('TTTTprf',config,gmv=False,append=append,u=u)
+        weight_original = -1 * resp_original_TT_sk / resp_original_TT_ss
+        # GMV
+        resp_gmv_TTEETE_ss = get_analytic_response('TTEETEprf',config,gmv=True,append=append,u=u[lmin:])
+        resp_gmv_TTEETE_sk = get_analytic_response('TTEETETTEETEprf',config,gmv=True,append=append,u=u[lmin:])
+        weight_gmv = -1 * resp_gmv_TTEETE_sk / resp_gmv_TTEETE_ss
+
     if filename is None:
         fn = ''
         if gmv:
@@ -881,14 +920,44 @@ def get_sim_response(est,config,gmv,append,sims,filename=None):
         cross_uncorrected_all = 0
         auto_input_all = 0
         for ii, sim in enumerate(sims):
-            # Load plm
-            if gmv:
-                plm = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+            if gmv and est[-3:] == 'hrd':
+                plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                plm_gmv_TTEETE = np.load(dir_out+f'/plm_TTEETE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+
+                # Harden!
+                glm_prf_TTEETE = np.load(dir_out+f'/plm_TTEETEprf_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                plm_gmv_TTEETE_hrd = plm_gmv_TTEETE + hp.almxfl(glm_prf_TTEETE, weight_gmv)
+                plm_gmv_hrd = plm_gmv + hp.almxfl(glm_prf_TTEETE, weight_gmv) # Equivalent to plm_gmv_TTEETE_hrd + plm_gmv_TBEB
+                if est == 'all_hrd':
+                    plm = plm_gmv_hrd.copy()
+                elif est == 'TTEETE_hrd':
+                    plm = plm_gmv_TTEETE_hrd.copy()
+
+            elif est[-3:] == 'hrd':
+                ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+                plms_original = np.zeros((len(np.load(dir_out+f'/plm_TT_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+                for i, ee in enumerate(ests):
+                    plms_original[:,i] = np.load(dir_out+f'/plm_{ee}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                plm_original = np.sum(plms_original, axis=1)
+
+                # Harden!
+                glm_prf_TT = np.load(dir_out+f'/plm_TTprf_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                plm_original_TT_hrd = plms_original[:,0] + hp.almxfl(glm_prf_TT, weight_original)
+                plm_original_hrd = plm_original_TT_hrd + np.sum(plms_original[:,1:], axis=1)
+                if est == 'total_hrd':
+                    plm = plm_original_hrd.copy()
+                elif est == 'TT_hrd':
+                    plm = plm_original_TT_hrd.copy()
+
             else:
-                plm = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
+                # Load plm
+                if gmv:
+                    plm = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                else:
+                    plm = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             # Cross correlate with input plm
             # For response from sims, want to use plms that are not response corrected
+            input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
             cross_uncorrected_all += hp.alm2cl(input_plm, plm, lmax=lmax)
             auto_input_all += hp.alm2cl(input_plm, input_plm, lmax=lmax)
 
@@ -932,7 +1001,8 @@ def get_analytic_response(est,config,gmv,append,u,filename=None):
     else:
         # File doesn't exist!
         # Load total Cls
-        totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_theory.npy')
+        totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_theory.npy') # Use for profhrd_tszfg and profhrd_flatgaussian
+        #totalcls = np.load(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
         cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
 
         if not gmv:

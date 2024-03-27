@@ -37,6 +37,31 @@ def plot(config_file='test_yuka.yaml'):
     resp_spt_pol = resps_spt[:,1]+resps_spt[:,6]#+resps_spt[:,7]
     inv_resp_spt_pol = np.zeros_like(l,dtype=np.complex_); inv_resp_spt_pol[1:] = 1/(resp_spt_pol)[1:]
 
+    # Get 1/R for SPT-3G 2019-2020 noise levels, lmaxT = 3500
+    resps_spt_3500 = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_spt_3500 = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_spt_3500[:,i] = get_sqe_analytic_response(est,config,append='spt20192020',lmaxT=3500)
+        inv_resps_spt_3500[1:,i] = 1/(resps_spt_3500)[1:,i]
+    resp_spt_3500 = np.sum(resps_spt_3500, axis=1)
+    inv_resp_spt_3500 = np.zeros_like(l,dtype=np.complex_); inv_resp_spt_3500[1:] = 1/(resp_spt_3500)[1:]
+    # Get pol-only reconstruction noise
+    resp_spt_pol_3500 = resps_spt_3500[:,1]+resps_spt_3500[:,6]
+    inv_resp_spt_pol_3500 = np.zeros_like(l,dtype=np.complex_); inv_resp_spt_pol_3500[1:] = 1/(resp_spt_pol_3500)[1:]
+
+    # Get 1/R for SPT-3G 2019-2020 noise levels, lmaxT = 4000
+    resps_spt_4000 = np.zeros((len(l),len(ests)), dtype=np.complex_)
+    inv_resps_spt_4000 = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+    for i, est in enumerate(ests):
+        resps_spt_4000[:,i] = get_sqe_analytic_response(est,config,append='spt20192020',lmaxT=4000)
+        inv_resps_spt_4000[1:,i] = 1/(resps_spt_4000)[1:,i]
+    resp_spt_4000 = np.sum(resps_spt_4000, axis=1)
+    inv_resp_spt_4000 = np.zeros_like(l,dtype=np.complex_); inv_resp_spt_4000[1:] = 1/(resp_spt_4000)[1:]
+    # Get pol-only reconstruction noise
+    resp_spt_pol_4000 = resps_spt_4000[:,1]+resps_spt_4000[:,6]
+    inv_resp_spt_pol_4000 = np.zeros_like(l,dtype=np.complex_); inv_resp_spt_pol_4000[1:] = 1/(resp_spt_pol_4000)[1:]
+
+    '''
     # Get 1/R for ACT DR6 noise levels
     resps_act = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps_act = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
@@ -60,6 +85,7 @@ def plot(config_file='test_yuka.yaml'):
     # Get pol-only reconstruction noise
     resp_spt2_pol = resps_spt2[:,1]+resps_spt2[:,6]#+resps_spt2[:,7]
     inv_resp_spt2_pol = np.zeros_like(l,dtype=np.complex_); inv_resp_spt2_pol[1:] = 1/(resp_spt2_pol)[1:]
+    '''
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -71,16 +97,18 @@ def plot(config_file='test_yuka.yaml'):
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, inv_resp_spt_pol * (l*(l+1))**2/4, color='navy', linestyle='--', label='SPT-3G Noise Levels (polarization-only)')
-    plt.plot(l, inv_resps_spt[:,0] * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='SPT-3G Noise Levels (temperature-only)')
+    plt.plot(l, inv_resp_spt_pol * (l*(l+1))**2/4, color='navy', linestyle='--', label='Polarization-only, lmaxP = 4096')
+    plt.plot(l, inv_resps_spt[:,0] * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='Temperature-only, lmaxT = 3000')
+    #plt.plot(l, inv_resps_spt_3500[:,0] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='Temperature-only, lmaxT = 3500')
+    #plt.plot(l, inv_resps_spt_4000[:,0] * (l*(l+1))**2/4, color='plum', linestyle='--', label='Temperature-only, lmaxT = 4000')
     #plt.plot(l, inv_resp_spt2_pol * (l*(l+1))**2/4, color='rebeccapurple', linestyle='--', label='Approximate SPT-3G Noise Levels (5 $\mu K$-arcmin in T/P) (polarization-only)')
     #plt.plot(l, inv_resps_spt2[:,0] * (l*(l+1))**2/4, color='plum', linestyle='--', label='Approximate SPT-3G Noise Levels (5 $\mu K$-arcmin in T/P) (temperature-only)')
-    plt.plot(l, inv_resp_act_pol * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='Approximate ACT DR6 Noise Levels (15 $\mu K$-arcmin in T) (polarization-only)')
-    plt.plot(l, inv_resps_act[:,0] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='Approximate ACT DR6 Noise Levels (15 $\mu K$-arcmin in T) (temperature-only)')
+    #plt.plot(l, inv_resp_act_pol * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='Approximate ACT DR6 Noise Levels (15 $\mu K$-arcmin in T) (polarization-only)')
+    #plt.plot(l, inv_resps_act[:,0] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='Approximate ACT DR6 Noise Levels (15 $\mu K$-arcmin in T) (temperature-only)')
 
     plt.ylabel("$[\ell(\ell+1)]^2$$N_0$ / 4 $[\mu K^2]$")
     plt.xlabel('$\ell$')
-    plt.title(f'SQE Reconstruction Noise Comparison')
+    plt.title(f'SQE Reconstruction Noise Comparison with SPT-3G Noise Levels')
     plt.legend(loc='upper left', fontsize='x-small')
     plt.xscale('log')
     plt.yscale('log')
@@ -88,15 +116,16 @@ def plot(config_file='test_yuka.yaml'):
     plt.ylim(1e-8,1e-5)
     plt.savefig(dir_out+f'/figs/sqe_reconstruction_noise_comparison.png',bbox_inches='tight')
 
-def get_sqe_analytic_response(est, config, append):
+def get_sqe_analytic_response(est, config, append, lmaxT=None):
     '''
     Argument est should be 'TT'/'EE'/'TE'/'TB'/'EB'.
     Also, we are taking lmax values from the config file, so make sure those are right.
     '''
     print(f'Computing analytic response for est {est}')
     lmax = config['lensrec']['Lmax']
-    lmaxT = config['lensrec']['lmaxT']
     lmaxP = config['lensrec']['lmaxP']
+    if lmaxT is None:
+        lmaxT = config['lensrec']['lmaxT']
     lmin = config['lensrec']['lminT']
     nside = config['lensrec']['nside']
     cltype = config['lensrec']['cltype']
