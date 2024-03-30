@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=get_plms_agora
-#SBATCH --time=2:00:00
-#SBATCH --array=1-11
+#SBATCH --time=1:00:00
+#SBATCH --array=1-1
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --partition=kipac
@@ -17,8 +17,9 @@ qe=${ests[$SLURM_ARRAY_TASK_ID%11-1]}
 
 export OMP_NUM_THREADS=12
 
-~/gmv/tests/get_plms_agora.py $qe agora_standard test_yuka_lmaxT4000.yaml
-~/gmv/tests/get_plms_agora.py $qe agora_standard test_yuka_lmaxT3500.yaml
+~/gmv/tests/get_plms_agora.py TTEETEprf agora_profhrd test_yuka.yaml
+#~/gmv/tests/get_plms_agora.py $qe agora_standard test_yuka_lmaxT4000.yaml
+#~/gmv/tests/get_plms_agora.py $qe agora_standard test_yuka_lmaxT3500.yaml
 #~/gmv/tests/get_plms_agora.py $qe agora_profhrd test_yuka_lmaxT4000.yaml
 #~/gmv/tests/get_plms_agora.py $qe agora_profhrd test_yuka_lmaxT3500.yaml
 #~/gmv/tests/get_plms_agora.py $qe agora_mh test_yuka_lmaxT4000.yaml

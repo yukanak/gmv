@@ -446,7 +446,7 @@ def get_n0(sims, qetype, config,append,cmbonly=False):
         for i, est in enumerate(ests):
             resps_original[:,i] = get_sim_response(est,config,gmv=False,append=append_original,sims=np.append(sims,num+1))
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
-        resp_original = np.sum(resps_original[:,:-1], axis=1)
+        resp_original = np.sum(resps_original, axis=1)
         resp_original_TTEETE = resps_original[:,0]+resps_original[:,1]+resps_original[:,2]+resps_original[:,3]
         resp_original_TBEB = resps_original[:,4]+resps_original[:,5]+resps_original[:,6]+resps_original[:,7]
         inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
@@ -461,13 +461,13 @@ def get_n0(sims, qetype, config,append,cmbonly=False):
             plms_ij = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
             for i, est in enumerate(ests):
                 plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_total_ij = np.sum(plms_ij[:,:-1], axis=1)
+            plm_total_ij = np.sum(plms_ij, axis=1)
 
             # Now get the ji sims
             plms_ji = np.zeros((len(np.load(dir_out+f'/plm_T1T2_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
             for i, est in enumerate(ests):
                 plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-            plm_total_ji = np.sum(plms_ji[:,:-1], axis=1)
+            plm_total_ji = np.sum(plms_ji, axis=1)
 
             # EIGHT estimators!!!
             plm_TTEETE_ij = plms_ij[:,0]+plms_ij[:,1]+plms_ij[:,2]+plms_ij[:,3]
@@ -568,14 +568,9 @@ def get_n1(sims, qetype, config, append='mh'):
 
     elif qetype == 'gmv':
         # GMV response
-        if resp_from_sims:
-            resp_gmv = get_sim_response('all',config,gmv=True,append=append,sims=np.append(sims,num+1))
-            resp_gmv_TTEETE = get_sim_response('TTEETE',config,gmv=True,append=append,sims=np.append(sims,num+1))
-            resp_gmv_TBEB = get_sim_response('TBEB',config,gmv=True,append=append,sims=np.append(sims,num+1))
-        else:
-            resp_gmv = get_analytic_response('all',config,gmv=True,append=append)
-            resp_gmv_TTEETE = get_analytic_response('TTEETE',config,gmv=True,append=append)
-            resp_gmv_TBEB = get_analytic_response('TBEB',config,gmv=True,append=append)
+        resp_gmv = get_sim_response('all',config,gmv=True,append=append,sims=np.append(sims,num+1))
+        resp_gmv_TTEETE = get_sim_response('TTEETE',config,gmv=True,append=append,sims=np.append(sims,num+1))
+        resp_gmv_TBEB = get_sim_response('TBEB',config,gmv=True,append=append,sims=np.append(sims,num+1))
         inv_resp_gmv = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv[1:] = 1./(resp_gmv)[1:]
         inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
         inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
@@ -632,9 +627,9 @@ def get_n1(sims, qetype, config, append='mh'):
 
     elif qetype == 'sqe':
         # Get SQE response
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2','T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
         resps_original = np.zeros((len(l),len(ests)), dtype=np.complex_)
-        inv_resps_original = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
+        inv_resps_original = np.zeros((len(l),len(ests)),dtype=np.complex_)
         for i, est in enumerate(ests):
             resps_original[:,i] = get_sim_response(est,config,gmv=False,append=append,sims=np.append(sims,num+1))
             inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
@@ -759,7 +754,7 @@ def get_n1(sims, qetype, config, append='mh'):
 
     return n1
 
-def get_sim_response(est, config, gmv, append='mh', sims=np.arange(40)+1,filename=None):
+def get_sim_response(est, config, gmv, append='mh', sims=np.arange(99)+1,filename=None):
     '''
     Make sure the sims are lensed, not unlensed!
     '''

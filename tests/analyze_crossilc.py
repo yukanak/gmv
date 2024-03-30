@@ -14,7 +14,7 @@ import resp
 
 def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
             config_file='test_yuka.yaml',
-            append='crossilc_onesed',
+            append='crossilc_twoseds',
             n0=True,n1=True,
             lbins=np.logspace(np.log10(50),np.log10(3000),20)):
     '''

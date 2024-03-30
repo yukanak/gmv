@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import healqest_utils as utils
 import healpy as hp
 
-append = 'standard'
-config_file = 'test_yuka_lmaxT3500.yaml'
+append = 'mh'
+config_file = 'test_yuka_lmaxT4000.yaml'
 config = utils.parse_yaml(config_file)
 lmax = config['lensrec']['Lmax']
 lmaxT = config['lensrec']['lmaxT']
@@ -66,13 +66,13 @@ for i in np.arange(n)+1:
     clbb += totalcls[:,2]
     clte += totalcls[:,3]
 
-    #cltt1 += totalcls[:,4]
-    #cltt2 += totalcls[:,5]
-    #clttx += totalcls[:,6]
-    #clt1t3 += totalcls[:,7]
-    #clt2t3 += totalcls[:,8]
-    #clt1e += totalcls[:,9]
-    #clt2e += totalcls[:,10]
+    cltt1 += totalcls[:,4]
+    cltt2 += totalcls[:,5]
+    clttx += totalcls[:,6]
+    clt1t3 += totalcls[:,7]
+    clt2t3 += totalcls[:,8]
+    clt1e += totalcls[:,9]
+    clt2e += totalcls[:,10]
 cltt1 /= n
 cltt2 /= n
 clttx /= n
@@ -84,8 +84,8 @@ clt1t3 /= n
 clt2t3 /= n
 clt1e /= n
 clt2e /= n
-#totalcls_avg = np.vstack((cltt3,clee,clbb,clte,cltt1,cltt2,clttx,clt1t3,clt2t3,clt1e,clt2e)).T
-totalcls_avg = np.vstack((cltt3,clee,clbb,clte)).T
+totalcls_avg = np.vstack((cltt3,clee,clbb,clte,cltt1,cltt2,clttx,clt1t3,clt2t3,clt1e,clt2e)).T
+#totalcls_avg = np.vstack((cltt3,clee,clbb,clte)).T
 np.save(dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy',totalcls_avg)
 '''
 artificial_noise = np.zeros(lmax+1)
@@ -129,9 +129,9 @@ plt.plot(ell, sltt, color='firebrick', linestyle='-', label='sltt')
 plt.plot(ell, slee, color='forestgreen', linestyle='-', label='slee')
 plt.plot(ell, slbb, color='darkblue', linestyle='-', label='slbb')
 plt.plot(ell, slte, color='gold', linestyle='-', label='slte')
-plt.plot(ell, totalcls_avg[:,4], color='pink', linestyle='--', label='total TT1')
-plt.plot(ell, totalcls_avg[:,5], color='darkorchid', linestyle='--', label='total TT2')
-plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT3')
+#plt.plot(ell, totalcls_avg[:,4], color='pink', linestyle='--', label='total TT1')
+#plt.plot(ell, totalcls_avg[:,5], color='darkorchid', linestyle='--', label='total TT2')
+#plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT3')
 plt.plot(ell, totalcls_avg[:,0], color='darksalmon', linestyle='--', label='total TT')
 plt.plot(ell, totalcls_avg[:,1], color='lightgreen', linestyle='--', label='total EE')
 plt.plot(ell, totalcls_avg[:,2], color='powderblue', linestyle='--', label='total BB')

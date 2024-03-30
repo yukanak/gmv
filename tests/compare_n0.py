@@ -67,7 +67,7 @@ def compare_n0(config_file='test_yuka.yaml'):
     # SQE
     filename = dir_out+f'/n0/n0_98simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_mh_resp_from_sims.pkl'
     n0_mh_sqe = pickle.load(open(filename,'rb'))
-    n0_mh_sqe_TT = 0.5*(n0_mh_sqe['T1T2']+n0_mh_sqe['T2T1']) * (l*(l+1))**2/4
+    n0_mh_sqe_TT = n0_mh_sqe['TT'] * (l*(l+1))**2/4
 
     # Cross-ILC GMV
     # Full sky, no masking, one leg is CIB-nulled ILC weighted and the other is tSZ-nulled ILC weighted
@@ -96,7 +96,7 @@ def compare_n0(config_file='test_yuka.yaml'):
     # Profile hardened GMV
     # Full sky, no masking, MV ILC weighting
     # Sims are signal + frequency correlated tSZ foregrounds from tSZ curves + frequency correlated noise realizations generated from frequency separated noise spectra
-    filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_profhrd_resp_from_sims.pkl'
+    filename = dir_out+f'/n0/n0_98simpairs_healqest_gmv_lmaxT3000_lmaxP4096_nside2048_profhrd_resp_from_sims_resp_method_B.pkl'
     n0_profhrd = pickle.load(open(filename,'rb'))
     n0_profhrd_total = n0_profhrd['total_hrd'] * (l*(l+1))**2/4
     n0_profhrd_TTEETE = n0_profhrd['TTEETE_hrd'] * (l*(l+1))**2/4
@@ -111,23 +111,24 @@ def compare_n0(config_file='test_yuka.yaml'):
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
-    plt.plot(l, n0_mh_total, color='darkseagreen', alpha=0.8, linestyle='-',label='MH GMV, total')
-    plt.plot(l, n0_crossilc_onesed_total, color='goldenrod', alpha=0.8, linestyle='-',label='Cross-ILC GMV (one component CIB), total')
-    plt.plot(l, n0_crossilc_twoseds_total, color='sandybrown', alpha=0.8, linestyle='-',label='Cross-ILC GMV (two component CIB), total')
-    plt.plot(l, n0_profhrd_total, color='blueviolet', alpha=0.8, linestyle='-',label='Profile Hardened GMV, total')
+    plt.plot(l, n0_mh_total, color='forestgreen', alpha=0.8, linestyle='-',label='MH GMV, total')
+    #plt.plot(l, n0_crossilc_onesed_total, color='goldenrod', alpha=0.8, linestyle='-',label='Cross-ILC GMV (one component CIB), total')
+    #plt.plot(l, n0_crossilc_twoseds_total, color='darkorange', alpha=0.8, linestyle='-',label='Cross-ILC GMV (two component CIB), total')
+    plt.plot(l, n0_crossilc_twoseds_total, color='darkorange', alpha=0.8, linestyle='-',label='Cross-ILC GMV, total')
+    #plt.plot(l, n0_profhrd_total, color='plum', alpha=0.8, linestyle='-',label='Profile Hardened GMV, total')
     plt.plot(l, n0_sqe_total, color='firebrick', alpha=0.8, linestyle='-',label='Standard SQE, MV')
     plt.plot(l, n0_standard_total, color='darkblue', alpha=0.8, linestyle='-',label='Standard GMV, total')
 
     plt.ylabel("$[\ell(\ell+1)]^2$$N_0$ / 4 $[\mu K^2]$")
     plt.xlabel('$\ell$')
-    plt.title(f'GMV $N_0$ Comparison')
-    plt.legend(loc='upper left', fontsize='x-small')
+    plt.title(f'GMV Reconstruction Noise Comparison')
+    plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
     plt.yscale('log')
     #plt.xlim(10,lmax)
     plt.xlim(10,2000)
     #plt.ylim(1e-8,1e-6)
-    plt.ylim(1e-8,1e-7)
+    plt.ylim(1e-8,2e-7)
     plt.savefig(dir_out+f'/figs/n0_comparison_gmv.png',bbox_inches='tight')
 
     plt.clf()
@@ -135,13 +136,13 @@ def compare_n0(config_file='test_yuka.yaml'):
 
     plt.plot(l, n0_sqe_TT, color='firebrick', alpha=0.8, linestyle='-',label='Standard SQE TT, MV')
     plt.plot(l, n0_crossilc_onesed_sqe_TT, color='goldenrod', alpha=0.8, linestyle='-',label='Cross-ILC SQE (one component CIB), TT')
-    plt.plot(l, n0_crossilc_twoseds_sqe_TT, color='sandybrown', alpha=0.8, linestyle='-',label='Cross-ILC SQE (two component CIB), TT')
-    plt.plot(l, n0_mh_sqe_TT, color='darkseagreen', alpha=0.8, linestyle='-',label='MH SQE, TT')
+    plt.plot(l, n0_crossilc_twoseds_sqe_TT, color='darkorange', alpha=0.8, linestyle='-',label='Cross-ILC SQE (two component CIB), TT')
+    plt.plot(l, n0_mh_sqe_TT, color='forestgreen', alpha=0.8, linestyle='-',label='MH SQE, TT')
 
     plt.ylabel("$[\ell(\ell+1)]^2$$N_0$ / 4 $[\mu K^2]$")
     plt.xlabel('$\ell$')
-    plt.title(f'SQE TT $N_0$ Comparison')
-    plt.legend(loc='upper left', fontsize='x-small')
+    plt.title(f'SQE TT Reconstruction Noise Comparison')
+    plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(80,3000)
@@ -156,14 +157,15 @@ def compare_n0(config_file='test_yuka.yaml'):
     ratio_n0_sqe_total = n0_sqe_total/n0_standard_total
     # Ratios with error bars
     plt.axhline(y=1, color='k', linestyle='--')
-    plt.plot(l, ratio_n0_mh_total, color='darkseagreen', alpha=0.8, linestyle='-',label='Ratio MH GMV / Standard GMV')
-    plt.plot(l, ratio_n0_crossilc_onesed_total,color='goldenrod', alpha=0.8, linestyle='-',label='Ratio Cross-ILC GMV (one component CIB) / Standard GMV')
-    plt.plot(l, ratio_n0_crossilc_twoseds_total, color='sandybrown', alpha=0.8, linestyle='-',label='Ratio Cross-ILC GMV (two component CIB) / Standard GMV')
-    plt.plot(l, ratio_n0_profhrd_total, color='blueviolet', alpha=0.8, linestyle='-',label='Ratio Profile Hardened GMV / Standard GMV')
+    plt.plot(l, ratio_n0_mh_total, color='forestgreen', alpha=0.8, linestyle='-',label='Ratio MH GMV / Standard GMV')
+    #plt.plot(l, ratio_n0_crossilc_onesed_total,color='goldenrod', alpha=0.8, linestyle='-',label='Ratio Cross-ILC GMV (one component CIB) / Standard GMV')
+    #plt.plot(l, ratio_n0_crossilc_twoseds_total, color='darkorange', alpha=0.8, linestyle='-',label='Ratio Cross-ILC GMV (two component CIB) / Standard GMV')
+    plt.plot(l, ratio_n0_crossilc_twoseds_total, color='darkorange', alpha=0.8, linestyle='-',label='Ratio Cross-ILC GMV / Standard GMV')
+    #plt.plot(l, ratio_n0_profhrd_total, color='plum', alpha=0.8, linestyle='-',label='Ratio Profile Hardened GMV / Standard GMV')
     plt.plot(l, ratio_n0_sqe_total, color='firebrick', alpha=0.8, linestyle='-',label='Ratio Standard SQE / Standard GMV')
     plt.xlabel('$\ell$')
-    plt.title(f'GMV $N_0$ Comparison')
-    plt.legend(loc='upper left', fontsize='x-small')
+    plt.title(f'GMV Reconstruction Noise Comparison')
+    plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
     plt.ylim(0.9,1.4)
     plt.xlim(10,lmax)

@@ -99,8 +99,8 @@ def plot(config_file='test_yuka.yaml'):
 
     plt.plot(l, inv_resp_spt_pol * (l*(l+1))**2/4, color='navy', linestyle='--', label='Polarization-only, lmaxP = 4096')
     plt.plot(l, inv_resps_spt[:,0] * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='Temperature-only, lmaxT = 3000')
-    #plt.plot(l, inv_resps_spt_3500[:,0] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='Temperature-only, lmaxT = 3500')
-    #plt.plot(l, inv_resps_spt_4000[:,0] * (l*(l+1))**2/4, color='plum', linestyle='--', label='Temperature-only, lmaxT = 4000')
+    plt.plot(l, inv_resps_spt_3500[:,0] * (l*(l+1))**2/4, color='lightcoral', linestyle='--', label='Temperature-only, lmaxT = 3500')
+    plt.plot(l, inv_resps_spt_4000[:,0] * (l*(l+1))**2/4, color='plum', linestyle='--', label='Temperature-only, lmaxT = 4000')
     #plt.plot(l, inv_resp_spt2_pol * (l*(l+1))**2/4, color='rebeccapurple', linestyle='--', label='Approximate SPT-3G Noise Levels (5 $\mu K$-arcmin in T/P) (polarization-only)')
     #plt.plot(l, inv_resps_spt2[:,0] * (l*(l+1))**2/4, color='plum', linestyle='--', label='Approximate SPT-3G Noise Levels (5 $\mu K$-arcmin in T/P) (temperature-only)')
     #plt.plot(l, inv_resp_act_pol * (l*(l+1))**2/4, color='firebrick', linestyle='--', label='Approximate ACT DR6 Noise Levels (15 $\mu K$-arcmin in T) (polarization-only)')
@@ -109,11 +109,11 @@ def plot(config_file='test_yuka.yaml'):
     plt.ylabel("$[\ell(\ell+1)]^2$$N_0$ / 4 $[\mu K^2]$")
     plt.xlabel('$\ell$')
     plt.title(f'SQE Reconstruction Noise Comparison with SPT-3G Noise Levels')
-    plt.legend(loc='upper left', fontsize='x-small')
+    plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
     plt.yscale('log')
     plt.xlim(10,lmax)
-    plt.ylim(1e-8,1e-5)
+    plt.ylim(1e-8,5e-6)
     plt.savefig(dir_out+f'/figs/sqe_reconstruction_noise_comparison.png',bbox_inches='tight')
 
 def get_sqe_analytic_response(est, config, append, lmaxT=None):
