@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=get_plms_crossilc
-#SBATCH --time=8:00:00
+#SBATCH --time=7:00:00
 #SBATCH --array=1-1000
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
@@ -23,10 +23,10 @@ export OMP_NUM_THREADS=12
 #~/gmv/tests/get_plms_crossilc.py T1T2 $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID crossilc_onesed test_yuka_lmaxT4000.yaml
 #~/gmv/tests/get_plms_crossilc.py T1T2 $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID crossilc_twoseds test_yuka_lmaxT4000.yaml
 
-~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_onesed test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim2 crossilc_onesed test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim2 $sim1 crossilc_onesed test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_onesed_cmbonly_phi1_tqu1tqu2 test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_onesed_cmbonly_phi1_tqu2tqu1 test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim2 crossilc_onesed_cmbonly test_yuka_lmaxT3500.yaml
-~/gmv/tests/get_plms_crossilc.py $qe $sim2 $sim1 crossilc_onesed_cmbonly test_yuka_lmaxT3500.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_twoseds test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim2 crossilc_twoseds test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim2 $sim1 crossilc_twoseds test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_twoseds_cmbonly_phi1_tqu1tqu2 test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim1 crossilc_twoseds_cmbonly_phi1_tqu2tqu1 test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim1 $sim2 crossilc_twoseds_cmbonly test_yuka_lmaxT4000.yaml
+~/gmv/tests/get_plms_crossilc.py $qe $sim2 $sim1 crossilc_twoseds_cmbonly test_yuka_lmaxT4000.yaml

@@ -72,8 +72,8 @@ def plot_profhrd_maps(config_file='test_yuka.yaml'):
 
     # Contaminated reconstructed kappa map
     plm_TT = plms_original[:,0].copy()
-    #plm_TT = hp.almxfl(plms_original[:,0],inv_resps_original[:,0])
-    #plm_TT = alm_cutlmax(plm_TT,300)
+    plm_TT = hp.almxfl(plm_TT,inv_resps_original[:,0])
+    plm_TT = alm_cutlmax(plm_TT,300)
     phi = hp.alm2map(hp.almxfl(plm_TT,(l*(l+1))/2),nside=nside)
     plm_sqe = hp.almxfl(plm_original,inv_resp_original)
     plm_sqe = alm_cutlmax(plm_sqe,300)
@@ -81,15 +81,15 @@ def plot_profhrd_maps(config_file='test_yuka.yaml'):
 
     # Source estimator output
     glm_prf_TT_weighted = -1*hp.almxfl(glm_prf_TT, weight_original)
-    #glm_prf_TT_weighted = hp.almxfl(glm_prf_TT_weighted,inv_resp_original_TT_hrd)
-    #glm_prf_TT = alm_cutlmax(glm_prf_TT,300)
-    #source = hp.alm2map(hp.almxfl(glm_prf_TT_weighted,(l*(l+1))/2),nside=nside)
-    source = hp.alm2map(hp.almxfl(glm_prf_TT,(l*(l+1))/2),nside=nside)
+    glm_prf_TT_weighted = hp.almxfl(glm_prf_TT_weighted,inv_resp_original_TT_hrd)
+    glm_prf_TT_weighted = alm_cutlmax(glm_prf_TT_weighted,300)
+    source = hp.alm2map(hp.almxfl(glm_prf_TT_weighted,(l*(l+1))/2),nside=nside)
+    #source = hp.alm2map(hp.almxfl(glm_prf_TT,(l*(l+1))/2),nside=nside)
 
     # Bias-hardened kappa map
-    #plm_TT_hrd = hp.almxfl(plm_original_TT_hrd,inv_resp_original_TT_hrd)
     plm_TT_hrd = plm_original_TT_hrd.copy()
-    #plm_TT_hrd = alm_cutlmax(plm_TT_hrd,300)
+    plm_TT_hrd = hp.almxfl(plm_TT_hrd,inv_resp_original_TT_hrd)
+    plm_TT_hrd = alm_cutlmax(plm_TT_hrd,300)
     phi_bh = hp.alm2map(hp.almxfl(plm_TT_hrd,(l*(l+1))/2),nside=nside)
     plm_sqe_hrd = hp.almxfl(plm_original_hrd,inv_resp_original_hrd)
     plm_sqe_hrd = alm_cutlmax(plm_sqe_hrd,300)
@@ -101,27 +101,27 @@ def plot_profhrd_maps(config_file='test_yuka.yaml'):
     input_phi = hp.alm2map(hp.almxfl(input_plm,(l*(l+1))/2),nside=nside)
 
     # Plot
-    scale = 0.2
+    scale = 0.1
     plt.figure(0)
     plt.clf()
-    hp.gnomview(phi,title='Reconstructed Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,)#min=-1*scale*3,max=scale*3)#,unit="uK")
-    #plt.savefig(dir_out+f'/figs/poisson_profhrd_reconstructed_kappa_map.png',bbox_inches='tight')
-    plt.savefig(dir_out+f'/figs/gaussian_profhrd_reconstructed_kappa_map.png',bbox_inches='tight')
+    hp.gnomview(phi,title='Reconstructed Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,min=-1*scale*3,max=scale*3,cmap='RdBu_r')#,unit="uK")
+    plt.savefig(dir_out+f'/figs/poisson_profhrd_reconstructed_kappa_map.png',bbox_inches='tight')
+    #plt.savefig(dir_out+f'/figs/gaussian_profhrd_reconstructed_kappa_map.png',bbox_inches='tight')
 
     plt.clf()
-    hp.gnomview(source,title='Reconstructed Source Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,)#min=-1*scale*3,max=scale*3)
-    #plt.savefig(dir_out+f'/figs/poisson_profhrd_reconstructed_source_map.png',bbox_inches='tight')
-    plt.savefig(dir_out+f'/figs/gaussian_profhrd_reconstructed_source_map.png',bbox_inches='tight')
+    hp.gnomview(source,title='Reconstructed Source Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,min=-1*scale*3,max=scale*3,cmap='RdBu_r')
+    plt.savefig(dir_out+f'/figs/poisson_profhrd_reconstructed_source_map.png',bbox_inches='tight')
+    #plt.savefig(dir_out+f'/figs/gaussian_profhrd_reconstructed_source_map.png',bbox_inches='tight')
 
     plt.clf()
-    hp.gnomview(phi_bh_total,title='Bias-Hardened Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,)#min=-1*scale,max=scale)
-    #plt.savefig(dir_out+f'/figs/poisson_profhrd_bias_hardened_kappa_map.png',bbox_inches='tight')
-    plt.savefig(dir_out+f'/figs/gaussian_profhrd_bias_hardened_kappa_map.png',bbox_inches='tight')
+    hp.gnomview(phi_bh_total,title='Bias-Hardened Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,min=-1*scale,max=scale,cmap='RdBu_r')
+    plt.savefig(dir_out+f'/figs/poisson_profhrd_bias_hardened_kappa_map.png',bbox_inches='tight')
+    #plt.savefig(dir_out+f'/figs/gaussian_profhrd_bias_hardened_kappa_map.png',bbox_inches='tight')
 
     plt.clf()
-    hp.gnomview(input_phi,title='Input Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,min=-1*scale,max=scale)
-    #plt.savefig(dir_out+f'/figs/poisson_profhrd_input_kappa_map.png',bbox_inches='tight')
-    plt.savefig(dir_out+f'/figs/gaussian_profhrd_input_kappa_map.png',bbox_inches='tight')
+    hp.gnomview(input_phi,title='Input Kappa Map',rot=[0,-60],notext=True,xsize=300,ysize=300,reso=3,min=-1*scale,max=scale,cmap='RdBu_r')
+    plt.savefig(dir_out+f'/figs/poisson_profhrd_input_kappa_map.png',bbox_inches='tight')
+    #plt.savefig(dir_out+f'/figs/gaussian_profhrd_input_kappa_map.png',bbox_inches='tight')
 
 def alm_cutlmax(almin,new_lmax):
     '''
@@ -144,7 +144,6 @@ def alm_cutlmax(almin,new_lmax):
 
     return almout
 
-"""
 def get_analytic_response(est, config, gmv,
                           fwhm=0, nlev_t=0, nlev_p=0, u=None,
                           noise_file=None, fsky_corr=1,
@@ -263,4 +262,5 @@ def get_analytic_response(est, config, gmv,
             R = R[:,3]
 
     return R
-"""
+
+plot_profhrd_maps()

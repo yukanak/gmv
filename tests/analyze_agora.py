@@ -14,12 +14,260 @@ import resp
 import scipy.signal as signal
 from scipy.signal import lfilter
 
-def analyze(config_file='test_yuka.yaml',
-            lbins=np.logspace(np.log10(50),np.log10(3000),20)):
+def analyze():
     '''
     Compare with N0/N1 subtraction.
     '''
+    lmax = 4096
+    l = np.arange(0,lmax+1)
+    lbins = np.logspace(np.log10(50),np.log10(3000),20)
+    bin_centers = (lbins[:-1] + lbins[1:]) / 2
+    digitized = np.digitize(l, lbins)
+    # Input kappa
+    klm = hp.read_alm('/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_klm_lmax4096.fits')
+    input_clkk = hp.alm2cl(klm,klm,lmax=lmax)
+    binned_input_clkk = np.array([input_clkk[digitized == i].mean() for i in range(1, len(lbins))])
+
+    # First, lmaxT = 3000 cases
+    config_file='test_yuka.yaml'
     config = utils.parse_yaml(config_file)
+    #append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_onesed', 'agora_crossilc_twoseds', 'agora_profhrd']
+    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_onesed', 'agora_crossilc_twoseds']
+    binned_bias_gmv_3000, binned_bias_sqe_3000 = get_lensing_bias(config,append_list)
+
+    # lmaxT = 3500 cases
+    config_file='test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    append_list = ['agora_standard', 'agora_mh']
+    binned_bias_gmv_3500, binned_bias_sqe_3500 = get_lensing_bias(config,append_list)
+
+    # lmaxT = 4000 cases
+    config_file='test_yuka_lmaxT4000.yaml'
+    config = utils.parse_yaml(config_file)
+    append_list = ['agora_standard', 'agora_mh']
+    binned_bias_gmv_4000, binned_bias_sqe_4000 = get_lensing_bias(config,append_list)
+
+    dir_out = config['dir_out']
+
+    # Plot
+    plt.figure(0)
+    plt.clf()
+    #plt.plot(l, bias_gmv[:,2]/input_clkk, color='goldenrod', linestyle='-', label="Cross-ILC GMV (one component CIB)")
+    #plt.plot(l, bias_gmv[:,3]/input_clkk, color='darkorange', linestyle='-', label="Cross-ILC GMV (two component CIB)")
+    #plt.plot(l, bias_gmv[:,1]/input_clkk, color='forestgreen', linestyle='-', label="MH GMV")
+    #plt.plot(l, bias_gmv[:,4]/input_clkk, color='plum', linestyle='-', label="Profile Hardened GMV")
+    #plt.plot(l, bias_sqe[:,0]/input_clkk, color='firebrick', linestyle='-', label=f'Standard SQE')
+    #plt.plot(l, bias_gmv[:,0]/input_clkk, color='darkblue', linestyle='-', label="Standard GMV")
+    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
+
+    #plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,2]/binned_input_clkk[:-2], color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    #plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,3]/binned_input_clkk[:-2], color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,3]/binned_input_clkk[:-2], color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,1]/binned_input_clkk[:-2], color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
+    #plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,4]/binned_input_clkk[:-2], color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers[:-2], binned_bias_sqe_3000[:-2,0]/binned_input_clkk[:-2], color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,0]/binned_input_clkk[:-2], color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.errorbar(bin_centers, binned_bias_gmv[:,2]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    #plt.errorbar(bin_centers, binned_bias_gmv[:,3]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    #plt.errorbar(bin_centers, binned_bias_gmv[:,1]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
+    #plt.errorbar(bin_centers, binned_bias_gmv[:,4]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    #plt.errorbar(bin_centers, binned_bias_sqe[:,0]/binned_input_clkk, yerr=binned_uncertainty_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
+    #plt.errorbar(bin_centers, binned_bias_gmv[:,0]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.xlim(50,2001)
+    #plt.xlim(10,lmax)
+    plt.ylim(-0.2,0.2)
+    plt.savefig(dir_out+f'/figs/bias_total.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
+    #plt.plot(bin_centers[:-2], binned_bias_gmv_3000[8:-2,3]/binned_input_clkk[8:-2], color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,1]/binned_input_clkk[:-2], color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV, lmaxT = 3000")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,0]/binned_input_clkk[:-2], color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 3000")
+    plt.plot(bin_centers[:-2], binned_bias_sqe_3000[:-2,0]/binned_input_clkk[:-2], color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE, lmaxT = 3000')
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3500[:-2,1]/binned_input_clkk[:-2], color='mediumseagreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV, lmaxT = 3500")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_4000[:-2,1]/binned_input_clkk[:-2], color='lightgreen', marker='o', linestyle=':', ms=3, alpha=0.8, label="MH GMV, lmaxT = 4000")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_3500[:-2,0]/binned_input_clkk[:-2], color='cornflowerblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 3500")
+    plt.plot(bin_centers[:-2], binned_bias_gmv_4000[:-2,0]/binned_input_clkk[:-2], color='lightsteelblue', marker='o', linestyle=':', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 4000")
+    plt.xlabel('$\ell$')
+    plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.xlim(50,2001)
+    plt.ylim(-0.2,0.2)
+    plt.savefig(dir_out+f'/figs/bias_total_different_lmax.png',bbox_inches='tight')
+
+'''
+    plt.clf()
+    #plt.plot(l, bias_gmv_TTEETE[:,2]/input_clkk, color='goldenrod', linestyle='-', label="Cross-ILC GMV (one component CIB)")
+    #plt.plot(l, bias_gmv_TTEETE[:,3]/input_clkk, color='darkorange', linestyle='-', label="Cross-ILC GMV (two component CIB)")
+    #plt.plot(l, bias_gmv_TTEETE[:,1]/input_clkk, color='forestgreen', linestyle='-', label="MH GMV")
+    #plt.plot(l, bias_gmv_TTEETE[:,4]/input_clkk, color='plum', linestyle='-', label="Profile Hardened GMV")
+    #plt.plot(l, bias_sqe_TT[:,0]/input_clkk, color='firebrick', linestyle='-', label=f'Standard SQE')
+    #plt.plot(l, bias_gmv_TTEETE[:,0]/input_clkk, color='darkblue', linestyle='-', label="Standard GMV")
+    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
+
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, binned_bias_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
+    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    #plt.errorbar(bin_centers, binned_bias_sqe_TT[:,0]/binned_input_clkk, yerr=binned_uncertainty_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
+    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum (TTEETE only)')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(-0.5,0.5)
+    #plt.ylim(-2,2)
+    plt.savefig(dir_out+f'/figs/bias_TTEETE.png',bbox_inches='tight')
+
+    plt.clf()
+    # Uncertainty/input kappa test plots
+    plt.plot(bin_centers, binned_uncertainty_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard SQE TT")
+    plt.plot(bin_centers, binned_uncertainty_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV Total")
+    plt.xlabel('$\ell$')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    #plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.savefig(dir_out+f'/figs/uncertainty_over_input_clkk.png',bbox_inches='tight')
+
+    plt.figure(1)
+    plt.clf()
+    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='-')
+
+    plt.plot(bin_centers, binned_bias_gmv[:,2]/binned_uncertainty_gmv[:,2], color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv[:,3]/binned_uncertainty_gmv[:,3], color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv[:,1]/binned_uncertainty_gmv[:,1], color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, binned_bias_gmv[:,4]/binned_uncertainty_gmv[:,4], color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, binned_bias_sqe[:,0]/binned_uncertainty_sqe[:,0], color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, binned_bias_gmv[:,0]/binned_uncertainty_gmv[:,0], color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Bias / Uncertainty')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(-0.3,0.3)
+    plt.savefig(dir_out+f'/figs/bias_over_uncertainty_total.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='-')
+
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_uncertainty_gmv_TTEETE[:,2], color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_uncertainty_gmv_TTEETE[:,3], color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_uncertainty_gmv_TTEETE[:,1], color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_uncertainty_gmv_TTEETE[:,4], color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, binned_bias_sqe_TT[:,0]/binned_uncertainty_sqe_TT[:,0], color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_uncertainty_gmv_TTEETE[:,0], color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
+
+    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Bias / Uncertainty (TTEETE only)')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(-0.5,0.5)
+    plt.savefig(dir_out+f'/figs/bias_over_uncertainty_TTEETE.png',bbox_inches='tight')
+
+    plt.figure(2)
+    plt.clf()
+    # Cross with input
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, input_clkk, 'gray',linestyle='--', label='Input $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(bin_centers, cross_gmv[:,2], color='goldenrod', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, cross_gmv[:,3], color='darkorange', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, cross_gmv[:,1], color='forestgreen', marker='o', linestyle='None', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, cross_gmv[:,4], color='plum', marker='o', linestyle='None', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, cross_sqe[:,0], color='firebrick', marker='o', linestyle='None', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, cross_gmv[:,0], color='darkblue', marker='o', linestyle='None', ms=3, alpha=0.8, label="Standard GMV")
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Agora Reconstruction x Input Kappa')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(1e-9,1e-6)
+    plt.savefig(dir_out+f'/figs/agora_cross_total.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
+    plt.plot(l, input_clkk, 'gray',linestyle='--', label='Input $C_\ell^{\kappa\kappa}$')
+
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,2], color='goldenrod', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,3], color='darkorange', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,1], color='forestgreen', marker='o', linestyle='None', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,4], color='plum', marker='o', linestyle='None', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, cross_sqe_TT[:,0], color='firebrick', marker='o', linestyle='None', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,0], color='darkblue', marker='o', linestyle='None', ms=3, alpha=0.8, label="Standard GMV")
+
+    plt.ylabel("$C_\ell^{\kappa\kappa}$")
+    plt.xlabel('$\ell$')
+    plt.title(f'Agora Reconstruction x Input Kappa (TTEETE only)')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.xlim(10,lmax)
+    plt.ylim(1e-9,1e-6)
+    plt.savefig(dir_out+f'/figs/agora_cross_TTEETE.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.axhline(y=1, color='gray', alpha=0.5, linestyle='-')
+
+    plt.plot(bin_centers, cross_gmv[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, cross_gmv[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, cross_gmv[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, cross_gmv[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, cross_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, cross_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
+
+    plt.xlabel('$\ell$')
+    plt.title(f'(Agora Reconstruction x Input Kappa) / Input Kappa')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    plt.savefig(dir_out+f'/figs/agora_cross_total_ratio.png',bbox_inches='tight')
+
+    plt.clf()
+    plt.axhline(y=1, color='gray', alpha=0.5, linestyle='-')
+
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
+    plt.plot(bin_centers, cross_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
+    plt.plot(bin_centers, cross_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
+
+    plt.xlabel('$\ell$')
+    plt.title(f'(Agora Reconstruction x Input Kappa) / Input Kappa (TTEETE only)')
+    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
+    plt.xscale('log')
+    plt.xlim(10,lmax)
+    plt.savefig(dir_out+f'/figs/agora_cross_TTEETE_ratio.png',bbox_inches='tight')
+'''
+
+def get_lensing_bias(config, append_list):
+
     lmax = config['lensrec']['Lmax']
     lmin = config['lensrec']['lminT']
     lmaxT = config['lensrec']['lmaxT']
@@ -27,6 +275,7 @@ def analyze(config_file='test_yuka.yaml',
     nside = config['lensrec']['nside']
     dir_out = config['dir_out']
     l = np.arange(0,lmax+1)
+    lbins = np.logspace(np.log10(50),np.log10(3000),20)
     bin_centers = (lbins[:-1] + lbins[1:]) / 2
     digitized = np.digitize(l, lbins)
     profile_file='fg_profiles/TT_srini_mvilc_foreground_residuals.pkl'
@@ -39,8 +288,6 @@ def analyze(config_file='test_yuka.yaml',
     klm = hp.read_alm('/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_klm_lmax4096.fits')
     input_clkk = hp.alm2cl(klm,klm,lmax=lmax)
     binned_input_clkk = [input_clkk[digitized == i].mean() for i in range(1, len(lbins))]
-    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_onesed', 'agora_crossilc_twoseds', 'agora_profhrd']
-    #append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_onesed', 'agora_crossilc_twoseds']
 
     # Bias
     bias_gmv = np.zeros((len(l),len(append_list)), dtype=np.complex_)
@@ -302,8 +549,10 @@ def analyze(config_file='test_yuka.yaml',
             bias_sqe[:,j] = auto_original_debiased - input_clkk
             bias_gmv_TTEETE[:,j] = auto_gmv_debiased_TTEETE - input_clkk
             bias_sqe_TT[:,j] = auto_original_debiased_TT - input_clkk
-        binned_bias_gmv[:,j] = [bias_gmv[:,j][digitized == i].mean() for i in range(1, len(lbins))]
-        binned_bias_sqe[:,j] = [bias_sqe[:,j][digitized == i].mean() for i in range(1, len(lbins))]
+        #binned_bias_gmv[:,j] = [bias_gmv[:,j][digitized == i].mean() for i in range(1, len(lbins))]
+        #binned_bias_sqe[:,j] = [bias_sqe[:,j][digitized == i].mean() for i in range(1, len(lbins))]
+        binned_bias_gmv[:,j] = np.array(binned_auto_gmv_debiased) - np.array(binned_input_clkk)
+        binned_bias_sqe[:,j] = np.array(binned_auto_original_debiased) - np.array(binned_input_clkk)
         binned_bias_gmv_TTEETE[:,j] = [bias_gmv_TTEETE[:,j][digitized == i].mean() for i in range(1, len(lbins))]
         binned_bias_sqe_TT[:,j] = [bias_sqe_TT[:,j][digitized == i].mean() for i in range(1, len(lbins))]
 
@@ -332,202 +581,7 @@ def analyze(config_file='test_yuka.yaml',
         #bias_over_uncertainty_gmv_TTEETE[:,j] = lfilter([1.0 / 150] * 150, 1, bias_over_uncertainty_gmv_TTEETE[:,j])
         #bias_over_uncertainty_sqe_TT[:,j] = lfilter([1.0 / 150] * 150, 1, bias_over_uncertainty_sqe_TT[:,j])
         
-
-    # Plot
-    plt.figure(0)
-    plt.clf()
-    #plt.plot(l, bias_gmv[:,2]/input_clkk, color='goldenrod', linestyle='-', label="Cross-ILC GMV (one component CIB)")
-    #plt.plot(l, bias_gmv[:,3]/input_clkk, color='darkorange', linestyle='-', label="Cross-ILC GMV (two component CIB)")
-    #plt.plot(l, bias_gmv[:,1]/input_clkk, color='forestgreen', linestyle='-', label="MH GMV")
-    #plt.plot(l, bias_gmv[:,4]/input_clkk, color='plum', linestyle='-', label="Profile Hardened GMV")
-    #plt.plot(l, bias_sqe[:,0]/input_clkk, color='firebrick', linestyle='-', label=f'Standard SQE')
-    #plt.plot(l, bias_gmv[:,0]/input_clkk, color='darkblue', linestyle='-', label="Standard GMV")
-    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
-
-    plt.plot(bin_centers, binned_bias_gmv[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, binned_bias_gmv[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, binned_bias_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, binned_bias_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.errorbar(bin_centers, binned_bias_gmv[:,2]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    #plt.errorbar(bin_centers, binned_bias_gmv[:,3]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    #plt.errorbar(bin_centers, binned_bias_gmv[:,1]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
-    #plt.errorbar(bin_centers, binned_bias_gmv[:,4]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    #plt.errorbar(bin_centers, binned_bias_sqe[:,0]/binned_input_clkk, yerr=binned_uncertainty_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
-    #plt.errorbar(bin_centers, binned_bias_gmv[:,0]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(-0.3,0.3)
-    #plt.ylim(-2,2)
-    plt.savefig(dir_out+f'/figs/bias_total.png',bbox_inches='tight')
-
-    plt.clf()
-    #plt.plot(l, bias_gmv_TTEETE[:,2]/input_clkk, color='goldenrod', linestyle='-', label="Cross-ILC GMV (one component CIB)")
-    #plt.plot(l, bias_gmv_TTEETE[:,3]/input_clkk, color='darkorange', linestyle='-', label="Cross-ILC GMV (two component CIB)")
-    #plt.plot(l, bias_gmv_TTEETE[:,1]/input_clkk, color='forestgreen', linestyle='-', label="MH GMV")
-    #plt.plot(l, bias_gmv_TTEETE[:,4]/input_clkk, color='plum', linestyle='-', label="Profile Hardened GMV")
-    #plt.plot(l, bias_sqe_TT[:,0]/input_clkk, color='firebrick', linestyle='-', label=f'Standard SQE')
-    #plt.plot(l, bias_gmv_TTEETE[:,0]/input_clkk, color='darkblue', linestyle='-', label="Standard GMV")
-    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
-
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, binned_bias_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV")
-    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='-', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    #plt.errorbar(bin_centers, binned_bias_sqe_TT[:,0]/binned_input_clkk, yerr=binned_uncertainty_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
-    #plt.errorbar(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_input_clkk, yerr=binned_uncertainty_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum (TTEETE only)')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(-0.5,0.5)
-    #plt.ylim(-2,2)
-    plt.savefig(dir_out+f'/figs/bias_TTEETE.png',bbox_inches='tight')
-
-    plt.clf()
-    # Uncertainty/input kappa test plots
-    plt.plot(bin_centers, binned_uncertainty_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard SQE TT")
-    plt.plot(bin_centers, binned_uncertainty_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV Total")
-    plt.xlabel('$\ell$')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    #plt.yscale('log')
-    plt.xlim(10,lmax)
-    plt.savefig(dir_out+f'/figs/uncertainty_over_input_clkk.png',bbox_inches='tight')
-
-    plt.figure(1)
-    plt.clf()
-    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='-')
-
-    plt.plot(bin_centers, binned_bias_gmv[:,2]/binned_uncertainty_gmv[:,2], color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv[:,3]/binned_uncertainty_gmv[:,3], color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv[:,1]/binned_uncertainty_gmv[:,1], color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, binned_bias_gmv[:,4]/binned_uncertainty_gmv[:,4], color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, binned_bias_sqe[:,0]/binned_uncertainty_sqe[:,0], color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, binned_bias_gmv[:,0]/binned_uncertainty_gmv[:,0], color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Bias / Uncertainty')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(-0.3,0.3)
-    plt.savefig(dir_out+f'/figs/bias_over_uncertainty_total.png',bbox_inches='tight')
-
-    plt.clf()
-    plt.axhline(y=0, color='gray', alpha=0.5, linestyle='-')
-
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,2]/binned_uncertainty_gmv_TTEETE[:,2], color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,3]/binned_uncertainty_gmv_TTEETE[:,3], color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,1]/binned_uncertainty_gmv_TTEETE[:,1], color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,4]/binned_uncertainty_gmv_TTEETE[:,4], color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, binned_bias_sqe_TT[:,0]/binned_uncertainty_sqe_TT[:,0], color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, binned_bias_gmv_TTEETE[:,0]/binned_uncertainty_gmv_TTEETE[:,0], color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
-
-    #plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Bias / Uncertainty (TTEETE only)')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(-0.5,0.5)
-    plt.savefig(dir_out+f'/figs/bias_over_uncertainty_TTEETE.png',bbox_inches='tight')
-
-    plt.figure(2)
-    plt.clf()
-    # Cross with input
-    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, input_clkk, 'gray',linestyle='--', label='Input $C_\ell^{\kappa\kappa}$')
-
-    plt.plot(bin_centers, cross_gmv[:,2], color='goldenrod', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, cross_gmv[:,3], color='darkorange', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, cross_gmv[:,1], color='forestgreen', marker='o', linestyle='None', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, cross_gmv[:,4], color='plum', marker='o', linestyle='None', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, cross_sqe[:,0], color='firebrick', marker='o', linestyle='None', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, cross_gmv[:,0], color='darkblue', marker='o', linestyle='None', ms=3, alpha=0.8, label="Standard GMV")
-
-    plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Agora Reconstruction x Input Kappa')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(1e-9,1e-6)
-    plt.savefig(dir_out+f'/figs/agora_cross_total.png',bbox_inches='tight')
-
-    plt.clf()
-    plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
-    plt.plot(l, input_clkk, 'gray',linestyle='--', label='Input $C_\ell^{\kappa\kappa}$')
-
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,2], color='goldenrod', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,3], color='darkorange', marker='o', linestyle='None', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,1], color='forestgreen', marker='o', linestyle='None', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,4], color='plum', marker='o', linestyle='None', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, cross_sqe_TT[:,0], color='firebrick', marker='o', linestyle='None', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,0], color='darkblue', marker='o', linestyle='None', ms=3, alpha=0.8, label="Standard GMV")
-
-    plt.ylabel("$C_\ell^{\kappa\kappa}$")
-    plt.xlabel('$\ell$')
-    plt.title(f'Agora Reconstruction x Input Kappa (TTEETE only)')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.xlim(10,lmax)
-    plt.ylim(1e-9,1e-6)
-    plt.savefig(dir_out+f'/figs/agora_cross_TTEETE.png',bbox_inches='tight')
-
-    plt.clf()
-    plt.axhline(y=1, color='gray', alpha=0.5, linestyle='-')
-
-    plt.plot(bin_centers, cross_gmv[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, cross_gmv[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, cross_gmv[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, cross_gmv[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, cross_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, cross_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
-
-    plt.xlabel('$\ell$')
-    plt.title(f'(Agora Reconstruction x Input Kappa) / Input Kappa')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.savefig(dir_out+f'/figs/agora_cross_total_ratio.png',bbox_inches='tight')
-
-    plt.clf()
-    plt.axhline(y=1, color='gray', alpha=0.5, linestyle='-')
-
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,2]/binned_input_clkk, color='goldenrod', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,3]/binned_input_clkk, color='darkorange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV (two component CIB)")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV")
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,4]/binned_input_clkk, color='plum', marker='o', linestyle='--', ms=3, alpha=0.8, label="Profile Hardened GMV")
-    plt.plot(bin_centers, cross_sqe_TT[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='--', ms=3, alpha=0.8, label=f'Standard SQE')
-    plt.plot(bin_centers, cross_gmv_TTEETE[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV")
-
-    plt.xlabel('$\ell$')
-    plt.title(f'(Agora Reconstruction x Input Kappa) / Input Kappa (TTEETE only)')
-    plt.legend(loc='upper left', fontsize='x-small', bbox_to_anchor=(1,0.5))
-    plt.xscale('log')
-    plt.xlim(10,lmax)
-    plt.savefig(dir_out+f'/figs/agora_cross_TTEETE_ratio.png',bbox_inches='tight')
+    return binned_bias_gmv, binned_bias_sqe
 
 def get_n0(sims,qetype,config,append,cmbonly=False):
     '''

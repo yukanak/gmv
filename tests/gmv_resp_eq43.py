@@ -239,7 +239,7 @@ class gmv_resp(object):
         f[:,2,2] = self.f_XY(L, l_1, phi1, 'BB')
         f[:,0,1] = f[:,1,0] = self.f_XY(L, l_1, phi1, 'TE')
         f[:,0,2] = f[:,2,0] = self.f_XY(L, l_1, phi1, 'TB')
-        f[:,0,3] = f[:,2,1] = self.f_XY(L, l_1, phi1, 'EB')
+        f[:,1,2] = f[:,2,1] = self.f_XY(L, l_1, phi1, 'EB')
 
         return f
 
@@ -254,7 +254,7 @@ class gmv_resp(object):
         f[:,2,2] = self.f_XY_PRF(L, l_1, phi1, 'BB')
         f[:,0,1] = f[:,1,0] = self.f_XY_PRF(L, l_1, phi1, 'TE')
         f[:,0,2] = f[:,2,0] = self.f_XY_PRF(L, l_1, phi1, 'TB')
-        f[:,0,3] = f[:,2,1] = self.f_XY_PRF(L, l_1, phi1, 'EB')
+        f[:,1,2] = f[:,2,1] = self.f_XY_PRF(L, l_1, phi1, 'EB')
 
         return f
 
@@ -284,7 +284,7 @@ class gmv_resp(object):
 
         inv_cl[:,0,0] = tEE(l_1) / dl
         inv_cl[:,1,1] = tTT(l_1) / dl
-        inv_cl[:,2,2] = 1 ./ tBB(l_1)
+        inv_cl[:,2,2] = 1.0 / tBB(l_1)
         inv_cl[:,0,1] = inv_cl[:,1,0] = -1*tTE(l_1) / dl
         inv_cl[:,0,2] = inv_cl[:,2,0] = 0
         inv_cl[:,1,2] = inv_cl[:,2,1] = 0
@@ -317,7 +317,7 @@ class gmv_resp(object):
 
         inv_cl[:,0,0] = tEE(l_2) / dl
         inv_cl[:,1,1] = tTT(l_2) / dl
-        inv_cl[:,2,2] = 1 ./ tBB(l_2)
+        inv_cl[:,2,2] = 1.0 / tBB(l_2)
         inv_cl[:,0,1] = inv_cl[:,1,0] = -1*tTE(l_2) / dl
         inv_cl[:,0,2] = inv_cl[:,2,0] = 0
         inv_cl[:,1,2] = inv_cl[:,2,1] = 0
@@ -339,16 +339,17 @@ class gmv_resp(object):
             phi2 = self.phi2(L, l_1, phil)
 
             if semi:
-                #TODO
+                pass
             else:
                 inv_Cl2 = self.Cl2_inv(l_2)
                 fl2l1 = self.f(L, l_2, phi2)
                 inv_Cl1 = self.Cl1_inv(l_1)
-                fl1l2 = self.f(L, l_1, phi1)
+                fl1l2 = self.f(L, l_1, phil)
                 res = np.einsum('ijk, ikl -> ijl', inv_Cl2, fl2l1)
                 res = np.einsum('ijk, ikl -> ijl', fl1l2, res)
                 res = np.einsum('ijk, ikl -> ijl', inv_Cl1, res)
-            res *= 2*l_1 #TODO: not understanding this
+                res = 0.5*np.trace(res, axis1=1, axis2=2)
+            res *= 2*l_1
             """
             Factor of 2 above because phi integral is symmetric.
             Thus we've put instead of 0 to 2pi, 2 times 0 to pi.
@@ -398,21 +399,22 @@ class gmv_resp(object):
             phi2 = self.phi2(L, l_1, phil)
 
             if semi:
-                #TODO
+                pass
             else:
                 if cross:
                     # For R^SKappa
-                    fl1l2 = self.f(L, l_1, phi1)
+                    fl1l2 = self.f(L, l_1, phil)
                 else:
                     # For R^SS
-                    fl1l2 = self.f_PRF(L, l_1, phi1)
+                    fl1l2 = self.f_PRF(L, l_1, phil)
                 inv_Cl1 = self.Cl1_inv(l_1)
                 inv_Cl2 = self.Cl2_inv(l_2)
                 fl2l1 = self.f_PRF(L, l_2, phi2)
                 res = np.einsum('ijk, ikl -> ijl', inv_Cl2, fl2l1)
                 res = np.einsum('ijk, ikl -> ijl', fl1l2, res)
                 res = np.einsum('ijk, ikl -> ijl', inv_Cl1, res)
-            res *= 2*l_1 #TODO: not understanding this
+                res = 0.5*np.trace(res, axis1=1, axis2=2)
+            res *= 2*l_1
             """
             Factor of 2 above because phi integral is symmetric.
             Thus we've put instead of 0 to 2pi, 2 times 0 to pi.

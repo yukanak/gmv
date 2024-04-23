@@ -249,12 +249,12 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     plt.figure(0)
     plt.clf()
     plt.plot(l, auto_gmv_debiased_avg, color='cornflowerblue', linestyle='-', label="Auto Spectrum (GMV)")
-    plt.plot(l, auto_cinv_debiased_avg, color='lightcoral', linestyle='-', label=f'Auto Spectrum (cinv-style GMV)')
+    plt.plot(l, auto_cinv_debiased_avg, color='lightcoral', linestyle='-', alpha=0.5, label=f'Auto Spectrum (cinv-style GMV)')
 
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
 
     plt.plot(bin_centers, binned_auto_gmv_debiased_avg, color='darkblue', marker='o', linestyle='None', ms=3, label="Auto Spectrum (GMV)")
-    plt.plot(bin_centers, binned_cinv_original_debiased_avg, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (cinv-style GMV)")
+    plt.plot(bin_centers, binned_auto_cinv_debiased_avg, color='firebrick', marker='o', linestyle='None', ms=3, label="Auto Spectrum (cinv-style GMV)")
 
     plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
@@ -274,7 +274,7 @@ def analyze(sims=np.arange(99)+1,n0_n1_sims=np.arange(98)+1,
     # Ratios with error bars
     plt.axhline(y=1, color='k', linestyle='--')
     plt.errorbar(bin_centers,ratio_gmv,yerr=errorbars_gmv,color='darkblue', marker='o', linestyle='None', ms=3, label="Ratio GMV/Input")
-    plt.errorbar(bin_centers,ratio_cinv,yerr=errorbars_cinv,color='firebrick', marker='o', linestyle='None', ms=3, label="Ratio cinv-style GMV/Input")
+    plt.errorbar(bin_centers,ratio_cinv,yerr=errorbars_cinv,color='firebrick', alpha=0.5, marker='o', linestyle='None', ms=3, label="Ratio cinv-style GMV/Input")
     plt.xlabel('$\ell$')
     plt.title(f'Spectra Averaged over {num} Sims')
     plt.legend(loc='lower left', fontsize='x-small')
