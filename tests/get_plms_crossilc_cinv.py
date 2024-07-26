@@ -34,10 +34,9 @@ def main():
     cls = config['cls']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     l = np.arange(0,lmax+1)
-    filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
-    filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
+    filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy'
 
-    if os.path.isfile(filename_sqe) or os.path.isfile(filename_gmv):
+    if os.path.isfile(filename_gmv):
         print('File already exists!')
     else:
         do_reconstruction(qe,sim1,sim2,append,config_file)
@@ -50,7 +49,7 @@ def do_reconstruction(qe,sim1,sim2,append,config_file):
     '''
     Function to do the actual reconstruction.
     '''
-    print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}')
+    print(f'Doing CINV-STYLE GMV reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}')
 
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
@@ -63,8 +62,8 @@ def do_reconstruction(qe,sim1,sim2,append,config_file):
     cls = config['cls']
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     l = np.arange(0,lmax+1)
-    filename_sqe = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
-    filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
+    gmv = True
+    filename_gmv = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy'
 
     # Noise curves
     fsky_corr=1
@@ -110,13 +109,6 @@ def do_reconstruction(qe,sim1,sim2,append,config_file):
         w_cib_null_95 = w_cib_null.item()['cmbcibfree'][95][1]
         w_cib_null_150 = w_cib_null.item()['cmbcibfree'][150][1]
         w_cib_null_220 = w_cib_null.item()['cmbcibfree'][220][1]
-
-    if qe == 'TTEETE' or qe == 'TBEB' or qe == 'all' or qe == 'TTEETEprf':
-        gmv = True
-    elif qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1':
-        gmv = False
-    else:
-        print('Invalid qe!')
 
     # Get full sky CMB alms
     print('Getting alms...')
@@ -319,131 +311,78 @@ def do_reconstruction(qe,sim1,sim2,append,config_file):
         print("Averaged totalcls file doesn't exist, run this script with append == 'crossilc_onesed' or append == 'crossilc_twoseds'")
         return
 
-    if not gmv:
-        print('Creating filters...')
-        # Create 1/cl filters
-        flt1 = np.zeros(lmax+1); flt1[lmin:] = 1./cltt1[lmin:] # CIB-null
-        flt2 = np.zeros(lmax+1); flt2[lmin:] = 1./cltt2[lmin:] # tSZ-null
-        flt3 = np.zeros(lmax+1); flt3[lmin:] = 1./cltt3[lmin:] # MV
-        fle = np.zeros(lmax+1); fle[lmin:] = 1./clee[lmin:]
-        flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
+    print('Doing the 1/Dl for GMV...')
+    invDl1 = np.zeros(lmax+1, dtype=np.complex_)
+    invDl2 = np.zeros(lmax+1, dtype=np.complex_)
+    invDl3 = np.zeros(lmax+1, dtype=np.complex_)
+    invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
+    invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
+    invDl3[lmin:] = 1./(cltt3[lmin:]*clee[lmin:] - clte[lmin:]**2)
+    flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
 
-        if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-            if qe[:2] == 'T1': almbar1 = hp.almxfl(tlm1_cibn,flt1); flm1 = flt1
-            elif qe[:2] == 'T2': almbar1 = hp.almxfl(tlm1_tszn,flt2); flm1 = flt2
-            elif qe[0] == 'T': almbar1 = hp.almxfl(tlm1_mv,flt3); flm1 = flt3
-            elif qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
-            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
+    if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
 
-            if qe[2:4] == 'T1': almbar2 = hp.almxfl(tlm2_cibn,flt1); flm2 = flt1
-            elif qe[2:4] == 'T2': almbar2 = hp.almxfl(tlm2_tszn,flt2); flm2 = flt2
-            elif qe[1] == 'T': almbar2 = hp.almxfl(tlm2_mv,flt3); flm2 = flt3
-            elif qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
-            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
+        if qe == 'T1T2':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1_cibn,clee)-hp.almxfl(elm1,clte)),invDl1)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2_tszn,clee)-hp.almxfl(elm2,clte)),invDl2)
+        elif qe == 'T2T1':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1_tszn,clee)-hp.almxfl(elm1,clte)),invDl2)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2_cibn,clee)-hp.almxfl(elm2,clte)),invDl1)
+        elif qe == 'T2E1':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1_mv,clee)-hp.almxfl(elm1,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2_mv,clte)),invDl3)
+        elif qe == 'E2T1':
+            almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1_mv,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2_mv,clee)-hp.almxfl(elm2,clte)),invDl3)
+        elif qe == 'E2E1':
+            almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1_mv,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2_mv,clte)),invDl3)
         else:
-            if qe[:2] == 'T1': almbar1 = hp.almxfl(tlm1,flt1); flm1 = flt1
-            elif qe[:2] == 'T2': almbar1 = hp.almxfl(tlm1,flt2); flm1 = flt2
-            elif qe[0] == 'T': almbar1 = hp.almxfl(tlm1,flt3); flm1 = flt3
-            elif qe[0] == 'E': almbar1 = hp.almxfl(elm1,fle); flm1 = fle
-            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb); flm1 = flb
+            if qe[0] == 'T': almbar1 = hp.almxfl((hp.almxfl(tlm1_mv,clee)-hp.almxfl(elm1,clte)),invDl3)
+            elif qe[0] == 'E': almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1_mv,clte)),invDl3)
+            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb)
 
-            if qe[2:4] == 'T1': almbar2 = hp.almxfl(tlm2,flt1); flm2 = flt1
-            elif qe[2:4] == 'T2': almbar2 = hp.almxfl(tlm2,flt2); flm2 = flt2
-            elif qe[1] == 'T': almbar2 = hp.almxfl(tlm2,flt3); flm2 = flt3
-            elif qe[1] == 'E': almbar2 = hp.almxfl(elm2,fle); flm2 = fle
-            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb); flm2 = flb
+            if qe[1] == 'T': almbar2 = hp.almxfl((hp.almxfl(tlm2_mv,clee)-hp.almxfl(elm2,clte)),invDl3)
+            elif qe[1] == 'E': almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2_mv,clte)),invDl3)
+            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb)
+
     else:
-        print('Doing the 1/Dl for GMV...')
-        invDl1 = np.zeros(lmax+1, dtype=np.complex_)
-        invDl2 = np.zeros(lmax+1, dtype=np.complex_)
-        invDl3 = np.zeros(lmax+1, dtype=np.complex_)
-        invDl1[lmin:] = 1./(cltt1[lmin:]*clee[lmin:] - clte[lmin:]**2)
-        invDl2[lmin:] = 1./(cltt2[lmin:]*clee[lmin:] - clte[lmin:]**2)
-        invDl3[lmin:] = 1./(cltt3[lmin:]*clee[lmin:] - clte[lmin:]**2)
-        flb = np.zeros(lmax+1); flb[lmin:] = 1./clbb[lmin:]
-
-        if append == 'crossilc_onesed' or append == 'crossilc_onesed_unl' or append == 'crossilc_twoseds' or append == 'crossilc_twoseds_unl':
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1_cibn),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2_tszn),9), dtype=np.complex_)
-
-            # T1T2
-            alm1all[:,0] = hp.almxfl(tlm1_cibn,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2_tszn,invDl2)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1_tszn,invDl2)
-            alm2all[:,1] = hp.almxfl(tlm2_cibn,invDl1)
-            # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl3)
-            alm2all[:,2] = hp.almxfl(elm2,invDl3)
-            # TE
-            alm1all[:,3] = hp.almxfl(tlm1_mv,invDl3)
-            alm2all[:,3] = hp.almxfl(elm2,invDl3)
-            # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl3)
-            alm2all[:,4] = hp.almxfl(tlm2_mv,invDl3)
-            # TB
-            alm1all[:,5] = hp.almxfl(tlm1_mv,invDl3)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
-            # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2_mv,invDl3)
-            # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl3)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
-            # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl3)
+        if qe == 'T1T2':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1,clee)-hp.almxfl(elm1,clte)),invDl1)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2,clee)-hp.almxfl(elm2,clte)),invDl2)
+        elif qe == 'T2T1':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1,clee)-hp.almxfl(elm1,clte)),invDl2)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2,clee)-hp.almxfl(elm2,clte)),invDl1)
+        elif qe == 'T2E1':
+            almbar1 = hp.almxfl((hp.almxfl(tlm1,clee)-hp.almxfl(elm1,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2,clte)),invDl3)
+        elif qe == 'E2T1':
+            almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(tlm2,clee)-hp.almxfl(elm2,clte)),invDl3)
+        elif qe == 'E2E1':
+            almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1,clte)),invDl3)
+            almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2,clte)),invDl3)
         else:
-            # Order is T1T2, T2T1, EE, TE, ET, TB, BT, EB, BE
-            alm1all = np.zeros((len(tlm1),9), dtype=np.complex_)
-            alm2all = np.zeros((len(tlm2),9), dtype=np.complex_)
+            if qe[0] == 'T': almbar1 = hp.almxfl((hp.almxfl(tlm1,clee)-hp.almxfl(elm1,clte)),invDl3)
+            elif qe[0] == 'E': almbar1 = hp.almxfl((hp.almxfl(elm1,cltt3)-hp.almxfl(tlm1,clte)),invDl3)
+            elif qe[0] == 'B': almbar1 = hp.almxfl(blm1,flb)
 
-            # T1T2
-            alm1all[:,0] = hp.almxfl(tlm1,invDl1)
-            alm2all[:,0] = hp.almxfl(tlm2,invDl2)
-            # T2T1
-            alm1all[:,1] = hp.almxfl(tlm1,invDl2)
-            alm2all[:,1] = hp.almxfl(tlm2,invDl1)
-            # EE
-            alm1all[:,2] = hp.almxfl(elm1,invDl3)
-            alm2all[:,2] = hp.almxfl(elm2,invDl3)
-            # TE
-            alm1all[:,3] = hp.almxfl(tlm1,invDl3)
-            alm2all[:,3] = hp.almxfl(elm2,invDl3)
-            # ET
-            alm1all[:,4] = hp.almxfl(elm1,invDl3)
-            alm2all[:,4] = hp.almxfl(tlm2,invDl3)
-            # TB
-            alm1all[:,5] = hp.almxfl(tlm1,invDl3)
-            alm2all[:,5] = hp.almxfl(blm2,flb)
-            # BT
-            alm1all[:,6] = hp.almxfl(blm1,flb)
-            alm2all[:,6] = hp.almxfl(tlm2,invDl3)
-            # EB
-            alm1all[:,7] = hp.almxfl(elm1,invDl3)
-            alm2all[:,7] = hp.almxfl(blm2,flb)
-            # BE
-            alm1all[:,8] = hp.almxfl(blm1,flb)
-            alm2all[:,8] = hp.almxfl(elm2,invDl3)
+            if qe[1] == 'T': almbar2 = hp.almxfl((hp.almxfl(tlm2,clee)-hp.almxfl(elm2,clte)),invDl3)
+            elif qe[1] == 'E': almbar2 = hp.almxfl((hp.almxfl(elm2,cltt3)-hp.almxfl(tlm2,clte)),invDl3)
+            elif qe[1] == 'B': almbar2 = hp.almxfl(blm2,flb)
 
     # Run healqest
     print('Running healqest...')
-    if not gmv:
-        q_original = qest.qest(config,cls)
-        if qe == 'T1T2' or qe == 'T2T1': qe='TT'
-        glm,clm = q_original.eval(qe,almbar1,almbar2)
-        # Save plm and clm
-        Path(dir_out).mkdir(parents=True, exist_ok=True)
-        np.save(filename_sqe,glm)
-        return
-    else:
-        q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
-        # Save plm and clm
-        Path(dir_out).mkdir(parents=True, exist_ok=True)
-        np.save(filename_gmv,glm)
-        return
+    q = qest.qest(config,cls)
+    if qe == 'T1T2' or qe == 'T2T1': qe='TT'
+    if qe == 'T2E1': qe='TE'
+    if qe == 'E2T1': qe='ET'
+    if qe == 'E2E1': qe='EE'
+    glm,clm = q.eval(qe,almbar1,almbar2)
+    # Save plm and clm
+    Path(dir_out).mkdir(parents=True, exist_ok=True)
+    np.save(filename_gmv,glm)
+    return
 
 if __name__ == '__main__':
 
