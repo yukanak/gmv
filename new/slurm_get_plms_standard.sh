@@ -14,6 +14,12 @@ sim2=$(($sim1+1))
 
 export OMP_NUM_THREADS=12
 
+# If no averaged totalcls yet: just run what's commented out below to get the total Cls to average, for each lmaxT
+# See get_plms_standard.py around lines 370 and on
+# Once you have the total Cls for each input map, use average_totalcls.py to average
+#~/gmv/new/get_plms_standard.py TT $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID standard_cinv test_yuka_lmaxT3500.yaml
+#~/gmv/new/get_plms_standard.py TT $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_ID standard_cinv test_yuka_lmaxT4000.yaml
+
 ~/gmv/new/get_plms_standard.py $qe r $sim1 standard_cinv test_yuka_lmaxT3500.yaml
 ~/gmv/new/get_plms_standard.py $qe $sim1 r standard_cinv test_yuka_lmaxT3500.yaml
 ~/gmv/new/get_plms_standard.py $qe r $sim1 standard_cinv test_yuka_lmaxT4000.yaml
