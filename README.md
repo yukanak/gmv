@@ -13,7 +13,7 @@ python3 get_plms_standard.py TT 100 100 standard_cinv test_yuka.yaml
 ```
 where the first argument is the estimator (in the case of MH and cross-ILC, we want `T1T2` or `T2T1` instead of `TT`), the second two arguments are the sim numbers for the input maps, the next argument can be e.g. `standard`, `standard_cinv`, `standard_cmbonly_phi1_tqu1tqu2`, etc. (see comments at the top of the `get_plms_standard.py` file for a better description of what this argument should be, and also see `slurm_get_plms_standard.sh` for thorough examples), and the last argument is the path to the config file.
 
-The paths to the input maps, ILC weights, output directory, etc. are all hard-coded into `get_plms_standard.py`, so make sure you change all of that before running!
+The paths to the input maps, ILC weights, output directory, etc. are all hard-coded into `get_plms_standard.py`, so make sure you change all of that before running (and please don't overwrite my test files)!
 
 I am using 250 total sims for my tests, and baselining cinv-style. To get all the plms required for a full analysis of the standard case (cinv-style), I used `slurm_get_plms_standard.sh`. See this submit script for a good example of how `get_plms_standard.py` should be run. It takes around 3 minutes for `get_plms_standard.py` to get the plm for one estimator for one pair of input sims.
 
