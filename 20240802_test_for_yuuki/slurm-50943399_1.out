@@ -1,0 +1,20 @@
+/home/users/yukanaka/gmv/20240802_test_for_yuuki/analyze_yuuki.py:43: RuntimeWarning: invalid value encountered in true_divide
+  inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+/home/users/yukanaka/gmv/20240802_test_for_yuuki/analyze_yuuki.py:45: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+/home/users/yukanaka/miniconda3/envs/tora_py3/lib/python3.10/site-packages/matplotlib/cbook/__init__.py:1298: ComplexWarning: Casting complex values to real discards the imaginary part
+  return np.asarray(x, float)
+/home/users/yukanaka/miniconda3/envs/tora_py3/lib/python3.10/site-packages/numpy/ma/core.py:3377: ComplexWarning: Casting complex values to real discards the imaginary part
+  _data[indx] = dval
+Loading lensing config: profhrd_yuka.yaml
+healqest commit: 5a9834fcd0d89ed024556a607d4faa53baf17f8c
+Reconstruction type: gmv
+/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
