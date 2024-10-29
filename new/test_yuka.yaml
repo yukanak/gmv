@@ -1,0 +1,25 @@
+base:
+    # Location of healqest
+    dir_healqest: '/home/users/yukanaka/healqest/healqest/src/'
+
+cls:
+    # These files should be in polspice format ell/cltt/clee/clbb/clte/cleb
+    file_lcmb: '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat'
+    file_gcmb: '/home/users/yukanaka/healqest/healqest/camb/qe_lensed_gradient_Cls.dat'
+    #file_gcmb: '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls_gradlensedCls.dat'
+    file_ucmb: '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+
+lensrec:
+    rectype: 'gmv' # [sqe,gmv,mh,xilc,gmvph]
+    cltype  : 'lcmb'
+    Lmax    : 4096
+    lmin    : 300
+    lminT   : 300
+    lminP   : 300
+    lmaxT   : 3000
+    lmaxP   : 4096
+    nside   : 2048
+
+outputs:
+    # Location of output files
+    dir_out     : '/oak/stanford/orgs/kipac/users/yukanaka/outputs_new/'
