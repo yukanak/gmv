@@ -48,7 +48,7 @@ def main():
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     l = np.arange(0,lmax+1)
 
-    if append[-4:] != 'cinv' and (qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1'):
+    if append[-4:] != 'cinv' and (qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1' or qe == 'T2E1' or qe == 'E2T1' or qe == 'E2E1'):
         # SQE
         gmv = False
         filename = dir_out+f'/plm_{qe}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_{T3_opt}.npy'
@@ -633,10 +633,12 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,T3_opt):
         withT3 = False
     if gmv and not cinv:
         q_gmv = qest.qest_gmv(config,cls)
-        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True,withT3=withT3)
+        #glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True,withT3=withT3)
+        glm,clm = q_gmv.eval(qe,alm1all,alm2all,totalcls,crossilc=True)
     else:
         q = qest.qest(config,cls)
-        glm,clm = q.eval(qe,almbar1,almbar2,withT3=withT3)
+        #glm,clm = q.eval(qe,almbar1,almbar2,withT3=withT3)
+        glm,clm = q.eval(qe,almbar1,almbar2)
     # Save plm
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     np.save(filename,glm)

@@ -1,15 +1,24 @@
 #!/bin/bash
 #SBATCH --job-name=get_plms_mh_crossilc
 #SBATCH --time=4:00:00
-#SBATCH --array=1000-1220
+#SBATCH --array=601-1600
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --partition=kipac
 
-ests=(TT TE ET EE TB BT EB BE)
-qe=${ests[$SLURM_ARRAY_TASK_ID%8-1]}
-#sim1=$(((SLURM_ARRAY_TASK_ID-1)/8+1))
-sim1=$(((SLURM_ARRAY_TASK_ID-1)/8+100))
+#ests=(T1T2 T2T1 TE ET EE TB BT EB BE)
+#qe=${ests[$SLURM_ARRAY_TASK_ID%9-1]}
+#sim1=$(((SLURM_ARRAY_TASK_ID-1)/9+1))
+#sim2=$(($sim1+1))
+
+#ests=(T1T2 T2T1 T2E1 E2T1 E2E1)
+#qe=${ests[$SLURM_ARRAY_TASK_ID%5-1]}
+#sim1=$(((SLURM_ARRAY_TASK_ID-1)/5+1))
+#sim2=$(($sim1+1))
+
+ests=(TE ET EE TB BT EB BE)
+qe=${ests[$SLURM_ARRAY_TASK_ID%7-1]}
+sim1=$(((SLURM_ARRAY_TASK_ID-1)/7+1))
 sim2=$(($sim1+1))
 
 export OMP_NUM_THREADS=12

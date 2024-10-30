@@ -37,7 +37,7 @@ def main():
     sl = {ee:config['cls'][cltype][ee] for ee in config['cls'][cltype].keys()}
     l = np.arange(0,lmax+1)
 
-    if append[-4:] != 'cinv' and (qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1'):
+    if append[-4:] != 'cinv' and (qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1' or qe == 'T2E1' or qe == 'E2T1' or qe == 'E2E1'):
         # SQE
         gmv = False
         if T3_opt == 'noT3' or T3_opt == 'withT3':
