@@ -37,13 +37,13 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     u = None
 
     # Get response
-    ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+    ests = ['T1T2', 'T2T1', 'EE', 'E2E1', 'TE', 'T2E1', 'ET', 'E2T1', 'TB', 'BT', 'EB', 'BE']
     resps = np.zeros((len(l),len(ests)), dtype=np.complex_)
     inv_resps = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
     for i, est in enumerate(ests):
         resps[:,i] = get_sim_response(est,config,cinv=True,append=append,sims=sims,gmv=True,withT3=withT3)
         inv_resps[1:,i] = 1/(resps)[1:,i]
-    resp = 0.5*resps[:,0]+0.5*resps[:,1]+np.sum(resps[:,2:], axis=1)
+    resp = 0.5*np.sum(resps[:,:8], axis=1)+np.sum(resps[:,8:], axis=1)
     inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
     if compare and sqe:
         resps_sqe = np.zeros((len(l),len(ests)), dtype=np.complex_)
@@ -51,7 +51,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
         for i, est in enumerate(ests):
             resps_sqe[:,i] = get_sim_response(est,config,cinv=False,gmv=False,append=append,sims=sims,withT3=withT3)
             inv_resps_sqe[1:,i] = 1/(resps_sqe)[1:,i]
-        resp_sqe = 0.5*resps_sqe[:,0]+0.5*resps_sqe[:,1]+np.sum(resps_sqe[:,2:], axis=1)
+        resp_sqe = 0.5*np.sum(resps_sqe[:,:8], axis=1)+np.sum(resps_sqe[:,8:], axis=1)
         inv_resp_sqe = np.zeros_like(l,dtype=np.complex_); inv_resp_sqe[1:] = 1/(resp_sqe)[1:]
     elif compare:
         # Original (not cinv-style) GMV response
@@ -109,7 +109,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
                 plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_withT3.npy')
             else:
                 plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
-        plm = 0.5*np.sum(plms[:,:2], axis=1)+np.sum(plms[:,2:], axis=1)
+        plm = 0.5*np.sum(plms[:,:8], axis=1)+np.sum(plms[:,8:], axis=1)
 
         if np.any(np.isnan(plm)):
             print(f'Sim {sim} is bad!')
@@ -155,7 +155,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
                     plms_sqe[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_withT3.npy')
                 else:
                     plms_sqe[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
-            plm_sqe = 0.5*np.sum(plms_sqe[:,:2], axis=1)+np.sum(plms_sqe[:,2:], axis=1)
+            plm_sqe = 0.5*np.sum(plms_sqe[:,:8], axis=1)+np.sum(plms_sqe[:,8:], axis=1)
 
 
             # Response correct
@@ -181,7 +181,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
                 binned_temp_sqe = [auto_sqe_debiased[digitized == i].mean() for i in range(1, len(lbins))]
 
                 # If debiasing, get the binned ratio against input
-                input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
+                input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
                 auto_input = hp.alm2cl(input_plm, input_plm, lmax=lmax) * (l*(l+1))**2/4
                 # Bin!
                 binned_auto_sqe_debiased = [auto_sqe_debiased[digitized == i].mean() for i in range(1, len(lbins))]
@@ -335,9 +335,9 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     plt.xlim(10,lmax)
     plt.ylim(1e-9,1e-6)
     if n1:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_lmaxT{lmaxT}.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_lmaxT{lmaxT}_12ests.png',bbox_inches='tight')
     else:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_lmaxT{lmaxT}.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_lmaxT{lmaxT}_12ests.png',bbox_inches='tight')
 
     plt.figure(1)
     plt.clf()
@@ -355,9 +355,9 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     plt.ylim(0.98,1.02)
     plt.xlim(10,lmax)
     if n1:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio_lmaxT{lmaxT}.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0n1subtracted_binnedratio_lmaxT{lmaxT}_12ests.png',bbox_inches='tight')
     else:
-        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio_lmaxT{lmaxT}.png',bbox_inches='tight')
+        plt.savefig(dir_out+f'/figs/{num}_sims_comparison_{append}_resp_from_sims_n0subtracted_binnedratio_lmaxT{lmaxT}_12ests.png',bbox_inches='tight')
 
 def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
     '''
@@ -378,9 +378,9 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
     if cmbonly:
         append += '_cmbonly'
     if withT3:
-        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_withT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_9ests.pkl'
+        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_withT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_12ests.pkl'
     else:
-        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_noT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_9ests.pkl'
+        filename = dir_out+f'/n0/n0_{num}simpairs_healqest_{qetype}_noT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_12ests.pkl'
 
     if os.path.isfile(filename):
         n0 = pickle.load(open(filename,'rb'))
@@ -455,20 +455,20 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             pickle.dump(n0, f)
 
     elif qetype == 'gmv_cinv':
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'E2E1', 'TE', 'T2E1', 'ET', 'E2T1', 'TB', 'BT', 'EB', 'BE']
         resps = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
             resps[:,i] = get_sim_response(est,config,cinv=True,append=append_original,sims=np.append(sims,num+1),gmv=True,withT3=withT3)
             inv_resps[1:,i] = 1/(resps)[1:,i]
-        resp = 0.5*resps[:,0]+0.5*resps[:,1]+np.sum(resps[:,2:], axis=1)
-        resp_TTEETE = 0.5*np.sum(resps[:,:2], axis=1)+np.sum(resps[:,2:5], axis=1)
-        resp_TBEB = np.sum(resps[:,5:], axis=1)
+        resp = 0.5*np.sum(resps[:,:8], axis=1)+np.sum(resps[:,8:], axis=1)
+        resp_TTEETE = 0.5*np.sum(resps[:,:8], axis=1)
+        resp_TBEB = np.sum(resps[:,8:], axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
         inv_resp_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_TTEETE[1:] = 1/(resp_TTEETE)[1:]
         inv_resp_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_TBEB[1:] = 1/(resp_TBEB)[1:]
 
-        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
+        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'E2E1':0, 'TE':0, 'T2E1':0, 'ET':0, 'E2T1':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim1 in enumerate(sims):
             sim2 = sim1 + 1
 
@@ -477,36 +477,36 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_withT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_withT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_withT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_withT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
             else:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
 
             if np.any(np.isnan(plms_ij[:,0])):
                 print(f'Sim {sim1} is bad!')
                 num -= 1
                 continue
 
-            # NINE estimators!!!
-            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:5], axis=1)
-            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:5], axis=1)
-            plm_TBEB_ij = np.sum(plms_ij[:,5:], axis=1)
-            plm_TBEB_ji = np.sum(plms_ji[:,5:], axis=1)
+            # TWELVE estimators!!!
+            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)
+            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)
+            plm_TBEB_ij = np.sum(plms_ij[:,8:], axis=1)
+            plm_TBEB_ji = np.sum(plms_ji[:,8:], axis=1)
 
             # Response correct
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp)
@@ -528,12 +528,15 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             auto_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ij[:,0], lmax=lmax)
             auto_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ij[:,1], lmax=lmax)
             auto_EE = hp.alm2cl(plms_ij[:,2], plms_ij[:,2], lmax=lmax)
-            auto_TE = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
-            auto_ET = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
-            auto_TB = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
-            auto_BT = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
-            auto_EB = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
-            auto_BE = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
+            auto_TE = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
+            auto_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
+            auto_ET = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
+            auto_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
+            auto_TB = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_BT = hp.alm2cl(plms_ij[:,9], plms_ij[:,9], lmax=lmax)
+            auto_EB = hp.alm2cl(plms_ij[:,10], plms_ij[:,10], lmax=lmax)
+            auto_BE = hp.alm2cl(plms_ij[:,11], plms_ij[:,11], lmax=lmax)
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
@@ -542,12 +545,15 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             cross_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ji[:,0], lmax=lmax)
             cross_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ji[:,1], lmax=lmax)
             cross_EE = hp.alm2cl(plms_ij[:,2], plms_ji[:,2], lmax=lmax)
-            cross_TE = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
-            cross_ET = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
-            cross_TB = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
-            cross_BT = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
-            cross_EB = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
-            cross_BE = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
+            cross_TE = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
+            cross_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
+            cross_ET = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
+            cross_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
+            cross_TB = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_BT = hp.alm2cl(plms_ij[:,9], plms_ji[:,9], lmax=lmax)
+            cross_EB = hp.alm2cl(plms_ij[:,10], plms_ji[:,10], lmax=lmax)
+            cross_BE = hp.alm2cl(plms_ij[:,11], plms_ji[:,11], lmax=lmax)
 
             n0['total'] += auto + cross
             n0['TTEETE'] += auto_TTEETE + cross_TTEETE
@@ -555,8 +561,11 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             n0['T1T2'] += auto_T1T2 + cross_T1T2
             n0['T2T1'] += auto_T2T1 + cross_T2T1
             n0['EE'] += auto_EE + cross_EE
+            n0['E2E1'] += auto_E2E1 + cross_E2E1
             n0['TE'] += auto_TE + cross_TE
+            n0['T2E1'] += auto_T2E1 + cross_T2E1
             n0['ET'] += auto_ET + cross_ET
+            n0['E2T1'] += auto_E2T1 + cross_E2T1
             n0['TB'] += auto_TB + cross_TB
             n0['BT'] += auto_BT + cross_BT
             n0['EB'] += auto_EB + cross_EB
@@ -568,8 +577,11 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
         n0['T1T2'] *= 1/num
         n0['T2T1'] *= 1/num
         n0['EE'] *= 1/num
+        n0['E2E1'] *= 1/num
         n0['TE'] *= 1/num
+        n0['T2E1'] *= 1/num
         n0['ET'] *= 1/num
+        n0['E2T1'] *= 1/num
         n0['TB'] *= 1/num
         n0['BT'] *= 1/num
         n0['EB'] *= 1/num
@@ -580,20 +592,20 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'E2E1', 'TE', 'T2E1', 'ET', 'E2T1', 'TB', 'BT', 'EB', 'BE']
         resps = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
             resps[:,i] = get_sim_response(est,config,gmv=False,cinv=False,append=append_original,sims=np.append(sims,num+1),withT3=withT3)
             inv_resps[1:,i] = 1/(resps)[1:,i]
-        resp = 0.5*resps[:,0]+0.5*resps[:,1]+np.sum(resps[:,2:], axis=1)
-        resp_TTEETE = 0.5*np.sum(resps[:,:2], axis=1)+np.sum(resps[:,2:5], axis=1)
-        resp_TBEB = np.sum(resps[:,5:], axis=1)
+        resp = 0.5*np.sum(resps[:,:8], axis=1)+np.sum(resps[:,8:], axis=1)
+        resp_TTEETE = 0.5*np.sum(resps[:,:8], axis=1)
+        resp_TBEB = np.sum(resps[:,8:], axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
         inv_resp_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_TTEETE[1:] = 1/(resp_TTEETE)[1:]
         inv_resp_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_TBEB[1:] = 1/(resp_TBEB)[1:]
 
-        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
+        n0 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'E2E1':0, 'TE':0, 'T2E1':0, 'ET':0, 'E2T1':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim1 in enumerate(sims):
             sim2 = sim1 + 1
 
@@ -602,36 +614,36 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_withT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_withT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_withT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_withT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
             else:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')),len(ests)), dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim2}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
 
             if np.any(np.isnan(plms_ij[:,0])):
                 print(f'Sim {sim1} is bad!')
                 num -= 1
                 continue
 
-            # NINE estimators!!!
-            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:5], axis=1)
-            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:5], axis=1)
-            plm_TBEB_ij = np.sum(plms_ij[:,5:], axis=1)
-            plm_TBEB_ji = np.sum(plms_ji[:,5:], axis=1)
+            # TWELVE estimators!!!
+            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)
+            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)
+            plm_TBEB_ij = np.sum(plms_ij[:,8:], axis=1)
+            plm_TBEB_ji = np.sum(plms_ji[:,8:], axis=1)
 
             # Response correct
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp)
@@ -653,12 +665,15 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             auto_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ij[:,0], lmax=lmax)
             auto_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ij[:,1], lmax=lmax)
             auto_EE = hp.alm2cl(plms_ij[:,2], plms_ij[:,2], lmax=lmax)
-            auto_TE = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
-            auto_ET = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
-            auto_TB = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
-            auto_BT = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
-            auto_EB = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
-            auto_BE = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
+            auto_TE = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
+            auto_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
+            auto_ET = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
+            auto_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
+            auto_TB = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_BT = hp.alm2cl(plms_ij[:,9], plms_ij[:,9], lmax=lmax)
+            auto_EB = hp.alm2cl(plms_ij[:,10], plms_ij[:,10], lmax=lmax)
+            auto_BE = hp.alm2cl(plms_ij[:,11], plms_ij[:,11], lmax=lmax)
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
@@ -667,12 +682,15 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             cross_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ji[:,0], lmax=lmax)
             cross_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ji[:,1], lmax=lmax)
             cross_EE = hp.alm2cl(plms_ij[:,2], plms_ji[:,2], lmax=lmax)
-            cross_TE = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
-            cross_ET = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
-            cross_TB = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
-            cross_BT = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
-            cross_EB = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
-            cross_BE = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
+            cross_TE = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
+            cross_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
+            cross_ET = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
+            cross_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
+            cross_TB = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_BT = hp.alm2cl(plms_ij[:,9], plms_ji[:,9], lmax=lmax)
+            cross_EB = hp.alm2cl(plms_ij[:,10], plms_ji[:,10], lmax=lmax)
+            cross_BE = hp.alm2cl(plms_ij[:,11], plms_ji[:,11], lmax=lmax)
 
             n0['total'] += auto + cross
             n0['TTEETE'] += auto_TTEETE + cross_TTEETE
@@ -680,8 +698,11 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
             n0['T1T2'] += auto_T1T2 + cross_T1T2
             n0['T2T1'] += auto_T2T1 + cross_T2T1
             n0['EE'] += auto_EE + cross_EE
+            n0['E2E1'] += auto_E2E1 + cross_E2E1
             n0['TE'] += auto_TE + cross_TE
+            n0['T2E1'] += auto_T2E1 + cross_T2E1
             n0['ET'] += auto_ET + cross_ET
+            n0['E2T1'] += auto_E2T1 + cross_E2T1
             n0['TB'] += auto_TB + cross_TB
             n0['BT'] += auto_BT + cross_BT
             n0['EB'] += auto_EB + cross_EB
@@ -693,8 +714,11 @@ def get_n0(sims,qetype,config,append,cmbonly=False,withT3=False):
         n0['T1T2'] *= 1/num
         n0['T2T1'] *= 1/num
         n0['EE'] *= 1/num
+        n0['E2E1'] *= 1/num
         n0['TE'] *= 1/num
+        n0['T2E1'] *= 1/num
         n0['ET'] *= 1/num
+        n0['E2T1'] *= 1/num
         n0['TB'] *= 1/num
         n0['BT'] *= 1/num
         n0['EB'] *= 1/num
@@ -726,9 +750,9 @@ def get_n1(sims,qetype,config,append,withT3=False):
     num = len(sims)
     append_original = append
     if withT3:
-        filename = dir_out+f'/n1/n1_{num}simpairs_healqest_{qetype}_withT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_9ests.pkl'
+        filename = dir_out+f'/n1/n1_{num}simpairs_healqest_{qetype}_withT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_12ests.pkl'
     else:
-        filename = dir_out+f'/n1/n1_{num}simpairs_healqest_{qetype}_noT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_9ests.pkl'
+        filename = dir_out+f'/n1/n1_{num}simpairs_healqest_{qetype}_noT3_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_resp_from_sims_12ests.pkl'
 
     if os.path.isfile(filename):
         n1 = pickle.load(open(filename,'rb'))
@@ -810,51 +834,51 @@ def get_n1(sims,qetype,config,append,withT3=False):
             pickle.dump(n1, f)
 
     elif qetype == 'gmv_cinv':
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'E2E1', 'TE', 'T2E1', 'ET', 'E2T1', 'TB', 'BT', 'EB', 'BE']
         resps = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
             resps[:,i] = get_sim_response(est,config,cinv=True,append=append_original,sims=np.append(sims,num+1),gmv=True,withT3=withT3)
             inv_resps[1:,i] = 1/(resps)[1:,i]
-        resp = 0.5*resps[:,0]+0.5*resps[:,1]+np.sum(resps[:,2:], axis=1)
-        resp_TTEETE = 0.5*np.sum(resps[:,:2], axis=1)+np.sum(resps[:,2:5], axis=1)
-        resp_TBEB = np.sum(resps[:,5:], axis=1)
+        resp = 0.5*np.sum(resps[:,:8], axis=1)+np.sum(resps[:,8:], axis=1)
+        resp_TTEETE = 0.5*np.sum(resps[:,:8], axis=1)
+        resp_TBEB = np.sum(resps[:,8:], axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
         inv_resp_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_TTEETE[1:] = 1/(resp_TTEETE)[1:]
         inv_resp_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_TBEB[1:] = 1/(resp_TBEB)[1:]
 
-        n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
+        n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'E2E1':0, 'TE':0, 'T2E1':0, 'ET':0, 'E2T1':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim in enumerate(sims):
             if not withT3:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_cinv_noT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_cinv_noT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_cinv_noT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_cinv_noT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
             else:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_cinv_withT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_cinv_withT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_cinv_withT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_cinv_withT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
 
-            # NINE estimators!!!
-            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:5], axis=1)
-            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:5], axis=1)
-            plm_TBEB_ij = np.sum(plms_ij[:,5:], axis=1)
-            plm_TBEB_ji = np.sum(plms_ji[:,5:], axis=1)
+            # TWELVE estimators!!!
+            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)
+            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)
+            plm_TBEB_ij = np.sum(plms_ij[:,8:], axis=1)
+            plm_TBEB_ji = np.sum(plms_ji[:,8:], axis=1)
 
             # Response correct
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp)
@@ -876,12 +900,15 @@ def get_n1(sims,qetype,config,append,withT3=False):
             auto_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ij[:,0], lmax=lmax)
             auto_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ij[:,1], lmax=lmax)
             auto_EE = hp.alm2cl(plms_ij[:,2], plms_ij[:,2], lmax=lmax)
-            auto_TE = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
-            auto_ET = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
-            auto_TB = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
-            auto_BT = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
-            auto_EB = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
-            auto_BE = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
+            auto_TE = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
+            auto_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
+            auto_ET = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
+            auto_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
+            auto_TB = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_BT = hp.alm2cl(plms_ij[:,9], plms_ij[:,9], lmax=lmax)
+            auto_EB = hp.alm2cl(plms_ij[:,10], plms_ij[:,10], lmax=lmax)
+            auto_BE = hp.alm2cl(plms_ij[:,11], plms_ij[:,11], lmax=lmax)
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
@@ -890,12 +917,15 @@ def get_n1(sims,qetype,config,append,withT3=False):
             cross_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ji[:,0], lmax=lmax)
             cross_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ji[:,1], lmax=lmax)
             cross_EE = hp.alm2cl(plms_ij[:,2], plms_ji[:,2], lmax=lmax)
-            cross_TE = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
-            cross_ET = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
-            cross_TB = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
-            cross_BT = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
-            cross_EB = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
-            cross_BE = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
+            cross_TE = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
+            cross_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
+            cross_ET = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
+            cross_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
+            cross_TB = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_BT = hp.alm2cl(plms_ij[:,9], plms_ji[:,9], lmax=lmax)
+            cross_EB = hp.alm2cl(plms_ij[:,10], plms_ji[:,10], lmax=lmax)
+            cross_BE = hp.alm2cl(plms_ij[:,11], plms_ji[:,11], lmax=lmax)
 
             n1['total'] += auto + cross
             n1['TTEETE'] += auto_TTEETE + cross_TTEETE
@@ -903,8 +933,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
             n1['T1T2'] += auto_T1T2 + cross_T1T2
             n1['T2T1'] += auto_T2T1 + cross_T2T1
             n1['EE'] += auto_EE + cross_EE
+            n1['E2E1'] += auto_E2E1 + cross_E2E1
             n1['TE'] += auto_TE + cross_TE
+            n1['T2E1'] += auto_T2E1 + cross_T2E1
             n1['ET'] += auto_ET + cross_ET
+            n1['E2T1'] += auto_E2T1 + cross_E2T1
             n1['TB'] += auto_TB + cross_TB
             n1['BT'] += auto_BT + cross_BT
             n1['EB'] += auto_EB + cross_EB
@@ -916,8 +949,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
         n1['T1T2'] *= 1/num
         n1['T2T1'] *= 1/num
         n1['EE'] *= 1/num
+        n1['E2E1'] *= 1/num
         n1['TE'] *= 1/num
+        n1['T2E1'] *= 1/num
         n1['ET'] *= 1/num
+        n1['E2T1'] *= 1/num
         n1['TB'] *= 1/num
         n1['BT'] *= 1/num
         n1['EB'] *= 1/num
@@ -932,8 +968,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
         n1['T1T2'] -= n0['T1T2']
         n1['T2T1'] -= n0['T2T1']
         n1['EE'] -= n0['EE']
+        n1['E2E1'] -= n0['E2E1']
         n1['TE'] -= n0['TE']
+        n1['T2E1'] -= n0['T2E1']
         n1['ET'] -= n0['ET']
+        n1['E2T1'] -= n0['E2T1']
         n1['TB'] -= n0['TB']
         n1['BT'] -= n0['BT']
         n1['EB'] -= n0['EB']
@@ -944,51 +983,51 @@ def get_n1(sims,qetype,config,append,withT3=False):
 
     elif qetype == 'sqe':
         # SQE response
-        ests = ['T1T2', 'T2T1', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
+        ests = ['T1T2', 'T2T1', 'EE', 'E2E1', 'TE', 'T2E1', 'ET', 'E2T1', 'TB', 'BT', 'EB', 'BE']
         resps = np.zeros((len(l),len(ests)), dtype=np.complex_)
         inv_resps = np.zeros((len(l),len(ests)) ,dtype=np.complex_)
         for i, est in enumerate(ests):
             resps[:,i] = get_sim_response(est,config,gmv=False,cinv=False,append=append_original,sims=np.append(sims,num+1),withT3=withT3)
             inv_resps[1:,i] = 1/(resps)[1:,i]
-        resp = 0.5*resps[:,0]+0.5*resps[:,1]+np.sum(resps[:,2:], axis=1)
-        resp_TTEETE = 0.5*np.sum(resps[:,:2], axis=1)+np.sum(resps[:,2:5], axis=1)
-        resp_TBEB = np.sum(resps[:,5:], axis=1)
+        resp = 0.5*np.sum(resps[:,:8], axis=1)+np.sum(resps[:,8:], axis=1)
+        resp_TTEETE = 0.5*np.sum(resps[:,:8], axis=1)
+        resp_TBEB = np.sum(resps[:,8:], axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
         inv_resp_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_TTEETE[1:] = 1/(resp_TTEETE)[1:]
         inv_resp_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_TBEB[1:] = 1/(resp_TBEB)[1:]
 
-        n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
+        n1 = {'total':0, 'T1T2':0, 'T2T1':0, 'EE':0, 'E2E1':0, 'TE':0, 'T2E1':0, 'ET':0, 'E2T1':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0, 'TTEETE':0, 'TBEB':0}
         for i, sim in enumerate(sims):
             if not withT3:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_noT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_noT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_noT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_noT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
             else:
                 # Get the lensed ij sims
                 plms_ij = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_withT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ij[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu1tqu2_withT3.npy')
-                plm_total_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:], axis=1)
+                plm_total_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)+np.sum(plms_ij[:,8:], axis=1)
 
                 # Now get the ji sims
                 plms_ji = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_withT3.npy')),len(ests)),dtype=np.complex_)
                 for i, est in enumerate(ests):
                     plms_ji[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cmbonly_phi1_tqu2tqu1_withT3.npy')
-                plm_total_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:], axis=1)
+                plm_total_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)+np.sum(plms_ji[:,8:], axis=1)
 
-            # NINE estimators!!!
-            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:2], axis=1)+np.sum(plms_ij[:,2:5], axis=1)
-            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:2], axis=1)+np.sum(plms_ji[:,2:5], axis=1)
-            plm_TBEB_ij = np.sum(plms_ij[:,5:], axis=1)
-            plm_TBEB_ji = np.sum(plms_ji[:,5:], axis=1)
+            # TWELVE estimators!!!
+            plm_TTEETE_ij = 0.5*np.sum(plms_ij[:,:8], axis=1)
+            plm_TTEETE_ji = 0.5*np.sum(plms_ji[:,:8], axis=1)
+            plm_TBEB_ij = np.sum(plms_ij[:,8:], axis=1)
+            plm_TBEB_ji = np.sum(plms_ji[:,8:], axis=1)
 
             # Response correct
             plm_total_ij = hp.almxfl(plm_total_ij,inv_resp)
@@ -1010,12 +1049,15 @@ def get_n1(sims,qetype,config,append,withT3=False):
             auto_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ij[:,0], lmax=lmax)
             auto_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ij[:,1], lmax=lmax)
             auto_EE = hp.alm2cl(plms_ij[:,2], plms_ij[:,2], lmax=lmax)
-            auto_TE = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
-            auto_ET = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
-            auto_TB = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
-            auto_BT = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
-            auto_EB = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
-            auto_BE = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ij[:,3], lmax=lmax)
+            auto_TE = hp.alm2cl(plms_ij[:,4], plms_ij[:,4], lmax=lmax)
+            auto_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ij[:,5], lmax=lmax)
+            auto_ET = hp.alm2cl(plms_ij[:,6], plms_ij[:,6], lmax=lmax)
+            auto_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ij[:,7], lmax=lmax)
+            auto_TB = hp.alm2cl(plms_ij[:,8], plms_ij[:,8], lmax=lmax)
+            auto_BT = hp.alm2cl(plms_ij[:,9], plms_ij[:,9], lmax=lmax)
+            auto_EB = hp.alm2cl(plms_ij[:,10], plms_ij[:,10], lmax=lmax)
+            auto_BE = hp.alm2cl(plms_ij[:,11], plms_ij[:,11], lmax=lmax)
 
             # Get cross spectra <ijji>
             cross = hp.alm2cl(plm_total_ij, plm_total_ji, lmax=lmax)
@@ -1024,12 +1066,15 @@ def get_n1(sims,qetype,config,append,withT3=False):
             cross_T1T2 = hp.alm2cl(plms_ij[:,0], plms_ji[:,0], lmax=lmax)
             cross_T2T1 = hp.alm2cl(plms_ij[:,1], plms_ji[:,1], lmax=lmax)
             cross_EE = hp.alm2cl(plms_ij[:,2], plms_ji[:,2], lmax=lmax)
-            cross_TE = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
-            cross_ET = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
-            cross_TB = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
-            cross_BT = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
-            cross_EB = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
-            cross_BE = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_E2E1 = hp.alm2cl(plms_ij[:,3], plms_ji[:,3], lmax=lmax)
+            cross_TE = hp.alm2cl(plms_ij[:,4], plms_ji[:,4], lmax=lmax)
+            cross_T2E1 = hp.alm2cl(plms_ij[:,5], plms_ji[:,5], lmax=lmax)
+            cross_ET = hp.alm2cl(plms_ij[:,6], plms_ji[:,6], lmax=lmax)
+            cross_E2T1 = hp.alm2cl(plms_ij[:,7], plms_ji[:,7], lmax=lmax)
+            cross_TB = hp.alm2cl(plms_ij[:,8], plms_ji[:,8], lmax=lmax)
+            cross_BT = hp.alm2cl(plms_ij[:,9], plms_ji[:,9], lmax=lmax)
+            cross_EB = hp.alm2cl(plms_ij[:,10], plms_ji[:,10], lmax=lmax)
+            cross_BE = hp.alm2cl(plms_ij[:,11], plms_ji[:,11], lmax=lmax)
 
             n1['total'] += auto + cross
             n1['TTEETE'] += auto_TTEETE + cross_TTEETE
@@ -1037,8 +1082,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
             n1['T1T2'] += auto_T1T2 + cross_T1T2
             n1['T2T1'] += auto_T2T1 + cross_T2T1
             n1['EE'] += auto_EE + cross_EE
+            n1['E2E1'] += auto_E2E1 + cross_E2E1
             n1['TE'] += auto_TE + cross_TE
+            n1['T2E1'] += auto_T2E1 + cross_T2E1
             n1['ET'] += auto_ET + cross_ET
+            n1['E2T1'] += auto_E2T1 + cross_E2T1
             n1['TB'] += auto_TB + cross_TB
             n1['BT'] += auto_BT + cross_BT
             n1['EB'] += auto_EB + cross_EB
@@ -1050,8 +1098,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
         n1['T1T2'] *= 1/num
         n1['T2T1'] *= 1/num
         n1['EE'] *= 1/num
+        n1['E2E1'] *= 1/num
         n1['TE'] *= 1/num
+        n1['T2E1'] *= 1/num
         n1['ET'] *= 1/num
+        n1['E2T1'] *= 1/num
         n1['TB'] *= 1/num
         n1['BT'] *= 1/num
         n1['EB'] *= 1/num
@@ -1066,8 +1117,11 @@ def get_n1(sims,qetype,config,append,withT3=False):
         n1['T1T2'] -= n0['T1T2']
         n1['T2T1'] -= n0['T2T1']
         n1['EE'] -= n0['EE']
+        n1['E2E1'] -= n0['E2E1']
         n1['TE'] -= n0['TE']
+        n1['T2E1'] -= n0['T2E1']
         n1['ET'] -= n0['ET']
+        n1['E2T1'] -= n0['E2T1']
         n1['TB'] -= n0['TB']
         n1['BT'] -= n0['BT']
         n1['EB'] -= n0['EB']
@@ -1152,7 +1206,7 @@ def get_sim_response(est,config,cinv,append,sims,filename=None,gmv=True,withT3=F
 
 ####################
 
-#analyze(append='mh',config_file='test_yuka_lmaxT3500.yaml')
-analyze(append='mh',config_file='test_yuka_lmaxT4000.yaml')
+analyze(append='mh',config_file='test_yuka_lmaxT3500.yaml')
+#analyze(append='mh',config_file='test_yuka_lmaxT4000.yaml')
 #analyze(append='crossilc_twoseds',config_file='test_yuka_lmaxT3500.yaml')
 #analyze(append='crossilc_twoseds',config_file='test_yuka_lmaxT4000.yaml')

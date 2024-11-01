@@ -79,10 +79,10 @@ def analyze():
     plt.clf()
     plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
 
-    #plt.plot(bin_centers[:-2], binned_bias_gmv_3000[:-2,3]/binned_input_clkk[:-2], color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
+    #plt.plot(bin_centers[:-2], binned_bias_gmv_3500[:-2,3]/binned_input_clkk[:-2], color='goldenrod', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV (one component CIB)")
     plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,2]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV, RDN0")
     plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV, RDN0")
-    #plt.plot(bin_centers[:-2], binned_bias_sqe_3000[:-2,0]/binned_input_clkk[:-2], color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
+    #plt.plot(bin_centers[:-2], binned_bias_sqe_3500[:-2,0]/binned_input_clkk[:-2], color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
     plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV, RDN0")
 
     #plt.errorbar(bin_centers, binned_bias_gmv[:,2]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,2]/binned_input_clkk, color='darkorange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV")
@@ -90,6 +90,7 @@ def analyze():
     #plt.errorbar(bin_centers, binned_bias_sqe[:,0]/binned_input_clkk, yerr=binned_uncertainty_sqe[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle='-', ms=3, alpha=0.8, label=f'Standard SQE')
     #plt.errorbar(bin_centers, binned_bias_gmv[:,0]/binned_input_clkk, yerr=binned_uncertainty_gmv[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV")
 
+    #plt.plot(bin_centers, binned_bias_gmv_3500_cinv[:,1]/binned_input_clkk, color='lightgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV, Sim-Based N0")
     plt.plot(bin_centers, binned_bias_gmv_3500_cinv[:,0]/binned_input_clkk, color='cornflowerblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV, Sim-Based N0")
 
     #errorbars_cinv = np.load(f'errorbars_cinv_standard_lmaxT3000.npy')
@@ -258,24 +259,32 @@ def get_lensing_bias(config, append_list, cinv=False, rdn0=False, sqe=False, sim
         n1_total = n1['total'] * (l*(l+1))**2/4
 
         if cinv:
-            # Load GMV plms, cinv-style
-            plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
-            for i, est in enumerate(ests):
-                # Commented out below: I'm testing the case without NG fg, should give zero for bias
-                #plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_1_seed2_1_lmaxT3000_lmaxP4096_nside2048_standard_cinv.npy')
-                plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
             if append == 'agora_mh' or append == 'agora_crossilc_onesed' or append == 'agora_crossilc_twoseds':
+                # Load GMV plms, cinv-style
+                plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')),len(ests)), dtype=np.complex_)
+                for i, est in enumerate(ests):
+                    plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
                 plm = 0.5*np.sum(plms[:,:2], axis=1)+np.sum(plms[:,2:], axis=1)
             else:
+                # Load GMV plms, cinv-style
+                plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
+                for i, est in enumerate(ests):
+                    # Commented out below: I'm testing the case without NG fg, should give zero for bias
+                    #plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_1_seed2_1_lmaxT3000_lmaxP4096_nside2048_standard_cinv.npy')
+                    plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
                 plm = np.sum(plms, axis=1)
         elif sqe:
-            # Load SQE plms
-            plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
-            for i, est in enumerate(ests):
-                plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             if append == 'agora_mh' or append == 'agora_crossilc_onesed' or append == 'agora_crossilc_twoseds':
+                # Load SQE plms
+                plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')),len(ests)), dtype=np.complex_)
+                for i, est in enumerate(ests):
+                    plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
                 plm = 0.5*plms[:,0]+0.5*plms[:,1]+np.sum(plms[:,2:], axis=1)
             else:
+                # Load SQE plms
+                plms = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+                for i, est in enumerate(ests):
+                    plms[:,i] = np.load(dir_out+f'/plm_{est}_healqest_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                 plm = np.sum(plms, axis=1)
         else:
             # Load GMV plms, not cinv-style
@@ -393,42 +402,58 @@ def get_rdn0(sims,qetype,config,append):
                 plm_ir = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                 plm_ri = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
             elif qetype == 'gmv_cinv':
-                # Get ir sims
-                plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
-                #plms_ir = np.zeros((len(np.load(dir_out+f'/outputs_temp/plm_EE_healqest_gmv_seed1_{sim}_seed2_1_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
-                for i, est in enumerate(ests):
-                    plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
-                    #plms_ir[:,i] = np.load(dir_out+f'/outputs_temp/plm_{est}_healqest_gmv_seed1_{sim}_seed2_1_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
                 if append == 'standard':
+                    # Get ir sims
+                    plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
+                    #plms_ir = np.zeros((len(np.load(dir_out+f'/outputs_temp/plm_EE_healqest_gmv_seed1_{sim}_seed2_1_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
+                        #plms_ir[:,i] = np.load(dir_out+f'/outputs_temp/plm_{est}_healqest_gmv_seed1_{sim}_seed2_1_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
                     plm_ir = np.sum(plms_ir, axis=1)
                 elif append == 'mh' or append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+                    # Get ir sims
+                    plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
                     plm_ir = 0.5*np.sum(plms_ir[:,:2], axis=1)+np.sum(plms_ir[:,2:], axis=1)
-                # Get ri sims
-                plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
-                #plms_ri = np.zeros((len(np.load(dir_out+f'/outputs_temp/plm_EE_healqest_gmv_seed1_1_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
-                for i, est in enumerate(ests):
-                    plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
-                    #plms_ri[:,i] = np.load(dir_out+f'/outputs_temp/plm_{est}_healqest_gmv_seed1_1_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
                 if append == 'standard':
+                    # Get ri sims
+                    plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
+                    #plms_ri = np.zeros((len(np.load(dir_out+f'/outputs_temp/plm_EE_healqest_gmv_seed1_1_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
+                        #plms_ri[:,i] = np.load(dir_out+f'/outputs_temp/plm_{est}_healqest_gmv_seed1_1_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv.npy')
                     plm_ri = np.sum(plms_ri, axis=1)
                 elif append == 'mh' or append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+                    # Get ri sims
+                    plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_cinv_noT3.npy')
                     plm_ri = 0.5*np.sum(plms_ri[:,:2], axis=1)+np.sum(plms_ri[:,2:], axis=1)
             elif qetype == 'sqe':
-                # Get ir sims
-                plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
-                for i, est in enumerate(ests):
-                    plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                 if append == 'standard':
+                    # Get ir sims
+                    plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                     plm_ir = np.sum(plms_ir, axis=1)
                 elif append == 'mh' or append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+                    # Get ir sims
+                    plms_ir = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ir[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
                     plm_ir = 0.5*np.sum(plms_ir[:,:2], axis=1)+np.sum(plms_ir[:,2:], axis=1)
-                # Get ri sims
-                plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
-                for i, est in enumerate(ests):
-                    plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                 if append == 'standard':
+                    # Get ri sims
+                    plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
                     plm_ri = np.sum(plms_ri, axis=1)
                 elif append == 'mh' or append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+                    # Get ri sims
+                    plms_ri = np.zeros((len(np.load(dir_out+f'/plm_EE_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')),len(ests)), dtype=np.complex_)
+                    for i, est in enumerate(ests):
+                        plms_ri[:,i] = np.load(dir_out+f'/plm_{est}_healqest_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
                     plm_ri = 0.5*np.sum(plms_ri[:,:2], axis=1)+np.sum(plms_ri[:,2:], axis=1)
 
             if np.any(np.isnan(plm_ir)):
