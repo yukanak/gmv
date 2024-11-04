@@ -13,6 +13,7 @@ import wignerd
 import resp
 import scipy.signal as signal
 from scipy.signal import lfilter
+import matplotlib.colors as mcolors
 
 def analyze():
     '''
@@ -99,11 +100,9 @@ def analyze():
 
     #plt.ylabel("$C_\ell^{\kappa\kappa}$")
     plt.xlabel('$\ell$')
-    #plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum')
     plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum, Cinv-Style GMV, lmaxT = 3500')
     plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
-    #plt.xlim(50,2001)
     plt.xlim(50,3001)
     #plt.xlim(10,lmax)
     plt.ylim(-0.2,0.2)
@@ -113,19 +112,16 @@ def analyze():
     plt.clf()
     plt.axhline(y=0, color='gray', alpha=0.5, linestyle='--')
 
-    #plt.plot(bin_centers, binned_bias_gmv_3000_cinv_rdn0[:,2]/binned_input_clkk, color='darkorange', marker='o', linestyle=':', ms=3, alpha=0.8, label="Cross-ILC GMV, lmaxT = 3000")
-    #plt.plot(bin_centers, binned_bias_gmv_3000_cinv_rdn0[:,1]/binned_input_clkk, color='forestgreen', marker='o', linestyle=':', ms=3, alpha=0.8, label="MH GMV, lmaxT = 3000")
-    #plt.plot(bin_centers, binned_bias_sqe_3000_cinv_rdn0[:,0]/binned_input_clkk, color='firebrick', marker='o', linestyle=':', ms=3, alpha=0.8, label=f'Standard SQE, lmaxT = 3000')
     plt.plot(bin_centers, binned_bias_gmv_3000_cinv_rdn0[:,0]/binned_input_clkk, color='darkblue', marker='o', linestyle=':', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 3000")
 
-    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,2]/binned_input_clkk, color='orange', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV, lmaxT = 3500")
-    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,2]/binned_input_clkk, color='bisque', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV, lmaxT = 4000")
+    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,2]/binned_input_clkk, color='orange', marker='o', linestyle='--', ms=3, alpha=0.8, label="Cross-ILC GMV, lmaxT = 3500")
+    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,2]/binned_input_clkk, color='bisque', marker='o', linestyle='-', ms=3, alpha=0.8, label="Cross-ILC GMV, lmaxT = 4000")
 
-    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,1]/binned_input_clkk, color='mediumseagreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV, lmaxT = 3500")
-    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,1]/binned_input_clkk, color='lightgreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV, lmaxT = 4000")
+    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,1]/binned_input_clkk, color='mediumseagreen', marker='o', linestyle='--', ms=3, alpha=0.8, label="MH GMV, lmaxT = 3500")
+    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,1]/binned_input_clkk, color='lightgreen', marker='o', linestyle='-', ms=3, alpha=0.8, label="MH GMV, lmaxT = 4000")
 
-    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,0]/binned_input_clkk, color='cornflowerblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 3500")
-    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,0]/binned_input_clkk, color='lightsteelblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 4000")
+    plt.plot(bin_centers, binned_bias_gmv_3500_cinv_rdn0[:,0]/binned_input_clkk, color='cornflowerblue', marker='o', linestyle='--', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 3500")
+    plt.plot(bin_centers, binned_bias_gmv_4000_cinv_rdn0[:,0]/binned_input_clkk, color='lightsteelblue', marker='o', linestyle='-', ms=3, alpha=0.8, label="Standard GMV, lmaxT = 4000")
 
     plt.xlabel('$\ell$')
     plt.title(f'Lensing Bias from Agora Sim / Input Kappa Spectrum, Cinv-Style GMV, with RDN0')
@@ -133,7 +129,7 @@ def analyze():
     plt.xscale('log')
     plt.xlim(50,3001)
     plt.ylim(-0.2,0.2)
-    plt.savefig(dir_out+f'/figs/bias_total_different_lmax.png',bbox_inches='tight')
+    plt.savefig(dir_out+f'/figs/bias_total_different_lmaxT.png',bbox_inches='tight')
 
 '''
     plt.figure(1)
@@ -156,6 +152,110 @@ def analyze():
     plt.ylim(-0.3,0.3)
     plt.savefig(dir_out+f'/figs/bias_over_uncertainty_total.png',bbox_inches='tight')
 '''
+
+def compare_n0():
+    '''
+    Compare N0 for different cases.
+    '''
+    lmax = 4096
+    l = np.arange(0,lmax+1)
+    lbins = np.logspace(np.log10(50),np.log10(3000),20)
+    bin_centers = (lbins[:-1] + lbins[1:]) / 2
+    digitized = np.digitize(l, lbins)
+    # Input kappa
+    klm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_klm_lmax{lmax}.fits')
+    input_clkk = hp.alm2cl(klm,klm,lmax=lmax)
+    binned_input_clkk = np.array([input_clkk[digitized == i].mean() for i in range(1, len(lbins))])
+    # Get output directory
+    config_file = 'test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    dir_out = config['dir_out']
+    n0_n1_sims=np.arange(249)+1
+
+    # lmaxT = 3500, RDN0 and cinv
+    config_file='test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    # Lensing bias
+    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
+    binned_bias_gmv_3500_cinv_rdn0 = get_lensing_bias(config,append_list,cinv=True,rdn0=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
+    # RDN0 for 9 estimators, no T3
+    rdn0_lmaxT3500_cinv_standard = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='standard')
+    rdn0_lmaxT3500_cinv_standard *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT3500_cinv_standard = [rdn0_lmaxT3500_cinv_standard[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT3500_cinv_mh_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='mh')
+    rdn0_lmaxT3500_cinv_mh_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT3500_cinv_mh_9ests = [rdn0_lmaxT3500_cinv_mh_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT3500_cinv_crossilc_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='crossilc_twoseds')
+    rdn0_lmaxT3500_cinv_crossilc_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT3500_cinv_crossilc_9ests = [rdn0_lmaxT3500_cinv_crossilc_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+
+    # lmaxT = 4000, RDN0 and cinv
+    config_file='test_yuka_lmaxT4000.yaml'
+    config = utils.parse_yaml(config_file)
+    # Lensing bias
+    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
+    binned_bias_gmv_4000_cinv_rdn0 = get_lensing_bias(config,append_list,cinv=True,rdn0=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
+    # RDN0 for 9 estimators, no T3
+    rdn0_lmaxT4000_cinv_standard = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='standard')
+    rdn0_lmaxT4000_cinv_standard *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT4000_cinv_standard = [rdn0_lmaxT4000_cinv_standard[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT4000_cinv_mh_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='mh')
+    rdn0_lmaxT4000_cinv_mh_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT4000_cinv_mh_9ests = [rdn0_lmaxT4000_cinv_mh_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT4000_cinv_crossilc_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='crossilc_twoseds')
+    rdn0_lmaxT4000_cinv_crossilc_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT4000_cinv_crossilc_9ests = [rdn0_lmaxT4000_cinv_crossilc_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+
+    # Plot
+    plt.figure(figsize=(10,6))
+    plt.clf()
+    #cm_blue = plt.cm.get_cmap('Blues')
+    #cm_green = plt.cm.get_cmap('Greens')
+    #cm_orange = plt.cm.get_cmap('Oranges')
+    cm_blue = mcolors.LinearSegmentedColormap.from_list("cm_blue", ["#addfed", "#000080"])
+    cm_green = mcolors.LinearSegmentedColormap.from_list("cm_green", ["#abdbbe", "#00441b"])
+    cm_orange = mcolors.LinearSegmentedColormap.from_list("cm_orange", ["#ffe0c2", "#f5800f"])
+    sc1 = plt.scatter(binned_bias_gmv_3500_cinv_rdn0[:,0]/binned_input_clkk, binned_rdn0_lmaxT3500_cinv_standard, c=bin_centers, cmap=cm_blue, marker='.', vmin=150, vmax=2700, label='Standard GMV (lmaxT = 3500)')
+    sc2 = plt.scatter(binned_bias_gmv_3500_cinv_rdn0[:,1]/binned_input_clkk, binned_rdn0_lmaxT3500_cinv_mh_9ests, c=bin_centers, cmap=cm_green, marker='.', vmin=150, vmax=2700, label='MH GMV (lmaxT = 3500)')
+    sc3 = plt.scatter(binned_bias_gmv_3500_cinv_rdn0[:,2]/binned_input_clkk, binned_rdn0_lmaxT3500_cinv_crossilc_9ests, c=bin_centers, cmap=cm_orange, marker='.', vmin=150, vmax=2700, label='Cross-ILC GMV (lmaxT = 3500)')
+    plt.scatter(binned_bias_gmv_4000_cinv_rdn0[:,0]/binned_input_clkk, binned_rdn0_lmaxT4000_cinv_standard, cmap=cm_blue, c=bin_centers, marker='x', vmin=150, vmax=2700, label='Standard GMV (lmaxT = 4000)')
+    plt.scatter(binned_bias_gmv_4000_cinv_rdn0[:,1]/binned_input_clkk, binned_rdn0_lmaxT4000_cinv_mh_9ests, cmap=cm_green, c=bin_centers, marker='x', vmin=150, vmax=2700, label='MH GMV (lmaxT = 4000)')
+    plt.scatter(binned_bias_gmv_4000_cinv_rdn0[:,2]/binned_input_clkk, binned_rdn0_lmaxT4000_cinv_crossilc_9ests, c=bin_centers, cmap=cm_orange, marker='x', vmin=150, vmax=2700, label='Cross-ILC GMV (lmaxT = 4000)')
+
+    plt.ylabel("$[\ell(\ell+1)]^2$$RDN_0$ / 4 $[\mu K^2]$")
+    plt.xlabel('Lensing Bias / Input Kappa Spectrum')
+    plt.title(f'Reconstruction Noise vs Lensing Bias, Cinv-Style GMV')
+    plt.legend(loc='lower right', fontsize='small')
+    plt.colorbar(sc1, label='L bins')
+    plt.yscale('log')
+    plt.xlim(-0.2,0.1)
+    plt.ylim(1e-8,3e-7)
+    plt.savefig(dir_out+f'/figs/n0_vs_bias_different_lmaxT.png',bbox_inches='tight')
+
+    '''
+    # lmaxT = 3500, RDN0, cinv-style MH, 12 estimators, no T3
+    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_mh_resp_from_sims_12ests.pkl'
+    rdn0_lmaxT3500_cinv_mh_12ests = pickle.load(open(filename,'rb')) # * (l*(l+1))**2/4
+
+    # lmaxT = 3500, RDN0, cinv-style cross-ILC, 12 estimators, no T3
+    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_crossilc_twoseds_resp_from_sims_12ests.pkl'
+    rdn0_lmaxT3500_cinv_crossilc_12ests = pickle.load(open(filename,'rb')) # * (l*(l+1))**2/4
+
+    rdn0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500 = rdn0_lmaxT3500_cinv_mh_9ests/rdn0_lmaxT3500_cinv_mh_12ests
+    rdn0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500 = rdn0_lmaxT3500_cinv_crossilc_9ests/rdn0_lmaxT3500_cinv_crossilc_12ests
+
+    plt.clf()
+    plt.axhline(y=1, color='gray', alpha=0.5, linestyle='--')
+    plt.plot(l, rdn0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500, color='forestgreen', alpha=0.8, linestyle='-',label='MH')
+    plt.plot(l, rdn0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500, color='darkorange', alpha=0.8, linestyle='-',label='Cross-ILC')
+    plt.title('RDN0 9 ests / 12 ests, lmaxT = 3500, Cinv-Style')
+    plt.xlabel('$\ell$')
+    plt.legend(loc='upper left', fontsize='small')
+    plt.xscale('log')
+    plt.xlim(50,3001)
+    plt.ylim(0.8,1.2)
+    plt.savefig(dir_out+f'/figs/rdn0_comparison_9ests_vs_12ests.png',bbox_inches='tight')
+    '''
 
 def get_lensing_bias(config, append_list, cinv=False, rdn0=False, sqe=False, sims=np.arange(250)+1, n0_n1_sims=np.arange(249)+1):
     '''
@@ -575,4 +675,5 @@ def get_sim_response(est,config,gmv,append,sims,filename=None,cinv=False):
 
 ####################
 
-analyze()
+#analyze()
+compare_n0()
