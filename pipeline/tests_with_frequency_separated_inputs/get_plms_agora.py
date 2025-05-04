@@ -54,6 +54,8 @@ def main():
 
     if append[-4:] == 'cinv' and gmv:
         cinv = True
+    else:
+        cinv = False
 
     print(f'cinv is {cinv}, gmv is {gmv}, filename {filename}')
 

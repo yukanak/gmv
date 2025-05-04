@@ -19,7 +19,5 @@ lensrec:
     lmaxT   : 3500
     lmaxP   : 4096
     nside   : 2048
-
-outputs:
     # Location of output files
-    dir_out     : '/oak/stanford/orgs/kipac/users/yukanaka/outputs_new/'
+    dir_out     : '/oak/stanford/orgs/kipac/users/yukanaka/outputs/'

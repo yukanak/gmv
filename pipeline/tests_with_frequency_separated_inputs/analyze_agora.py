@@ -49,6 +49,12 @@ def analyze():
     append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
     binned_bias_gmv_3500_cinv = get_lensing_bias(config,append_list,cinv=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
 
+    # lmaxT = 3500, NOT cinv
+    config_file='test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
+    binned_bias_gmv_3500 = get_lensing_bias(config,append_list,cinv=False,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
+
     # lmaxT = 4000, cinv
     config_file='test_yuka_lmaxT4000.yaml'
     config = utils.parse_yaml(config_file)
@@ -66,6 +72,12 @@ def analyze():
     config = utils.parse_yaml(config_file)
     append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
     binned_bias_gmv_3500_cinv_rdn0 = get_lensing_bias(config,append_list,cinv=True,rdn0=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
+
+    # lmaxT = 3500, rdn0, NOT cinv
+    config_file='test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
+    binned_bias_gmv_3500_rdn0 = get_lensing_bias(config,append_list,cinv=False,rdn0=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
 
     # lmaxT = 4000, rdn0 and cinv
     config_file='test_yuka_lmaxT4000.yaml'
@@ -177,8 +189,9 @@ def compare_n0():
     config = utils.parse_yaml(config_file)
     # Lensing bias
     append_list = ['agora_standard', 'agora_mh', 'agora_crossilc_twoseds']
+    #binned_bias_gmv_3500_rdn0
     binned_bias_gmv_3500_cinv_rdn0 = get_lensing_bias(config,append_list,cinv=True,rdn0=True,sqe=False,sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1)
-    # RDN0 for 9 estimators, no T3
+    # RDN0 for 9 estimators, no T3, cinv
     rdn0_lmaxT3500_cinv_standard = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='standard')
     rdn0_lmaxT3500_cinv_standard *= (l*(l+1))**2/4
     binned_rdn0_lmaxT3500_cinv_standard = [rdn0_lmaxT3500_cinv_standard[digitized == i].mean() for i in range(1, len(lbins))]
@@ -188,6 +201,16 @@ def compare_n0():
     rdn0_lmaxT3500_cinv_crossilc_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='crossilc_twoseds')
     rdn0_lmaxT3500_cinv_crossilc_9ests *= (l*(l+1))**2/4
     binned_rdn0_lmaxT3500_cinv_crossilc_9ests = [rdn0_lmaxT3500_cinv_crossilc_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+    # RDN0 for 9 estimators, no T3, NOT cinv
+    #rdn0_lmaxT3500_standard = get_rdn0(sims=n0_n1_sims,qetype='gmv',config=config,append='standard')
+    #rdn0_lmaxT3500_standard *= (l*(l+1))**2/4
+    #binned_rdn0_lmaxT3500_standard = [rdn0_lmaxT3500_standard[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT3500_mh_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv',config=config,append='mh')
+    rdn0_lmaxT3500_mh_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT3500_mh_9ests = [rdn0_lmaxT3500_mh_9ests[digitized == i].mean() for i in range(1, len(lbins))]
+    rdn0_lmaxT3500_crossilc_9ests = get_rdn0(sims=n0_n1_sims,qetype='gmv',config=config,append='crossilc_twoseds')
+    rdn0_lmaxT3500_crossilc_9ests *= (l*(l+1))**2/4
+    binned_rdn0_lmaxT3500_crossilc_9ests = [rdn0_lmaxT3500_crossilc_9ests[digitized == i].mean() for i in range(1, len(lbins))]
 
     # lmaxT = 4000, RDN0 and cinv
     config_file='test_yuka_lmaxT4000.yaml'
@@ -206,7 +229,45 @@ def compare_n0():
     rdn0_lmaxT4000_cinv_crossilc_9ests *= (l*(l+1))**2/4
     binned_rdn0_lmaxT4000_cinv_crossilc_9ests = [rdn0_lmaxT4000_cinv_crossilc_9ests[digitized == i].mean() for i in range(1, len(lbins))]
 
+    # lmaxT = 3500, RDN0, cinv-style, 12 estimators, no T3
+    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_mh_resp_from_sims_12ests.pkl'
+    rdn0_lmaxT3500_cinv_mh_12ests = pickle.load(open(filename,'rb'))
+    rdn0_lmaxT3500_cinv_mh_12ests *= (l*(l+1))**2/4
+    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_crossilc_twoseds_resp_from_sims_12ests.pkl'
+    rdn0_lmaxT3500_cinv_crossilc_12ests = pickle.load(open(filename,'rb'))
+    rdn0_lmaxT3500_cinv_crossilc_12ests *= (l*(l+1))**2/4
+
+    # SIM-BASED N0, lmaxT = 3500, 9 estimators, no T3, cinv
+    config_file='test_yuka_lmaxT3500.yaml'
+    config = utils.parse_yaml(config_file)
+    n0_lmaxT3500_cinv_standard = get_n0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='standard')
+    n0_lmaxT3500_cinv_standard['total'] *= (l*(l+1))**2/4
+    binned_n0_lmaxT3500_cinv_standard = [n0_lmaxT3500_cinv_standard['total'][digitized == i].mean() for i in range(1, len(lbins))]
+    n0_lmaxT3500_cinv_mh_9ests = get_n0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='mh')
+    n0_lmaxT3500_cinv_mh_9ests['total'] *= (l*(l+1))**2/4
+    binned_n0_lmaxT3500_cinv_mh_9ests = [n0_lmaxT3500_cinv_mh_9ests['total'][digitized == i].mean() for i in range(1, len(lbins))]
+    n0_lmaxT3500_cinv_crossilc_9ests = get_n0(sims=n0_n1_sims,qetype='gmv_cinv',config=config,append='crossilc_twoseds')
+    n0_lmaxT3500_cinv_crossilc_9ests['total'] *= (l*(l+1))**2/4
+    binned_n0_lmaxT3500_cinv_crossilc_9ests = [n0_lmaxT3500_cinv_crossilc_9ests['total'][digitized == i].mean() for i in range(1, len(lbins))]
+
+    # SIM-BASED N0, lmaxT = 3500, 12 estimators, no T3, cinv
+    filename = dir_out+f'/n0/n0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_mh_resp_from_sims_12ests.pkl'
+    n0_lmaxT3500_cinv_mh_12ests = pickle.load(open(filename,'rb'))
+    n0_lmaxT3500_cinv_mh_12ests['total'] *= (l*(l+1))**2/4
+    filename = dir_out+f'/n0/n0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_crossilc_twoseds_resp_from_sims_12ests.pkl'
+    n0_lmaxT3500_cinv_crossilc_12ests = pickle.load(open(filename,'rb'))
+    n0_lmaxT3500_cinv_crossilc_12ests['total'] *= (l*(l+1))**2/4
+
+    # SIM-BASED N0, lmaxT = 3500, 9 estimators, no T3, NOT cinv
+    n0_lmaxT3500_standard = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,append='standard')
+    n0_lmaxT3500_standard['total'] *= (l*(l+1))**2/4
+    n0_lmaxT3500_mh_9ests = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,append='mh')
+    n0_lmaxT3500_mh_9ests['total'] *= (l*(l+1))**2/4
+    n0_lmaxT3500_crossilc_9ests = get_n0(sims=n0_n1_sims,qetype='gmv',config=config,append='crossilc_twoseds')
+    n0_lmaxT3500_crossilc_9ests['total'] *= (l*(l+1))**2/4
+
     # Plot
+    '''
     plt.figure(figsize=(10,6))
     plt.clf()
     #cm_blue = plt.cm.get_cmap('Blues')
@@ -231,31 +292,34 @@ def compare_n0():
     plt.xlim(-0.2,0.1)
     plt.ylim(1e-8,3e-7)
     plt.savefig(dir_out+f'/figs/n0_vs_bias_different_lmaxT.png',bbox_inches='tight')
-
     '''
-    # lmaxT = 3500, RDN0, cinv-style MH, 12 estimators, no T3
-    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_mh_resp_from_sims_12ests.pkl'
-    rdn0_lmaxT3500_cinv_mh_12ests = pickle.load(open(filename,'rb')) # * (l*(l+1))**2/4
 
-    # lmaxT = 3500, RDN0, cinv-style cross-ILC, 12 estimators, no T3
-    filename = dir_out+f'/n0/rdn0_249simpairs_healqest_gmv_cinv_noT3_lmaxT3500_lmaxP4096_nside2048_crossilc_twoseds_resp_from_sims_12ests.pkl'
-    rdn0_lmaxT3500_cinv_crossilc_12ests = pickle.load(open(filename,'rb')) # * (l*(l+1))**2/4
-
+    n0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500 = n0_lmaxT3500_cinv_mh_9ests['total']/n0_lmaxT3500_cinv_mh_12ests['total']
+    n0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500 = n0_lmaxT3500_cinv_crossilc_9ests['total']/n0_lmaxT3500_cinv_crossilc_12ests['total']
     rdn0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500 = rdn0_lmaxT3500_cinv_mh_9ests/rdn0_lmaxT3500_cinv_mh_12ests
     rdn0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500 = rdn0_lmaxT3500_cinv_crossilc_9ests/rdn0_lmaxT3500_cinv_crossilc_12ests
+    rdn0_ratio_cinv_vs_not_mh_9ests_lmaxT3500 = rdn0_lmaxT3500_cinv_mh_9ests/rdn0_lmaxT3500_mh_9ests
+    rdn0_ratio_cinv_vs_not_crossilc_9ests_lmaxT3500 = rdn0_lmaxT3500_cinv_crossilc_9ests/rdn0_lmaxT3500_crossilc_9ests
+    n0_ratio_cinv_vs_not_mh_9ests_lmaxT3500 = n0_lmaxT3500_cinv_mh_9ests['total']/n0_lmaxT3500_mh_9ests['total']
+    n0_ratio_cinv_vs_not_crossilc_9ests_lmaxT3500 = n0_lmaxT3500_cinv_crossilc_9ests['total']/n0_lmaxT3500_crossilc_9ests['total']
 
     plt.clf()
     plt.axhline(y=1, color='gray', alpha=0.5, linestyle='--')
-    plt.plot(l, rdn0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500, color='forestgreen', alpha=0.8, linestyle='-',label='MH')
-    plt.plot(l, rdn0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500, color='darkorange', alpha=0.8, linestyle='-',label='Cross-ILC')
-    plt.title('RDN0 9 ests / 12 ests, lmaxT = 3500, Cinv-Style')
+    plt.plot(l, rdn0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500, color='firebrick', alpha=0.8, linestyle='-',label='MH, cinv, 9 ests/12 ests, RDN0')
+    plt.plot(l, rdn0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500, color='darkblue', alpha=0.8, linestyle='-',label='Cross-ILC, cinv, 9ests/12ests, RDN0')
+    #plt.plot(l, n0_ratio_cinv_vs_not_mh_9ests_lmaxT3500, color='firebrick', alpha=0.8, linestyle='-',label='MH, 9 ests, configuration space (cinv)/harmonic space, SIM-BASED N0')
+    #plt.plot(l, n0_ratio_cinv_vs_not_crossilc_9ests_lmaxT3500, color='darkblue', alpha=0.8, linestyle='-',label='Cross-ILC, 9 ests, configuration space (cinv)/harmonic space, SIM-BASED N0')
+    #plt.plot(l, rdn0_ratio_cinv_vs_not_mh_9ests_lmaxT3500, color='forestgreen', alpha=0.8, linestyle='--',label='MH, 9 ests, configuration space (cinv)/harmonic space, RDN0')
+    #plt.plot(l, rdn0_ratio_cinv_vs_not_crossilc_9ests_lmaxT3500, color='darkorange', alpha=0.8, linestyle='--',label='Cross-ILC, 9 ests, configuration space (cinv)/harmonic space, RDN0')
+    plt.plot(l, n0_ratio_9ests_vs_12ests_mh_cinv_lmaxT3500, color='goldenrod', alpha=0.8, linestyle='-',label='MH, cinv, 9 ests/12 ests, SIM-BASED N0')
+    plt.plot(l, n0_ratio_9ests_vs_12ests_crossilc_cinv_lmaxT3500, color='plum', alpha=0.8, linestyle='-',label='Cross-ILC, cinv, 9ests/12ests, SIM-BASED N0')
+    plt.title('RDN0 comparison, lmaxT = 3500')
     plt.xlabel('$\ell$')
     plt.legend(loc='upper left', fontsize='small')
     plt.xscale('log')
     plt.xlim(50,3001)
-    plt.ylim(0.8,1.2)
+    #plt.ylim(0.8,1.2)
     plt.savefig(dir_out+f'/figs/rdn0_comparison_9ests_vs_12ests.png',bbox_inches='tight')
-    '''
 
 def get_lensing_bias(config, append_list, cinv=False, rdn0=False, sqe=False, sims=np.arange(250)+1, n0_n1_sims=np.arange(249)+1):
     '''
@@ -499,8 +563,12 @@ def get_rdn0(sims,qetype,config,append):
         #sims = np.arange(248)+2; num = len(sims)
         for i, sim in enumerate(sims):
             if qetype == 'gmv':
-                plm_ir = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
-                plm_ri = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                if append == 'standard':
+                    plm_ir = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                    plm_ri = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+                elif append == 'mh' or append == 'crossilc_onesed' or append == 'crossilc_twoseds':
+                    plm_ir = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_r_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
+                    plm_ri = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_r_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}_noT3.npy')
             elif qetype == 'gmv_cinv':
                 if append == 'standard':
                     # Get ir sims
