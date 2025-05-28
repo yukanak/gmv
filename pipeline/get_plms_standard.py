@@ -47,11 +47,11 @@ def main():
     if append[-4:] != 'cinv' and (qe == 'TT' or qe == 'TE' or  qe == 'ET' or qe == 'EE' or qe == 'TB' or  qe == 'BT' or qe == 'EB' or  qe == 'BE' or qe == 'TTprf' or qe == 'T1T2' or qe == 'T2T1'):
         # SQE
         gmv = False
-        filename = dir_out+f'/plm_{qe}_healqest_sqe_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
+        filename = dir_out+f'/plm_{qe}_healqest_sqe_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{fg_model}_{append}.npy'
     else:
         # GMV
         gmv = True
-        filename = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy'
+        filename = dir_out+f'/plm_{qe}_healqest_gmv_seed1_{sim1}_seed2_{sim2}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{fg_model}_{append}.npy'
 
     if append[-4:] == 'cinv' and gmv:
         cinv = True
@@ -63,17 +63,17 @@ def main():
     if os.path.isfile(filename):
         print('File already exists!')
     else:
-        do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv)
+        do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,fg_model)
 
     elapsed = time() - time0
     elapsed /= 60
     print('Time taken (minutes): ', elapsed)
 
-def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
+def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,fg_model):
     '''
     Function to do the actual reconstruction.
     '''
-    print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}')
+    print(f'Doing reconstruction for sims {sim1} and {sim2}, qe {qe}, append {append}, fg_model {fg_model}')
 
     config = utils.parse_yaml(config_file)
     lmax = config['lensrec']['lmax']
@@ -103,6 +103,13 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
     agora_150 = '/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/agora_spt3g_150ghz_alm_lmax4096.fits'
     agora_220 = '/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/agora_spt3g_220ghz_alm_lmax4096.fits'
 
+    # Websky sims, use foreground-less E and B lensed alms from their website
+    websky_095_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_95ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
+    websky_150_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_150ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
+    websky_220_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_220ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
+    # From https://lambda.gsfc.nasa.gov/simulation/mocks_data.html but they claim it's "T,Q,U alms", but I think they mean T,E,B...
+    websky_nofg = '/oak/stanford/orgs/kipac/users/yukanaka/websky/lensed_alm.fits'
+
     # Noise curves
     fsky_corr=1
     noise_curves_090_090 = np.nan_to_num(np.loadtxt('noise_curves/nl_fromstack_090_090.txt'))
@@ -121,19 +128,47 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
         else:
             fnlm_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_agora/agora_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim1}_mv.fits'
             fnlm_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_agora/agora_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim2}_mv.fits'
+    elif fg_model == 'websky':
+        if sim1 == 'r':
+            fnlm_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_websky/websky_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim2}_mv.fits'
+        elif sim2 == 'r':
+            fnlm_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_websky/websky_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim1}_mv.fits'
+        else:
+            fnlm_sim1 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_websky/websky_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim1}_mv.fits'
+            fnlm_sim2 = f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_websky/websky_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim2}_mv.fits'
 
     # ILC weights
-    # Dimension (3, 6001) for 90, 150, 220 GHz respectively
-    w_tsz_null = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbynull.dat')
-    w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
-    w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
-    w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
+    if fg_model == 'agora':
+        # Dimension (3, 6001) for 90, 150, 220 GHz respectively
+        w_tsz_null = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbynull.dat')
+        w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
+        w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
+        w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
+    elif fg_model == 'websky':
+        # These are dimensions (4097, 3) initially; then transpose to make it (3, 4097)
+        w_tsz_null = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_tsznull_lmax4096.npy').T
+        w_Tmv = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_mv_lmax4096.npy').T
+        w_cib_null = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_cibnull_lmax4096.npy').T
+        # Dimension (3, 6001) for 90, 150, 220 GHz respectively
+        w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
+        w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
 
-    # Get Agora sim (signal + foregrounds)
     print('Getting alms...')
-    tlm_95_agora, elm_95_agora, blm_95_agora = hp.read_alm(agora_095,hdu=[1,2,3])
-    tlm_150_agora, elm_150_agora, blm_150_agora = hp.read_alm(agora_150,hdu=[1,2,3])
-    tlm_220_agora, elm_220_agora, blm_220_agora = hp.read_alm(agora_220,hdu=[1,2,3])
+    if fg_model == 'agora':
+        # Get Agora sim (signal + foregrounds)
+        tlm_95_agora, elm_95_agora, blm_95_agora = hp.read_alm(agora_095,hdu=[1,2,3])
+        tlm_150_agora, elm_150_agora, blm_150_agora = hp.read_alm(agora_150,hdu=[1,2,3])
+        tlm_220_agora, elm_220_agora, blm_220_agora = hp.read_alm(agora_220,hdu=[1,2,3])
+    elif fg_model == 'websky':
+        tlm_95_websky = hp.read_alm(websky_095_T)
+        tlm_150_websky = hp.read_alm(websky_150_T)
+        tlm_220_websky = hp.read_alm(websky_220_T)
+        _, elm_95_websky, blm_95_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
+        _, elm_150_websky, blm_150_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
+        _, elm_220_websky, blm_220_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
+        tlm_95_websky = utils.reduce_lmax(tlm_95_websky,lmax=lmax); tlm_150_websky = utils.reduce_lmax(tlm_150_websky,lmax=lmax); tlm_220_websky = utils.reduce_lmax(tlm_220_websky,lmax=lmax);
+        elm_95_websky = utils.reduce_lmax(elm_95_websky,lmax=lmax); elm_150_websky = utils.reduce_lmax(elm_150_websky,lmax=lmax); elm_220_websky = utils.reduce_lmax(elm_220_websky,lmax=lmax);
+        blm_95_websky = utils.reduce_lmax(blm_95_websky,lmax=lmax); blm_150_websky = utils.reduce_lmax(blm_150_websky,lmax=lmax); blm_220_websky = utils.reduce_lmax(blm_220_websky,lmax=lmax);
 
     # Get full sky CMB alms
     print('Getting alms...')
@@ -152,111 +187,83 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
         tlm1,elm1,blm1 = hp.read_alm(alm_cmb_sim1_tqu2,hdu=[1,2,3])
         tlm2,elm2,blm2 = hp.read_alm(alm_cmb_sim1,hdu=[1,2,3])
 
-    if append == 'standard' or append == 'standard_unl' or append == 'standard_cinv' or append == 'standard_unl_cinv':
+    # Adding foregrounds and noise!
+    if append == 'standard' or append == 'standard_cinv':
         if sim1 == 'r':
-            tlm2_150 = tlm2.copy(); tlm2_220 = tlm2.copy(); tlm2_95 = tlm2.copy()
-            elm2_150 = elm2.copy(); elm2_220 = elm2.copy(); elm2_95 = elm2.copy()
-            blm2_150 = blm2.copy(); blm2_220 = blm2.copy(); blm2_95 = blm2.copy()
-        elif sim2 == 'r':
-            tlm1_150 = tlm1.copy(); tlm1_220 = tlm1.copy(); tlm1_95 = tlm1.copy()
-            elm1_150 = elm1.copy(); elm1_220 = elm1.copy(); elm1_95 = elm1.copy()
-            blm1_150 = blm1.copy(); blm1_220 = blm1.copy(); blm1_95 = blm1.copy()
-        else:
-            tlm1_150 = tlm1.copy(); tlm1_220 = tlm1.copy(); tlm1_95 = tlm1.copy()
-            elm1_150 = elm1.copy(); elm1_220 = elm1.copy(); elm1_95 = elm1.copy()
-            blm1_150 = blm1.copy(); blm1_220 = blm1.copy(); blm1_95 = blm1.copy()
-            tlm2_150 = tlm2.copy(); tlm2_220 = tlm2.copy(); tlm2_95 = tlm2.copy()
-            elm2_150 = elm2.copy(); elm2_220 = elm2.copy(); elm2_95 = elm2.copy()
-            blm2_150 = blm2.copy(); blm2_220 = blm2.copy(); blm2_95 = blm2.copy()
+            if fg_model == 'agora':
+                tlm1_150 = tlm_150_agora; tlm1_220 = tlm_220_agora; tlm1_95 = tlm_95_agora
+                elm1_150 = elm_150_agora; elm1_220 = elm_220_agora; elm1_95 = elm_95_agora
+                blm1_150 = blm_150_agora; blm1_220 = blm_220_agora; blm1_95 = blm_95_agora
+            elif fg_model == 'websky':
+                tlm1_150 = tlm_150_websky; tlm1_220 = tlm_220_websky; tlm1_95 = tlm_95_websky
+                elm1_150 = elm_150_websky; elm1_220 = elm_220_websky; elm1_95 = elm_95_websky
+                blm1_150 = blm_150_websky; blm1_220 = blm_220_websky; blm1_95 = blm_95_websky
 
-    # Adding foregrounds!
-    if append == 'standard' or append == 'standard_unl' or append == 'standard_cinv' or append == 'standard_unl_cinv':
-        if sim1 == 'r':
-            tlm1_150 = tlm_150_agora; tlm1_220 = tlm_220_agora; tlm1_95 = tlm_95_agora
-            elm1_150 = elm_150_agora; elm1_220 = elm_220_agora; elm1_95 = elm_95_agora
-            blm1_150 = blm_150_agora; blm1_220 = blm_220_agora; blm1_95 = blm_95_agora
-
-            tflm2_150, eflm2_150, bflm2_150 = hp.read_alm(flm_150ghz_sim2,hdu=[1,2,3])
-            tflm2_150 = utils.reduce_lmax(tflm2_150,lmax=lmax); eflm2_150 = utils.reduce_lmax(eflm2_150,lmax=lmax); bflm2_150 = utils.reduce_lmax(bflm2_150,lmax=lmax)
-            tflm2_220, eflm2_220, bflm2_220 = hp.read_alm(flm_220ghz_sim2,hdu=[1,2,3])
-            tflm2_220 = utils.reduce_lmax(tflm2_220,lmax=lmax); eflm2_220 = utils.reduce_lmax(eflm2_220,lmax=lmax); bflm2_220 = utils.reduce_lmax(bflm2_220,lmax=lmax)
-            tflm2_95, eflm2_95, bflm2_95 = hp.read_alm(flm_95ghz_sim2,hdu=[1,2,3])
-            tflm2_95 = utils.reduce_lmax(tflm2_95,lmax=lmax); eflm2_95 = utils.reduce_lmax(eflm2_95,lmax=lmax); bflm2_95 = utils.reduce_lmax(bflm2_95,lmax=lmax)
-            tlm2_150 += tflm2_150; tlm2_220 += tflm2_220; tlm2_95 += tflm2_95
-            elm2_150 += eflm2_150; elm2_220 += eflm2_220; elm2_95 += eflm2_95
-            blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
+            tfnlm2, efnlm2, bfnlm2 = hp.read_alm(fnlm_sim2,hdu=[1,2,3])
+            tfnlm2 = utils.reduce_lmax(tfnlm2,lmax=lmax); efnlm2 = utils.reduce_lmax(efnlm2,lmax=lmax); bfnlm2 = utils.reduce_lmax(bfnlm2,lmax=lmax)
+            tlm2 += tfnlm2
+            elm2 += efnlm2
+            blm2 += bfnlm2
 
             sim1 = 999
         elif sim2 == 'r':
-            tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
-            tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
-            tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
-            tflm1_220 = utils.reduce_lmax(tflm1_220,lmax=lmax); eflm1_220 = utils.reduce_lmax(eflm1_220,lmax=lmax); bflm1_220 = utils.reduce_lmax(bflm1_220,lmax=lmax)
-            tflm1_95, eflm1_95, bflm1_95 = hp.read_alm(flm_95ghz_sim1,hdu=[1,2,3])
-            tflm1_95 = utils.reduce_lmax(tflm1_95,lmax=lmax); eflm1_95 = utils.reduce_lmax(eflm1_95,lmax=lmax); bflm1_95 = utils.reduce_lmax(bflm1_95,lmax=lmax)
-            tlm1_150 += tflm1_150; tlm1_220 += tflm1_220; tlm1_95 += tflm1_95
-            elm1_150 += eflm1_150; elm1_220 += eflm1_220; elm1_95 += eflm1_95
-            blm1_150 += bflm1_150; blm1_220 += bflm1_220; blm1_95 += bflm1_95
+            tfnlm1, efnlm1, bfnlm1 = hp.read_alm(fnlm_sim1,hdu=[1,2,3])
+            tfnlm1 = utils.reduce_lmax(tfnlm1,lmax=lmax); efnlm1 = utils.reduce_lmax(efnlm1,lmax=lmax); bfnlm1 = utils.reduce_lmax(bfnlm1,lmax=lmax)
+            tlm1 += tfnlm1
+            elm1 += efnlm1
+            blm1 += bfnlm1
 
-            tlm2_150 = tlm_150_agora; tlm2_220 = tlm_220_agora; tlm2_95 = tlm_95_agora
-            elm2_150 = elm_150_agora; elm2_220 = elm_220_agora; elm2_95 = elm_95_agora
-            blm2_150 = blm_150_agora; blm2_220 = blm_220_agora; blm2_95 = blm_95_agora
+            if fg_model == 'agora':
+                tlm2_150 = tlm_150_agora; tlm2_220 = tlm_220_agora; tlm2_95 = tlm_95_agora
+                elm2_150 = elm_150_agora; elm2_220 = elm_220_agora; elm2_95 = elm_95_agora
+                blm2_150 = blm_150_agora; blm2_220 = blm_220_agora; blm2_95 = blm_95_agora
+            elif fg_model == 'websky':
+                tlm2_150 = tlm_150_websky; tlm2_220 = tlm_220_websky; tlm2_95 = tlm_95_websky
+                elm2_150 = elm_150_websky; elm2_220 = elm_220_websky; elm2_95 = elm_95_websky
+                blm2_150 = blm_150_websky; blm2_220 = blm_220_websky; blm2_95 = blm_95_websky
 
             sim2 = 999
         else:
-            tflm1_150, eflm1_150, bflm1_150 = hp.read_alm(flm_150ghz_sim1,hdu=[1,2,3])
-            tflm1_150 = utils.reduce_lmax(tflm1_150,lmax=lmax); eflm1_150 = utils.reduce_lmax(eflm1_150,lmax=lmax); bflm1_150 = utils.reduce_lmax(bflm1_150,lmax=lmax)
-            tflm1_220, eflm1_220, bflm1_220 = hp.read_alm(flm_220ghz_sim1,hdu=[1,2,3])
-            tflm1_220 = utils.reduce_lmax(tflm1_220,lmax=lmax); eflm1_220 = utils.reduce_lmax(eflm1_220,lmax=lmax); bflm1_220 = utils.reduce_lmax(bflm1_220,lmax=lmax)
-            tflm1_95, eflm1_95, bflm1_95 = hp.read_alm(flm_95ghz_sim1,hdu=[1,2,3])
-            tflm1_95 = utils.reduce_lmax(tflm1_95,lmax=lmax); eflm1_95 = utils.reduce_lmax(eflm1_95,lmax=lmax); bflm1_95 = utils.reduce_lmax(bflm1_95,lmax=lmax)
-            tlm1_150 += tflm1_150; tlm1_220 += tflm1_220; tlm1_95 += tflm1_95
-            elm1_150 += eflm1_150; elm1_220 += eflm1_220; elm1_95 += eflm1_95
-            blm1_150 += bflm1_150; blm1_220 += bflm1_220; blm1_95 += bflm1_95
+            tfnlm1, efnlm1, bfnlm1 = hp.read_alm(fnlm_sim1,hdu=[1,2,3])
+            tfnlm1 = utils.reduce_lmax(tfnlm1,lmax=lmax); efnlm1 = utils.reduce_lmax(efnlm1,lmax=lmax); bfnlm1 = utils.reduce_lmax(bfnlm1,lmax=lmax)
+            tlm1 += tfnlm1
+            elm1 += efnlm1
+            blm1 += bfnlm1
 
-            tflm2_150, eflm2_150, bflm2_150 = hp.read_alm(flm_150ghz_sim2,hdu=[1,2,3])
-            tflm2_150 = utils.reduce_lmax(tflm2_150,lmax=lmax); eflm2_150 = utils.reduce_lmax(eflm2_150,lmax=lmax); bflm2_150 = utils.reduce_lmax(bflm2_150,lmax=lmax)
-            tflm2_220, eflm2_220, bflm2_220 = hp.read_alm(flm_220ghz_sim2,hdu=[1,2,3])
-            tflm2_220 = utils.reduce_lmax(tflm2_220,lmax=lmax); eflm2_220 = utils.reduce_lmax(eflm2_220,lmax=lmax); bflm2_220 = utils.reduce_lmax(bflm2_220,lmax=lmax)
-            tflm2_95, eflm2_95, bflm2_95 = hp.read_alm(flm_95ghz_sim2,hdu=[1,2,3])
-            tflm2_95 = utils.reduce_lmax(tflm2_95,lmax=lmax); eflm2_95 = utils.reduce_lmax(eflm2_95,lmax=lmax); bflm2_95 = utils.reduce_lmax(bflm2_95,lmax=lmax)
-            tlm2_150 += tflm2_150; tlm2_220 += tflm2_220; tlm2_95 += tflm2_95
-            elm2_150 += eflm2_150; elm2_220 += eflm2_220; elm2_95 += eflm2_95
-            blm2_150 += bflm2_150; blm2_220 += bflm2_220; blm2_95 += bflm2_95
+            tfnlm2, efnlm2, bfnlm2 = hp.read_alm(fnlm_sim2,hdu=[1,2,3])
+            tfnlm2 = utils.reduce_lmax(tfnlm2,lmax=lmax); efnlm2 = utils.reduce_lmax(efnlm2,lmax=lmax); bfnlm2 = utils.reduce_lmax(bfnlm2,lmax=lmax)
+            tlm2 += tfnlm2
+            elm2 += efnlm2
+            blm2 += bfnlm2
 
-    # Adding noise!
-    if append == 'standard' or append == 'standard_unl' or append == 'standard_cinv' or append == 'standard_unl_cinv':
-        nltt_090_090 = fsky_corr * noise_curves_090_090[:,1]; nlee_090_090 = fsky_corr * noise_curves_090_090[:,2]; nlbb_090_090 = fsky_corr * noise_curves_090_090[:,3]
-        nltt_150_150 = fsky_corr * noise_curves_150_150[:,1]; nlee_150_150 = fsky_corr * noise_curves_150_150[:,2]; nlbb_150_150 = fsky_corr * noise_curves_150_150[:,3]
-        nltt_220_220 = fsky_corr * noise_curves_220_220[:,1]; nlee_220_220 = fsky_corr * noise_curves_220_220[:,2]; nlbb_220_220 = fsky_corr * noise_curves_220_220[:,3]
-        nltt_090_150 = fsky_corr * noise_curves_090_150[:,1]; nlee_090_150 = fsky_corr * noise_curves_090_150[:,2]; nlbb_090_150 = fsky_corr * noise_curves_090_150[:,3]
-        nltt_090_220 = fsky_corr * noise_curves_090_220[:,1]; nlee_090_220 = fsky_corr * noise_curves_090_220[:,2]; nlbb_090_220 = fsky_corr * noise_curves_090_220[:,3]
-        nltt_150_220 = fsky_corr * noise_curves_150_220[:,1]; nlee_150_220 = fsky_corr * noise_curves_150_220[:,2]; nlbb_150_220 = fsky_corr * noise_curves_150_220[:,3]
+    # Adding noise (ONLY to sim r)!
+    if sim1 == 999 and (append == 'standard' or append == 'standard_cinv'):
         nlm1_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim1}.alm'
         nlm1_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim1}.alm'
         nlm1_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim1}.alm'
-        nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim2}.alm'
-        nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim2}.alm'
-        nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim2}.alm'
-        if os.path.isfile(nlm1_090_filename):
-            nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
-            nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
-            nlmt1_220,nlme1_220,nlmb1_220 = hp.read_alm(nlm1_220_filename,hdu=[1,2,3])
-        if os.path.isfile(nlm2_090_filename):
-            nlmt2_090,nlme2_090,nlmb2_090 = hp.read_alm(nlm2_090_filename,hdu=[1,2,3])
-            nlmt2_150,nlme2_150,nlmb2_150 = hp.read_alm(nlm2_150_filename,hdu=[1,2,3])
-            nlmt2_220,nlme2_220,nlmb2_220 = hp.read_alm(nlm2_220_filename,hdu=[1,2,3])
+        nlmt1_090,nlme1_090,nlmb1_090 = hp.read_alm(nlm1_090_filename,hdu=[1,2,3])
+        nlmt1_150,nlme1_150,nlmb1_150 = hp.read_alm(nlm1_150_filename,hdu=[1,2,3])
+        nlmt1_220,nlme1_220,nlmb1_220 = hp.read_alm(nlm1_220_filename,hdu=[1,2,3])
         tlm1_150 += nlmt1_150; tlm1_220 += nlmt1_220; tlm1_95 += nlmt1_090
         elm1_150 += nlme1_150; elm1_220 += nlme1_220; elm1_95 += nlme1_090
         blm1_150 += nlmb1_150; blm1_220 += nlmb1_220; blm1_95 += nlmb1_090
+    elif sim2 == 999 and (append == 'standard' or append == 'standard_cinv'):
+        nlm2_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim2}.alm'
+        nlm2_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim2}.alm'
+        nlm2_220_filename = dir_out + f'nlm/nlm_220_lmax{lmax}_seed{sim2}.alm'
+        nlmt2_090,nlme2_090,nlmb2_090 = hp.read_alm(nlm2_090_filename,hdu=[1,2,3])
+        nlmt2_150,nlme2_150,nlmb2_150 = hp.read_alm(nlm2_150_filename,hdu=[1,2,3])
+        nlmt2_220,nlme2_220,nlmb2_220 = hp.read_alm(nlm2_220_filename,hdu=[1,2,3])
         tlm2_150 += nlmt2_150; tlm2_220 += nlmt2_220; tlm2_95 += nlmt2_090
         elm2_150 += nlme2_150; elm2_220 += nlme2_220; elm2_95 += nlme2_090
         blm2_150 += nlmb2_150; blm2_220 += nlmb2_220; blm2_95 += nlmb2_090
 
-    if append == 'standard' or append == 'standard_unl' or append == 'standard_cinv' or append == 'standard_unl_cinv':
+    # ILC combine across frequencies (ONLY for sim r)
+    if sim1 == 999:
         tlm1 = hp.almxfl(tlm1_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm1_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm1_220,w_Tmv[2][:lmax+1])
         elm1 = hp.almxfl(elm1_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm1_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm1_220,w_Emv[2][:lmax+1])
         blm1 = hp.almxfl(blm1_95,w_Bmv[0][:lmax+1]) + hp.almxfl(blm1_150,w_Bmv[1][:lmax+1]) + hp.almxfl(blm1_220,w_Bmv[2][:lmax+1])
+    elif sim2 == 999:
         tlm2 = hp.almxfl(tlm2_95,w_Tmv[0][:lmax+1]) + hp.almxfl(tlm2_150,w_Tmv[1][:lmax+1]) + hp.almxfl(tlm2_220,w_Tmv[2][:lmax+1])
         elm2 = hp.almxfl(elm2_95,w_Emv[0][:lmax+1]) + hp.almxfl(elm2_150,w_Emv[1][:lmax+1]) + hp.almxfl(elm2_220,w_Emv[2][:lmax+1])
         blm2 = hp.almxfl(blm2_95,w_Bmv[0][:lmax+1]) + hp.almxfl(blm2_150,w_Bmv[1][:lmax+1]) + hp.almxfl(blm2_220,w_Bmv[2][:lmax+1])
@@ -266,7 +273,7 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
     # If lmaxT != lmaxP, we add artificial noise in TT for ell > lmaxT
     artificial_noise = np.zeros(lmax+1)
     artificial_noise[lmaxT+2:] = 1.e10
-    totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_standard.npy'
+    totalcls_filename = dir_out+f'totalcls/totalcls_average_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{fg_model}_standard.npy'
     if os.path.isfile(totalcls_filename):
         totalcls = np.load(totalcls_filename)
         cltt = totalcls[:,0]; clee = totalcls[:,1]; clbb = totalcls[:,2]; clte = totalcls[:,3]
@@ -277,7 +284,7 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv):
         clbb = hp.alm2cl(blm1,blm1)
         clte = hp.alm2cl(tlm1,elm1)
         totalcls = np.vstack((cltt_mv,clee,clbb,clte)).T
-        np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_standard.npy',totalcls)
+        np.save(dir_out+f'totalcls/totalcls_seed1_{sim1}_seed2_{sim1}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{fg_model}_standard.npy',totalcls)
         return
     else:
         print('WARNING: even for CMB-only sims, we want the filters to have the noise residuals if being used for N1 calculation!')

@@ -106,7 +106,7 @@ elif model_type == 'agora':
     agora_w_cib_null_twoseds_95 = agora_w_cib_null_twoseds.item()['cmbcibfree'][95][1]
     agora_w_cib_null_twoseds_150 = agora_w_cib_null_twoseds.item()['cmbcibfree'][150][1]
     agora_w_cib_null_twoseds_220 = agora_w_cib_null_twoseds.item()['cmbcibfree'][220][1]
-    
+
     # Get Agora sim (signal + foregrounds)
     print('Getting alms...')
     tlm_95, elm_95, blm_95 = hp.read_alm(agora_095,hdu=[1,2,3])
@@ -145,7 +145,7 @@ elif model_type == 'agora':
         tlm_tszn_out,_,_ = hp.synalm([fltt_tszn_agora,flee_mv_agora,flbb_mv_agora,flte_tszn_agora],new=True,lmax=lmax)
         tlm_cibn_onesed_out,_,_ = hp.synalm([fltt_cibn_onesed_agora,flee_mv_agora,flbb_mv_agora,flte_cibn_onesed_agora],new=True,lmax=lmax)
         tlm_cibn_twoseds_out,_,_ = hp.synalm([fltt_cibn_twoseds_agora,flee_mv_agora,flbb_mv_agora,flte_cibn_twoseds_agora],new=True,lmax=lmax)
-    
+
         # Load noise
         nlm_090_filename = dir_out + f'nlm/nlm_090_lmax{lmax}_seed{sim}.alm'
         nlm_150_filename = dir_out + f'nlm/nlm_150_lmax{lmax}_seed{sim}.alm'
@@ -160,12 +160,12 @@ elif model_type == 'agora':
         nlmt_cibn_twoseds = hp.almxfl(nlmt_090,agora_w_cib_null_twoseds_95[:lmax+1]) + hp.almxfl(nlmt_150,agora_w_cib_null_twoseds_150[:lmax+1]) + hp.almxfl(nlmt_220,agora_w_cib_null_twoseds_220[:lmax+1])
         nlme_mv = hp.almxfl(nlme_090,agora_w_Emv[0][:lmax+1]) + hp.almxfl(nlme_150,agora_w_Emv[1][:lmax+1]) + hp.almxfl(nlme_220,agora_w_Emv[2][:lmax+1])
         nlmb_mv = hp.almxfl(nlmb_090,agora_w_Bmv[0][:lmax+1]) + hp.almxfl(nlmb_150,agora_w_Bmv[1][:lmax+1]) + hp.almxfl(nlmb_220,agora_w_Bmv[2][:lmax+1])
-    
+
         # Add noise
         tlm_mv_out += nlmt_mv; tlm_tszn_out += nlmt_tszn; tlm_cibn_onesed_out += nlmt_cibn_onesed; tlm_cibn_twoseds_out += nlmt_cibn_twoseds
         elm_mv_out += nlme_mv;
         blm_mv_out += nlmb_mv;
-    
+
         # Save
         hp.fitsfunc.write_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_agora/agora_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim}_mv.fits',[tlm_mv_out,elm_mv_out,blm_mv_out])
         hp.fitsfunc.write_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/gmv/inputs/spt3g_2019_2020_agora/agora_fg_plus_spt3g_20192020_noise_lmax{lmax}_seed{sim}_tszn.fits',[tlm_tszn_out,elm_mv_out,blm_mv_out])

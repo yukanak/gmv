@@ -16,7 +16,7 @@ lensrec:
     lmin    : 300
     lminT   : 300
     lminP   : 300
-    lmaxT   : 3000
+    lmaxT   : 4000
     lmaxP   : 4096
     nside   : 2048
     # Location of output files
