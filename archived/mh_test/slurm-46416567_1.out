@@ -1,0 +1,20 @@
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:1665: RuntimeWarning: invalid value encountered in true_divide
+  sim_resp = cross_uncorrected_avg / auto_input_avg
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:588: RuntimeWarning: invalid value encountered in true_divide
+  inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:592: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:658: RuntimeWarning: invalid value encountered in true_divide
+  ratio_original = n0_original_total/(inv_resp_original * (l*(l+1))**2/4)
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:660: ComplexWarning: Casting complex values to real discards the imaginary part
+  ratio_original_avg = float(np.nanmean(ratio_original))
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:662: RuntimeWarning: invalid value encountered in true_divide
+  ratio_gmv = n0_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:664: ComplexWarning: Casting complex values to real discards the imaginary part
+  ratio_gmv_avg = float(np.nanmean(ratio_gmv))
+/home/users/yukanaka/miniconda3/envs/tora_py3/lib/python3.10/site-packages/matplotlib/cbook/__init__.py:1298: ComplexWarning: Casting complex values to real discards the imaginary part
+  return np.asarray(x, float)
+Loading lensing config: mh_yuka.yaml
+healqest commit: 5a9834fcd0d89ed024556a607d4faa53baf17f8c
+Reconstruction type: gmv
+/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat

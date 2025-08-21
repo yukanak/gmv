@@ -3,7 +3,7 @@ import healpy as hp
 import sys
 
 lmax = 4096
-# Mask
+# Point source mask
 mask = hp.read_map('/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/mask8192_mdpl2_v0.7_spt3g_150ghz_lenmag_cibmap_radmap_fluxcut6.0mjy_singlepix.fits')
 
 #t95_lcmb,q95_lcmb,u95_lcmb = hp.read_map(f'/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/mdpl2_spt3g_95ghz_lcmbNG_uk.fits',field=[0,1,2])

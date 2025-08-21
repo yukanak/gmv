@@ -1,0 +1,53 @@
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:588: RuntimeWarning: invalid value encountered in true_divide
+  inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:592: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:1079: RuntimeWarning: invalid value encountered in true_divide
+  inv_resps_original[1:,i] = 1/(resps_original)[1:,i]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:1088: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original = np.zeros_like(l,dtype=np.complex_); inv_resp_original[1:] = 1/(resp_original)[1:]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:1089: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original_TTEETE = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TTEETE[1:] = 1/(resp_original_TTEETE)[1:]
+/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py:1090: RuntimeWarning: invalid value encountered in true_divide
+  inv_resp_original_TBEB = np.zeros_like(l,dtype=np.complex_); inv_resp_original_TBEB[1:] = 1/(resp_original_TBEB)[1:]
+Loading lensing config: mh_yuka.yaml
+healqest commit: 5a9834fcd0d89ed024556a607d4faa53baf17f8c
+Reconstruction type: gmv
+/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lensedCls.dat
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Loading from existing file!
+Traceback (most recent call last):
+  File "/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py", line 1774, in <module>
+    compare_n0()
+  File "/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py", line 640, in compare_n0
+    n0_unl_gmv = get_n0_unl(sims=n0_n1_sims,qetype='gmv',config=config,
+  File "/home/users/yukanaka/gmv/mh_test/analyze_gmv_unified_mh.py", line 1506, in get_n0_unl
+    plm_gmv = np.load(dir_out+f'/plm_all_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{append}.npy')
+  File "/home/users/yukanaka/miniconda3/envs/tora_py3/lib/python3.10/site-packages/numpy/lib/npyio.py", line 407, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+FileNotFoundError: [Errno 2] No such file or directory: '/oak/stanford/orgs/kipac/users/yukanaka/outputs//plm_all_healqest_gmv_seed1_1_seed2_1_lmaxT3000_lmaxP4096_nside2048_mh_unl.npy'

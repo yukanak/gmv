@@ -627,42 +627,42 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     n0_original_TTEETE = n0_original['TTEETE'] * (l*(l+1))**2/4
     n0_original_TBEB = n0_original['TBEB'] * (l*(l+1))**2/4
     # SQE with T2T1
-    filename = dir_out+f'/n0/n0_39simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_mh_resp_from_sims_with_T2T1.pkl'
-    n0_original_with_T2T1 = pickle.load(open(filename,'rb'))
-    n0_original_total_with_T2T1 = n0_original_with_T2T1['total'] * (l*(l+1))**2/4
+    #filename = dir_out+f'/n0/n0_39simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_mh_resp_from_sims_with_T2T1.pkl'
+    #n0_original_with_T2T1 = pickle.load(open(filename,'rb'))
+    #n0_original_total_with_T2T1 = n0_original_with_T2T1['total'] * (l*(l+1))**2/4
     # ijij
-    filename = dir_out+f'/n0/ijij_39simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_mh_resp_from_sims.pkl'
-    ijij_original = pickle.load(open(filename,'rb'))
-    ijij_original_T1T2 = n0_original['T1T2'] * (l*(l+1))**2/4
-    ijij_original_T2T1 = n0_original['T2T1'] * (l*(l+1))**2/4
+    #filename = dir_out+f'/n0/ijij_39simpairs_healqest_sqe_lmaxT3000_lmaxP4096_nside2048_mh_resp_from_sims.pkl'
+    #ijij_original = pickle.load(open(filename,'rb'))
+    #ijij_original_T1T2 = n0_original['T1T2'] * (l*(l+1))**2/4
+    #ijij_original_T2T1 = n0_original['T2T1'] * (l*(l+1))**2/4
 
     # Get N0 from unlensed sims
-    n0_unl_gmv = get_n0_unl(sims=n0_n1_sims,qetype='gmv',config=config,
-                            resp_from_sims=resp_from_sims)
-    n0_unl_gmv_total = n0_unl_gmv['total'] * (l*(l+1))**2/4
-    n0_unl_gmv_TTEETE = n0_unl_gmv['TTEETE'] * (l*(l+1))**2/4
-    n0_unl_gmv_TBEB = n0_unl_gmv['TBEB'] * (l*(l+1))**2/4
-    n0_unl_original = get_n0_unl(sims=n0_n1_sims,qetype='sqe',config=config,
-                                 resp_from_sims=resp_from_sims)
-    n0_unl_original_total = n0_unl_original['total'] * (l*(l+1))**2/4
-    n0_unl_original_T1T2 = n0_unl_original['T1T2'] * (l*(l+1))**2/4
-    n0_unl_original_T2T1 = n0_unl_original['T2T1'] * (l*(l+1))**2/4
-    n0_unl_original_EE = n0_unl_original['EE'] * (l*(l+1))**2/4
-    n0_unl_original_TE = n0_unl_original['TE'] * (l*(l+1))**2/4
-    n0_unl_original_ET = n0_unl_original['ET'] * (l*(l+1))**2/4
-    n0_unl_original_TB = n0_unl_original['TB'] * (l*(l+1))**2/4
-    n0_unl_original_BT = n0_unl_original['BT'] * (l*(l+1))**2/4
-    n0_unl_original_EB = n0_unl_original['EB'] * (l*(l+1))**2/4
-    n0_unl_original_BE = n0_unl_original['BE'] * (l*(l+1))**2/4
+    #n0_unl_gmv = get_n0_unl(sims=n0_n1_sims,qetype='gmv',config=config,
+    #                        resp_from_sims=resp_from_sims)
+    #n0_unl_gmv_total = n0_unl_gmv['total'] * (l*(l+1))**2/4
+    #n0_unl_gmv_TTEETE = n0_unl_gmv['TTEETE'] * (l*(l+1))**2/4
+    #n0_unl_gmv_TBEB = n0_unl_gmv['TBEB'] * (l*(l+1))**2/4
+    #n0_unl_original = get_n0_unl(sims=n0_n1_sims,qetype='sqe',config=config,
+    #                             resp_from_sims=resp_from_sims)
+    #n0_unl_original_total = n0_unl_original['total'] * (l*(l+1))**2/4
+    #n0_unl_original_T1T2 = n0_unl_original['T1T2'] * (l*(l+1))**2/4
+    #n0_unl_original_T2T1 = n0_unl_original['T2T1'] * (l*(l+1))**2/4
+    #n0_unl_original_EE = n0_unl_original['EE'] * (l*(l+1))**2/4
+    #n0_unl_original_TE = n0_unl_original['TE'] * (l*(l+1))**2/4
+    #n0_unl_original_ET = n0_unl_original['ET'] * (l*(l+1))**2/4
+    #n0_unl_original_TB = n0_unl_original['TB'] * (l*(l+1))**2/4
+    #n0_unl_original_BT = n0_unl_original['BT'] * (l*(l+1))**2/4
+    #n0_unl_original_EB = n0_unl_original['EB'] * (l*(l+1))**2/4
+    #n0_unl_original_BE = n0_unl_original['BE'] * (l*(l+1))**2/4
 
     ratio_original = n0_original_total/(inv_resp_original * (l*(l+1))**2/4)
-    ratio_original_unl = n0_unl_original_total/(inv_resp_original * (l*(l+1))**2/4)
+    #ratio_original_unl = n0_unl_original_total/(inv_resp_original * (l*(l+1))**2/4)
     ratio_original_avg = float(np.nanmean(ratio_original))
-    ratio_original_unl_avg = float(np.nanmean(ratio_original_unl))
+    #ratio_original_unl_avg = float(np.nanmean(ratio_original_unl))
     ratio_gmv = n0_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
-    ratio_gmv_unl = n0_unl_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
+    #ratio_gmv_unl = n0_unl_gmv_total/(inv_resp_gmv * (l*(l+1))**2/4)
     ratio_gmv_avg = float(np.nanmean(ratio_gmv))
-    ratio_gmv_unl_avg = float(np.nanmean(ratio_gmv_unl))
+    #ratio_gmv_unl_avg = float(np.nanmean(ratio_gmv_unl))
 
     # Theory spectrum
     clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
@@ -709,7 +709,6 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
         else:
             plt.savefig(dir_out+f'/figs/n0_comparison_frac_diff_TBEB_mh.png',bbox_inches='tight')
 
-    '''
     plt.figure(1)
     plt.clf()
     # Compare N0 from unlensed reconstruction with 1/R
@@ -758,6 +757,7 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
             plt.savefig(dir_out+f'/figs/n0_comparison_sqe_{num}_sims_mh_resp_from_sims.png',bbox_inches='tight')
         else:
             plt.savefig(dir_out+f'/figs/n0_comparison_sqe_{num}_sims_mh.png',bbox_inches='tight')
+    '''
 
     plt.clf()
     plt.plot(l, clkk, 'k', label='Theory $C_\ell^{\kappa\kappa}$')
@@ -766,9 +766,9 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
     plt.plot(l, n0_gmv_TTEETE, color='forestgreen', linestyle='-',label='N0 (GMV, TTEETE)')
     plt.plot(l, n0_gmv_TBEB, color='blueviolet', linestyle='-',label='N0 (GMV, TBEB)')
 
-    plt.plot(l, n0_unl_gmv_total, color='powderblue', linestyle='-',label='N0 from Unlensed Sims (GMV)')
-    plt.plot(l, n0_unl_gmv_TTEETE, color='olive', linestyle='-',label='N0 from Unlensed Sims (GMV, TTEETE)')
-    plt.plot(l, n0_unl_gmv_TBEB, color='rebeccapurple', linestyle='-',label='N0 from Unlensed Sims (GMV, TBEB)')
+    #plt.plot(l, n0_unl_gmv_total, color='powderblue', linestyle='-',label='N0 from Unlensed Sims (GMV)')
+    #plt.plot(l, n0_unl_gmv_TTEETE, color='olive', linestyle='-',label='N0 from Unlensed Sims (GMV, TTEETE)')
+    #plt.plot(l, n0_unl_gmv_TBEB, color='rebeccapurple', linestyle='-',label='N0 from Unlensed Sims (GMV, TBEB)')
 
     plt.plot(l, inv_resp_gmv * (l*(l+1))**2/4, color='cornflowerblue', linestyle='--', label='1/R (GMV)')
     plt.plot(l, inv_resp_gmv_TTEETE * (l*(l+1))**2/4, color='lightgreen', linestyle='--', label='1/R (GMV, TTEETE)')
@@ -788,6 +788,7 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
         else:
             plt.savefig(dir_out+f'/figs/n0_comparison_gmv_{num}_sims_mh.png',bbox_inches='tight')
 
+    '''
     plt.figure(2)
     plt.clf()
 
@@ -856,6 +857,7 @@ def compare_n0(config_file='mh_yuka.yaml',sims=np.arange(40)+1,n0_n1_sims=np.ara
             plt.savefig(dir_out+f'/figs/ijij_comparison_sqe_{num}_sims_mh_resp_from_sims.png',bbox_inches='tight')
         else:
             plt.savefig(dir_out+f'/figs/ijij_comparison_sqe_{num}_sims_mh.png',bbox_inches='tight')
+    '''
 
 def compare_resp(config_file='mh_yuka.yaml',
                  save_fig=True):
@@ -1635,7 +1637,7 @@ def get_sim_response(est, config, gmv, append='mh', sims=np.arange(40)+1,
         else:
             fn += f'_sqe_est{est}'
         fn += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_{append}'
-        filename = dir_out+f'/resp/sim_resp{fn}.npy'
+        filename = dir_out+f'/resp/sim_resp_{num}sims{fn}.npy'
 
     if os.path.isfile(filename):
         print('Loading from existing file!')
@@ -1769,5 +1771,5 @@ def get_analytic_response(est, config, gmv, append='mh',
 ####################
 
 #compare_resp()
-#compare_n0()
-analyze()
+compare_n0()
+#analyze()

@@ -35,14 +35,22 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     bin_centers = (lbins[:-1] + lbins[1:]) / 2
     digitized = np.digitize(l, lbins)
     u = None
+    # Theory spectrum
+    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
+    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
+    clkk = slpp * (l*(l+1))**2/4
+    binned_clkk = [clkk[digitized == i].mean() for i in range(1, len(lbins))]
     # Input kappa
     if fg_model == 'agora':
-        klm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_klm_lmax{lmax}.fits')
+        #klm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_klm_lmax{lmax}.fits')
+        klm = hp.almxfl(hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/agora_sims/agora_spt3g_input_plm_lmax{lmax}.fits'),(l*(l+1))/2)
+        klm = utils.reduce_lmax(klm,lmax=lmax)
     else:
         kap = hp.read_map(f'/oak/stanford/orgs/kipac/users/yukanaka/websky/kap.fits')
         klm = hp.map2alm(kap)
         klm = utils.reduce_lmax(klm,lmax=lmax)
-
+    input_clkk = hp.alm2cl(klm,klm,lmax=lmax)
+    binned_input_clkk = np.array([input_clkk[digitized == i].mean() for i in range(1, len(lbins))])
 
     # Get response
     ests = ['TT', 'EE', 'TE', 'ET', 'TB', 'BT', 'EB', 'BE']
@@ -105,9 +113,9 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
     temp_cinv = np.zeros((len(sims),len(l)),dtype=np.complex_)
     temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
-    binned_temp_gmv = np.zeros((len(sims),len(l)),dtype=np.complex_)
-    binned_temp_cinv = np.zeros((len(sims),len(l)),dtype=np.complex_)
-    binned_temp_sqe = np.zeros((len(sims),len(l)),dtype=np.complex_)
+    binned_temp_gmv = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
+    binned_temp_cinv = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
+    binned_temp_sqe = np.zeros((len(sims),len(lbins)-1),dtype=np.complex_)
     cross_cinv_all = 0
 
     for ii, sim in enumerate(sims):
@@ -148,7 +156,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
 
             # Need this to compute uncertainty...
             temp_cinv[ii,:] = auto_debiased
-            binned_temp_cinv = [auto_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+            binned_temp_cinv[ii,:] = [auto_debiased[digitized == i].mean() for i in range(1, len(lbins))]
 
             # If debiasing, get the binned ratio against input
             input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
@@ -195,7 +203,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
 
                 # Need this to compute uncertainty...
                 temp_sqe[ii,:] = auto_sqe_debiased
-                binned_temp_sqe = [auto_sqe_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+                binned_temp_sqe[ii,:] = [auto_sqe_debiased[digitized == i].mean() for i in range(1, len(lbins))]
 
                 # If debiasing, get the binned ratio against input
                 input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
@@ -230,7 +238,7 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
 
                 # Need this to compute uncertainty...
                 temp_gmv[ii,:] = auto_gmv_debiased
-                binned_temp_gmv = [auto_gmv_debiased[digitized == i].mean() for i in range(1, len(lbins))]
+                binned_temp_gmv[ii,:] = [auto_gmv_debiased[digitized == i].mean() for i in range(1, len(lbins))]
 
                 # If debiasing, get the binned ratio against input
                 input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac//users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
@@ -300,10 +308,42 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
             # Bin!
             binned_auto_gmv_debiased_avg = [auto_gmv_debiased_avg[digitized == i].mean() for i in range(1, len(lbins))]
 
-    # Theory spectrum
-    clfile_path = '/home/users/yukanaka/healqest/healqest/camb/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_lenspotentialCls.dat'
-    ell,sltt,slee,slbb,slte,slpp,sltp,slep = utils.get_unlensedcls(clfile_path,lmax)
-    clkk = slpp * (l*(l+1))**2/4
+    # SAVE GAUSSIAN RECONSTRUCTION RESULTS
+    results = {}
+    results['bin_centers'] = bin_centers
+    results['binned_camb_clkk'] = binned_clkk
+    results[f'binned_{fg_model}_clkk'] = binned_input_clkk
+    results['auto_cinv_debiased_avg'] = auto_cinv_debiased_avg
+    results['binned_auto_cinv_debiased_avg'] = binned_auto_cinv_debiased_avg
+    results['ratio_cinv'] = ratio_cinv
+    results['errorbars_cinv'] = errorbars_cinv
+    if not os.path.isfile(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_cinv.npy'):
+        with open(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_cinv.npy', 'wb') as f:
+            pickle.dump(results, f)
+    if compare and sqe:
+        results_sqe = {}
+        results_sqe['bin_centers'] = bin_centers
+        results_sqe['binned_camb_clkk'] = binned_clkk
+        results_sqe[f'binned_{fg_model}_clkk'] = binned_input_clkk
+        results_sqe['auto_sqe_debiased_avg'] = auto_sqe_debiased_avg
+        results_sqe['binned_auto_sqe_debiased_avg'] = binned_auto_sqe_debiased_avg
+        results_sqe['ratio_sqe'] = ratio_sqe
+        results_sqe['errorbars_sqe'] = errorbars_sqe
+        if not os.path.isfile(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_sqe.npy'):
+            with open(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_sqe.npy', 'wb') as f:
+                pickle.dump(results_sqe, f)
+    elif compare:
+        results_gmv = {}
+        results_gmv['bin_centers'] = bin_centers
+        results_gmv['binned_camb_clkk'] = binned_clkk
+        results_gmv[f'binned_{fg_model}_clkk'] = binned_input_clkk
+        results_gmv['auto_gmv_debiased_avg'] = auto_gmv_debiased_avg
+        results_gmv['binned_auto_gmv_debiased_avg'] = binned_auto_gmv_debiased_avg
+        results_gmv['ratio_gmv'] = ratio_gmv
+        results_gmv['errorbars_gmv'] = errorbars_gmv
+        if not os.path.isfile(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_gmv.npy'):
+            with open(dir_out+f'/gaussian_reconstruction/gaussian_reconstruction_results_lmaxT{lmaxT}_{fg_model}_{append}_gmv.npy', 'wb') as f:
+                pickle.dump(results_gmv, f)
 
     # Plot
     plt.figure(0)
@@ -338,6 +378,11 @@ def analyze(sims=np.arange(250)+1,n0_n1_sims=np.arange(249)+1,
     plt.clf()
     # Ratios with error bars
     plt.axhline(y=1, color='k', linestyle='--')
+    #===TODO===#
+    # This is the same as lensing bias + 1
+    #plt.plot(bin_centers, np.array(binned_auto_cinv_debiased_avg)/np.array(binned_clkk), color='darkblue',alpha=0.5,linestyle='--',label='Reconstructed Kappa Autospectrum / CAMB Theory')
+    #plt.plot(bin_centers, (np.array(binned_auto_cinv_debiased_avg))/np.array(binned_input_clkk), color='forestgreen',alpha=0.5,linestyle='--',label='Reconstructed Kappa Autospectrum / Agora Input')
+    #==========#
     plt.errorbar(bin_centers,ratio_cinv,yerr=errorbars_cinv,color='firebrick',fmt='o',markerfacecolor='none',markeredgecolor='firebrick',alpha=0.5,linestyle='None', ms=7, label="GMV")
     if compare and sqe:
         plt.errorbar(bin_centers,ratio_sqe,yerr=errorbars_sqe,color='darkblue',fmt='s',markerfacecolor='none',markeredgecolor='darkblue',alpha=0.5,linestyle='None',ms=7,label="SQE")
@@ -702,6 +747,9 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
         #inv_resp_gmv_TTEETE = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TTEETE[1:] = 1./(resp_gmv_TTEETE)[1:]
         #inv_resp_gmv_TBEB = np.zeros(len(l),dtype=np.complex_); inv_resp_gmv_TBEB[1:] = 1./(resp_gmv_TBEB)[1:]
 
+        n0 = get_n0(sims=sims,qetype=qetype,config=config,
+                    append=append,cmbonly=True,fg_model=fg_model)
+
         n1 = {'total':0, 'TTEETE':0, 'TBEB':0}
         for i, sim in enumerate(sims):
             # These are reconstructions using sims that were lensed with the same phi but different CMB realizations, no foregrounds
@@ -747,9 +795,6 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
         #n1['TTEETE'] *= 1/num
         #n1['TBEB'] *= 1/num
 
-        n0 = get_n0(sims=sims,qetype=qetype,config=config,
-                    append=append,cmbonly=True,fg_model=fg_model)
-
         n1['total'] -= n0['total']
         #n1['TTEETE'] -= n0['TTEETE']
         #n1['TBEB'] -= n0['TBEB']
@@ -766,6 +811,9 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
             inv_resps[1:,i] = 1/(resps)[1:,i]
         resp = np.sum(resps, axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
+
+        n0 = get_n0(sims=sims,qetype=qetype,config=config,
+                    append=append,cmbonly=True,fg_model=fg_model)
 
         n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
         for i, sim in enumerate(sims):
@@ -856,9 +904,6 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
         #n1['EB'] *= 1/num
         #n1['BE'] *= 1/num
 
-        n0 = get_n0(sims=sims,qetype=qetype,config=config,
-                    append=append,cmbonly=True,fg_model=fg_model)
-
         n1['total'] -= n0['total']
         #n1['TT'] -= n0['TT']
         #n1['EE'] -= n0['EE']
@@ -882,6 +927,9 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
             inv_resps[1:,i] = 1/(resps)[1:,i]
         resp = np.sum(resps, axis=1)
         inv_resp = np.zeros_like(l,dtype=np.complex_); inv_resp[1:] = 1/(resp)[1:]
+
+        n0 = get_n0(sims=sims,qetype=qetype,config=config,
+                    append=append,cmbonly=True,fg_model=fg_model)
 
         n1 = {'total':0, 'TT':0, 'EE':0, 'TE':0, 'ET':0, 'TB':0, 'BT':0, 'EB':0, 'BE':0}
         for i, sim in enumerate(sims):
@@ -972,9 +1020,6 @@ def get_n1(sims,qetype,config,append,fg_model='agora'):
         #n1['EB'] *= 1/num
         #n1['BE'] *= 1/num
 
-        n0 = get_n0(sims=sims,qetype=qetype,config=config,
-                    append=append,cmbonly=True,fg_model=fg_model)
-
         n1['total'] -= n0['total']
         #n1['TT'] -= n0['TT']
         #n1['EE'] -= n0['EE']
@@ -1051,10 +1096,49 @@ def get_sim_response(est,config,cinv,append,sims,filename=None,gmv=True,fg_model
 
 ####################
 
-#analyze(config_file='test_yuka.yaml',compare=True,sqe=True,fg_model='agora')
-#analyze(config_file='test_yuka_lmaxT3500.yaml',compare=True,sqe=True,fg_model='agora')
-#analyze(config_file='test_yuka_lmaxT4000.yaml',compare=False,fg_model='agora')
+analyze(config_file='test_yuka.yaml',compare=True,sqe=True,fg_model='agora')
+analyze(config_file='test_yuka_lmaxT3500.yaml',compare=True,sqe=True,fg_model='agora')
+analyze(config_file='test_yuka_lmaxT4000.yaml',compare=True,sqe=True,fg_model='agora')
+
 #analyze(config_file='test_yuka.yaml',compare=False,fg_model='websky')
-analyze(config_file='test_yuka_lmaxT3500.yaml',compare=False,fg_model='websky')
+#analyze(config_file='test_yuka_lmaxT3500.yaml',compare=False,fg_model='websky')
 #analyze(config_file='test_yuka_lmaxT4000.yaml',compare=False,fg_model='websky')
 #analyze(config_file='test_yuka_lmaxT3500.yaml',compare=False,fg_model='agora',lbins = np.array((50,1000,2000,3000)))
+#analyze(config_file='test_yuka_lmaxT3500.yaml',compare=True,sqe=False,fg_model='agora')
+
+'''
+est='TTEETE';cinv=True;append='standard';sims=np.arange(250)+1;gmv=True;fg_model='agora'
+config = utils.parse_yaml('test_yuka_lmaxT3500.yaml')
+lmax = config['lensrec']['Lmax']
+lmaxT = config['lensrec']['lmaxT']
+lmaxP = config['lensrec']['lmaxP']
+lmin = config['lensrec']['lminT']
+nside = config['lensrec']['nside']
+cltype = config['lensrec']['cltype']
+dir_out = config['dir_out']
+l = np.arange(0,lmax+1)
+num = len(sims)
+fn = ''
+fn += f'_gmv_cinv_est{est}'
+fn += f'_lmaxT{lmaxT}_lmaxP{lmaxP}_lmin{lmin}_cltype{cltype}_{fg_model}_{append}'
+filename = dir_out+f'/resp/sim_resp_{num}sims{fn}.npy'
+# File doesn't exist!
+cross_uncorrected_all = 0
+auto_input_all = 0
+for ii, sim in enumerate(sims):
+    # Load plm
+    plm = 0
+    ests = ['TT','EE', 'TE', 'ET']
+    for e in ests:
+        plm += np.load(dir_out+f'/plm_{e}_healqest_gmv_seed1_{sim}_seed2_{sim}_lmaxT{lmaxT}_lmaxP{lmaxP}_nside{nside}_{fg_model}_{append}_cinv.npy')
+    input_plm = hp.read_alm(f'/oak/stanford/orgs/kipac/users/yukanaka/lensing19-20/inputcmb/phi/phi_lmax_{lmax}/planck2018_base_plikHM_TTTEEE_lowl_lowE_lensing_cambphiG_phi1_seed{sim}_lmax{lmax}.alm')
+    # Cross correlate with input plm
+    # For response from sims, want to use plms that are not response corrected
+    cross_uncorrected_all += hp.alm2cl(input_plm, plm, lmax=lmax)
+    auto_input_all += hp.alm2cl(input_plm, input_plm, lmax=lmax)
+# Get "response from sims" calculated the same way as the MC response
+auto_input_avg = auto_input_all / num
+cross_uncorrected_avg = cross_uncorrected_all / num
+sim_resp = cross_uncorrected_avg / auto_input_avg
+np.save(filename, sim_resp)
+'''

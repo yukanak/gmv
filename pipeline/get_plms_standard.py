@@ -103,10 +103,10 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,fg_model
     agora_150 = '/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/agora_spt3g_150ghz_alm_lmax4096.fits'
     agora_220 = '/oak/stanford/orgs/kipac/users/yukanaka/agora_sims_20240904/agora_spt3g_220ghz_alm_lmax4096.fits'
 
-    # Websky sims, use foreground-less E and B lensed alms from their website
-    websky_095_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_95ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
-    websky_150_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_150ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
-    websky_220_T = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_spt_220ghz_lcmb_tsz_cib_ksz_kszpatchy_muk_alm_lmax4096.fits'
+    # Websky sims, these are maps
+    websky_095 = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_95ghz_lcmb_tsz_cib_ksz_ksz-patchy_muK_nside4096.fits'
+    websky_150 = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_150ghz_lcmb_tsz_cib_ksz_ksz-patchy_muK_nside4096.fits'
+    websky_220 = '/oak/stanford/orgs/kipac/users/yukanaka/websky/websky_220ghz_lcmb_tsz_cib_ksz_ksz-patchy_muK_nside4096.fits'
     # From https://lambda.gsfc.nasa.gov/simulation/mocks_data.html but they claim it's "T,Q,U alms", but I think they mean T,E,B...
     websky_nofg = '/oak/stanford/orgs/kipac/users/yukanaka/websky/lensed_alm.fits'
 
@@ -139,19 +139,26 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,fg_model
 
     # ILC weights
     if fg_model == 'agora':
-        # Dimension (3, 6001) for 90, 150, 220 GHz respectively
-        w_tsz_null = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbynull.dat')
-        w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
-        w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
-        w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
+        w_agora = np.load('/home/users/yukanaka/gmv/pipeline/ilc_weights/ilc_weights_cmb_spt3g_2yr.npy',allow_pickle=True).item()
+        # Dimension (3, 4097) for 90, 150, 220 GHz respectively
+        w_Tmv = w_agora['tt']['mv'];
+        w_Emv = w_agora['ee']['mv'];
+        w_Bmv = w_agora['bb']['mv'];
+        w_tsz_null = w_agora['tt']['tsznull']
+        w_cib_null_onesed = w_agora['tt']['cibnull']
+        #w_tsz_null = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbynull.dat')
+        #w_Tmv = np.loadtxt('ilc_weights/weights1d_TT_spt3g_cmbmv.dat')
+        #w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
+        #w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
     elif fg_model == 'websky':
-        # These are dimensions (4097, 3) initially; then transpose to make it (3, 4097)
-        w_tsz_null = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_tsznull_lmax4096.npy').T
-        w_Tmv = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_mv_lmax4096.npy').T
-        w_cib_null = np.load('/oak/stanford/orgs/kipac/users/yukanaka/websky/weights_websky_cmbrec_cibnull_lmax4096.npy').T
-        # Dimension (3, 6001) for 90, 150, 220 GHz respectively
-        w_Emv = np.loadtxt('ilc_weights/weights1d_EE_spt3g_cmbmv.dat')
-        w_Bmv = np.loadtxt('ilc_weights/weights1d_BB_spt3g_cmbmv.dat')
+        w = np.load('/home/users/yukanaka/gmv/pipeline/ilc_weights/ilc_weights_cmb_spt3g_2yr_websky.npy',allow_pickle=True).item()
+        cases = ['mv', 'tsznull', 'cibnull']
+        # Dimension (3, 4097) for 90, 150, 220 GHz respectively
+        w_Tmv = w['tt']['mv'];
+        w_Emv = w['ee']['mv'];
+        w_Bmv = w['bb']['mv'];
+        w_tsz_null = w['tt']['tsznull']
+        w_cib_null = w['tt']['cibnull']
 
     print('Getting alms...')
     if fg_model == 'agora':
@@ -160,15 +167,12 @@ def do_reconstruction(qe,sim1,sim2,append,config_file,filename,gmv,cinv,fg_model
         tlm_150_agora, elm_150_agora, blm_150_agora = hp.read_alm(agora_150,hdu=[1,2,3])
         tlm_220_agora, elm_220_agora, blm_220_agora = hp.read_alm(agora_220,hdu=[1,2,3])
     elif fg_model == 'websky':
-        tlm_95_websky = hp.read_alm(websky_095_T)
-        tlm_150_websky = hp.read_alm(websky_150_T)
-        tlm_220_websky = hp.read_alm(websky_220_T)
-        _, elm_95_websky, blm_95_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
-        _, elm_150_websky, blm_150_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
-        _, elm_220_websky, blm_220_websky = hp.read_alm(websky_nofg,hdu=[1,2,3])
-        tlm_95_websky = utils.reduce_lmax(tlm_95_websky,lmax=lmax); tlm_150_websky = utils.reduce_lmax(tlm_150_websky,lmax=lmax); tlm_220_websky = utils.reduce_lmax(tlm_220_websky,lmax=lmax);
-        elm_95_websky = utils.reduce_lmax(elm_95_websky,lmax=lmax); elm_150_websky = utils.reduce_lmax(elm_150_websky,lmax=lmax); elm_220_websky = utils.reduce_lmax(elm_220_websky,lmax=lmax);
-        blm_95_websky = utils.reduce_lmax(blm_95_websky,lmax=lmax); blm_150_websky = utils.reduce_lmax(blm_150_websky,lmax=lmax); blm_220_websky = utils.reduce_lmax(blm_220_websky,lmax=lmax);
+        t_95_websky, q_95_websky, u_95_websky = hp.read_map(websky_095,field=[1,2,3])
+        t_150_websky, q_150_websky, u_150_websky = hp.read_map(websky_150,field=[1,2,3])
+        t_220_websky, q_220_websky, u_220_websky = hp.read_map(websky_220,field=[1,2,3])
+        tlm_95_websky, elm_95_websky, blm_95_websky = hp.map2alm([t_95_websky, q_95_websky, u_95_websky], lmax=lmax)
+        tlm_150_websky, elm_150_websky, blm_150_websky = hp.map2alm([t_150_websky, q_150_websky, u_150_websky], lmax=lmax)
+        tlm_220_websky, elm_220_websky, blm_220_websky = hp.map2alm([t_220_websky, q_220_websky, u_220_websky], lmax=lmax)
 
     # Get full sky CMB alms
     print('Getting alms...')
